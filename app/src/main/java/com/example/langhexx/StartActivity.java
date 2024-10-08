@@ -13,6 +13,7 @@ public class StartActivity extends AppCompatActivity {
     ProgressBar progressBar;
     TextView welcomeTextView;
     private int progressStatus = 0;
+
     private Handler handler = new Handler();
 
     @Override
@@ -21,8 +22,11 @@ public class StartActivity extends AppCompatActivity {
         setContentView(R.layout.activity_start);
 
         // Tham chiếu tới các thành phần trong layout
-        progressBar = findViewById(R.id.progressBar); // Mặc dù progressBar bị ẩn, nó vẫn chạy ngầm
+        progressBar = findViewById(R.id.progressBar);
         welcomeTextView = findViewById(R.id.txtWelcome);
+
+        // Đặt alpha của welcomeTextView về 0 (ẩn)
+        welcomeTextView.setAlpha(0f);
 
         // Chạy tiến trình progress bar
         new Thread(new Runnable() {
@@ -36,21 +40,19 @@ public class StartActivity extends AppCompatActivity {
                         }
                     });
                     try {
-                        // Điều chỉnh tốc độ của progress bar
-                        Thread.sleep(1200); // Điều chỉnh thời gian theo nhu cầu
+                        // Điều chỉnh thời gian để mô phỏng quá trình tải
+                        Thread.sleep(50); // Điều chỉnh thời gian theo nhu cầu
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
 
-                // Khi progress bar hoàn thành, hiển thị welcome và chuyển sang Activity mới
+                // Khi progress bar hoàn thành, hiển thị welcomeTextView từ từ
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        // Hiển thị dòng chữ welcome
-                        welcomeTextView.setVisibility(View.VISIBLE);
-                        welcomeTextView.setAlpha(0f);
-                        welcomeTextView.animate().alpha(1f).setDuration(1000); // 1 giây hiệu ứng fade-in
+                        // Hiển thị dòng chữ welcome từ từ bằng hiệu ứng fade-in
+                        welcomeTextView.animate().alpha(1f).setDuration(2000); // Hiệu ứng trong 2 giây
 
                         // Sau khi hiển thị welcome, đợi 2 giây rồi chuyển sang Activity mới
                         handler.postDelayed(new Runnable() {
@@ -59,9 +61,9 @@ public class StartActivity extends AppCompatActivity {
                                 // Khởi chạy Activity mới
                                 Intent intent = new Intent(StartActivity.this, MainActivity.class);
                                 startActivity(intent);
-                                finish(); // Đóng Activity hiện tại nếu cần
+                                finish(); // Đóng Activity hiện tại
                             }
-                        }, 2000); // Chờ 2 giây trước khi chuyển sang Activity mới
+                        }, 4000); // Chờ 2 giây trước khi chuyển sang Activity mới
                     }
                 });
             }
