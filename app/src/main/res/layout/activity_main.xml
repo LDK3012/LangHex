@@ -21,13 +21,15 @@
                 android:layout_height="80dp"
                 android:layout_gravity="bottom"
                 android:background="#FF4F52"
-                app:itemBackground="@drawable/nav_item_background"
+                app:itemRippleColor="@android:color/transparent"
                 app:itemTextAppearanceActive="@style/BottomNavigationViewTextAppearance"
                 app:itemTextAppearanceInactive="@style/BottomNavigationViewTextAppearance"
                 app:menu="@menu/menu"
                 app:itemIconSize="35dp"
                 app:itemIconTint="@color/white"
                 app:itemTextColor="@color/white"
+                app:itemPaddingTop="15dp"
+                style="@style/Widget.MaterialComponents.Toolbar.PrimarySurface"
                 tools:ignore="InvalidID,MissingConstraints"/>
 
         </FrameLayout>
