@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- State when the item is selected -->
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="5dp"/> <!-- Rounded corners -->
+        </shape>
+    </item>
+
+    <!-- Default state when the item is not selected -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent"/> <!-- No background when unselected -->
+            <stroke android:width="2dp" android:color="@android:color/transparent"/> <!-- No border -->
+        </shape>
+    </item>
+</selector>

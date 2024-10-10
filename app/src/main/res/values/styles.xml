@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="BottomNavigationViewTextAppearance" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">12dp</item>
+    </style>
+    <style name="BottomNavigationViewStyle" parent="Widget.Design.BottomNavigationView">
+        <item name="itemTextAppearanceActive">@style/BottomNavigationViewTextAppearance</item>
+        <item name="itemTextAppearanceInactive">@style/BottomNavigationViewTextAppearance</item>
+    </style>
+</resources>

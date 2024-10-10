@@ -3,7 +3,6 @@ package com.example.langhexx;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -59,7 +58,7 @@ public class StartActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 // Khởi chạy Activity mới
-                                Intent intent = new Intent(StartActivity.this, MainActivity.class);
+                                Intent intent = new Intent(StartActivity.this, LoginActivity.class);
                                 startActivity(intent);
                                 finish(); // Đóng Activity hiện tại
                             }
