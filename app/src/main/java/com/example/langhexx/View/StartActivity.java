@@ -1,4 +1,4 @@
-package com.example.langhexx;
+package com.example.langhexx.View;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -6,6 +6,8 @@ import android.os.Handler;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.langhexx.R;
 
 public class StartActivity extends AppCompatActivity {
 

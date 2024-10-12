@@ -7,7 +7,7 @@
         android:orientation="vertical"
         android:gravity="center"
         android:backgroundTint="@null"
-        tools:context=".MainActivity">
+        tools:context=".View.MainActivity">
 
         <FrameLayout
             android:id="@+id/mainFrame"
@@ -17,20 +17,19 @@
 
             <com.google.android.material.bottomnavigation.BottomNavigationView
                 android:id="@+id/btnNav"
+                style="@style/Widget.MaterialComponents.BottomNavigationView.PrimarySurface"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
                 android:layout_gravity="bottom"
                 android:background="#FF4F52"
-                app:itemRippleColor="@android:color/transparent"
-                app:itemTextAppearanceActive="@style/BottomNavigationViewTextAppearance"
-                app:itemTextAppearanceInactive="@style/BottomNavigationViewTextAppearance"
-                app:menu="@menu/menu"
                 app:itemIconSize="35dp"
                 app:itemIconTint="@color/white"
-                app:itemTextColor="@color/white"
                 app:itemPaddingTop="15dp"
-                style="@style/Widget.MaterialComponents.Toolbar.PrimarySurface"
-                tools:ignore="InvalidID,MissingConstraints"/>
+                app:itemTextAppearanceActive="@style/BottomNavigationViewTextAppearance"
+                app:itemTextAppearanceInactive="@style/BottomNavigationViewTextAppearance"
+                app:itemTextColor="@color/white"
+                app:menu="@menu/menu"
+                tools:ignore="InvalidID,MissingConstraints" />
 
         </FrameLayout>
 
