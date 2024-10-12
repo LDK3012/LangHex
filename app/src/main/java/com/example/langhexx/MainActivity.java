@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         Fragment fragment1 = new HomeFragment();
         fragmentTransaction.add(R.id.mainFrame,fragment1);
         fragmentTransaction.commit();
+
     }
 
     public void onBackPressed(){
