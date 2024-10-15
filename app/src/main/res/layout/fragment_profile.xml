@@ -96,6 +96,7 @@
                     </TextView>
 
                     <TextView
+                        android:id="@+id/txtInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_downward_item"
