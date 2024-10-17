@@ -29,8 +29,7 @@ public class ProfileDetail extends AppCompatActivity {
         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(ProfileDetail.this, ProfileFragment.class);
-                startActivity(intent);
+                finish();
             }
         });
     }

@@ -29,8 +29,7 @@ public class FeedbackActivity extends AppCompatActivity {
         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(FeedbackActivity.this, ProfileFragment.class);
-                startActivity(intent);
+                finish();
             }
         });
     }

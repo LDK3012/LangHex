@@ -20,14 +20,15 @@ public class ProfileFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        addControls();
+        View view = inflater.inflate(R.layout.fragment_profile, container, false);
+        addControls(view);
         addEvents();
-        return inflater.inflate(R.layout.fragment_profile, container, false);
+        return view;
     }
 
-    public void addControls(){
-        txtProfileDetail = getView().findViewById(R.id.txtInfo);
-        txtFeedback = getView().findViewById(R.id.txtFeedback);
+    public void addControls(View view){
+        txtProfileDetail = view.findViewById(R.id.txtInfo);
+        txtFeedback = view.findViewById(R.id.txtFeedback);
     }
 
     public void addEvents(){
@@ -39,7 +40,7 @@ public class ProfileFragment extends Fragment {
             }
         });
 
-        txtProfileDetail.setOnClickListener(new View.OnClickListener() {
+        txtFeedback.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(getActivity(), FeedbackActivity.class);
