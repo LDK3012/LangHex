@@ -10,7 +10,7 @@
 
   <LinearLayout
       android:layout_width="match_parent"
-      android:layout_height="67dp"
+      android:layout_height="60dp"
       android:background="#FF4F52"
       android:gravity="bottom"
       android:weightSum="4">
@@ -63,7 +63,7 @@
 
   <LinearLayout
       android:layout_width="match_parent"
-      android:layout_height="386dp"
+      android:layout_height="wrap_content"
       android:layout_gravity="center"
       android:layout_margin="40dp"
       android:layout_marginTop="20dp"
@@ -143,22 +143,30 @@
 
   </LinearLayout>
 
-  <com.google.android.material.bottomnavigation.BottomNavigationView
-      android:id="@+id/btnNav"
-      style="@style/Widget.MaterialComponents.BottomNavigationView.PrimarySurface"
-      android:layout_width="match_parent"
-      android:layout_height="80dp"
-      android:layout_gravity="bottom"
-      android:background="#FF4F52"
-      app:itemIconSize="35dp"
-      app:itemIconTint="@color/white"
-      app:itemPaddingTop="15dp"
-      app:itemTextAppearanceActive="@style/BottomNavigationViewTextAppearance"
-      app:itemTextAppearanceInactive="@style/BottomNavigationViewTextAppearance"
-      app:itemTextColor="@color/white"
-      app:menu="@menu/menu"
-      tools:ignore="InvalidID,MissingConstraints" />
+
+  <FrameLayout
+      android:id="@+id/mainFrame"
+      android:layout_width="wrap_content"
+      android:layout_height="match_parent"
+      tools:ignore="MissingConstraints">
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/btnNav"
+        style="@style/Widget.MaterialComponents.BottomNavigationView.PrimarySurface"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_gravity="bottom"
+        android:background="#FF4F52"
+        app:itemIconSize="35dp"
+        app:itemIconTint="@color/white"
+        app:itemPaddingTop="15dp"
+        app:itemTextColor="@color/white"
+        app:menu="@menu/menu"
+        tools:ignore="InvalidID,MissingConstraints" />
+
+  </FrameLayout>
 
 </LinearLayout>
+
 
 

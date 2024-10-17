@@ -9,14 +9,14 @@ import android.widget.Button;
 
 import com.example.langhexx.R;
 
-public class ProfileDetail extends AppCompatActivity {
+public class FeedbackActivity extends AppCompatActivity {
 
     Button btnBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_profile_detail);
+        setContentView(R.layout.activity_feedback);
         addControls();
         addEvents();
     }
@@ -29,7 +29,7 @@ public class ProfileDetail extends AppCompatActivity {
         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(ProfileDetail.this, ProfileFragment.class);
+                Intent intent = new Intent(FeedbackActivity.this, ProfileFragment.class);
                 startActivity(intent);
             }
         });
