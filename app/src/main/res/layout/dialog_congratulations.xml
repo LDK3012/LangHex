@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="24dp"
+    android:gravity="center">
+
+    <!-- Icon chúc mừng -->
+    <ImageView
+        android:id="@+id/ivCongratsIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/correct"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Nội dung chúc mừng -->
+    <TextView
+        android:id="@+id/tvCongratsMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Chúc mừng bạn đã trả lời đúng!"
+        android:textSize="18sp"
+        android:textColor="#4CAF50"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Nút OK -->
+    <Button
+        android:id="@+id/btnOk"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="OK"
+        android:backgroundTint="@color/Green"
+        android:textColor="@android:color/white"/>
+</LinearLayout>

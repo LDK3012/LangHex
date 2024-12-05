@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/back"
+            android:layout_marginEnd="16dp"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/videoCard"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <VideoView
+                    android:id="@+id/videoView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_centerInParent="true" />
+
+                <TextView
+                    android:id="@+id/tvStartVideo"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="Nhấn để bắt đầu"
+                    android:gravity="center"
+                    android:textColor="@color/White"
+                    android:background="@color/Black"
+                    android:textSize="25dp"
+                    android:textStyle="bold"/>
+
+                <View
+                    android:id="@+id/subtitleMask"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="@color/White"
+                    android:visibility="invisible"
+                    android:layout_alignParentBottom="true" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Ẩn gợi ý"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            android:backgroundTint="@color/Red"
+            android:textColor="@color/white"
+            app:cornerRadius="8dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/inputAnswerLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:boxBackgroundMode="outline"
+            app:boxCornerRadiusTopStart="8dp"
+            app:boxCornerRadiusTopEnd="8dp"
+            app:boxCornerRadiusBottomStart="8dp"
+            app:boxCornerRadiusBottomEnd="8dp"
+            >
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/userInputAnswer"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:hint="Nhập ở đây"
+                android:gravity="top|start"
+                android:inputType="textMultiLine"
+                android:background="@android:color/transparent" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnContinue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Tiếp tục"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/Red"
+            app:cornerRadius="8dp" />
+
+    </LinearLayout>
+</ScrollView>

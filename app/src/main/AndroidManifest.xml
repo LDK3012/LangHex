@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
 
     <application
         android:allowBackup="true"
@@ -14,6 +16,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
+        <activity
+            android:name=".View.SpeakingPracticeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".View.ListeningPracticeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".View.LearningTypeActivity"
+            android:exported="false" />
         <activity
             android:name=".View.FeedbackActivity"
             android:exported="false" />

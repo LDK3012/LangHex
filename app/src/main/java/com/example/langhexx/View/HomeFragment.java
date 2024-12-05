@@ -1,5 +1,6 @@
 package com.example.langhexx.View;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -47,10 +48,16 @@ public class HomeFragment extends Fragment {
 
     private void setUpListView(){
         levelsList = new ArrayList<>();
-        levelsList.add(new Levels("Beginner", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("Beginner", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("General English", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("English 1", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("English 2", String.valueOf(R.drawable.example)));
         levelsAdapter = new LevelsAdapter(getActivity(), R.layout.custom_levels_lst, levelsList);
         lstLevel.setAdapter(levelsAdapter);
+        lstLevel.setOnItemClickListener((parent, view, position, id) -> {
+            Intent intent = new Intent(getActivity(), LearningTypeActivity.class);
+            intent.putExtra("levelName", levelsList.get(position).getTxtLevels());
+            startActivity(intent);
+        });
     }
 
 
