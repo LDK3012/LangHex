@@ -246,7 +246,7 @@
         <ListView
             android:id="@+id/lstLeaderboard"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="303dp"
             android:layout_gravity="center"
             android:layout_marginLeft="20dp"
             android:layout_marginTop="15dp"

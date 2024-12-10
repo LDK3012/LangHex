@@ -8,15 +8,14 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:layout_gravity="center"
-    android:padding="16dp"
     tools:context=".View.SpeakingPracticeActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_margin="20dp"
+        android:orientation="horizontal">
 
         <ImageButton
             android:id="@+id/btnBack"
@@ -30,7 +29,6 @@
             android:id="@+id/tvTimer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
             android:text="05:00"
             android:textSize="20dp"
             android:paddingRight="30dp"
@@ -40,8 +38,8 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="450dp"
-        android:layout_marginTop="20dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
         android:layout_gravity="center"
         android:orientation="vertical">
 
@@ -58,27 +56,31 @@
         <ListView
             android:id="@+id/lstQuestions"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            >
-        </ListView>
+            android:layout_height="371dp"></ListView>
+
+        <ImageButton
+            android:id="@+id/btnMicro"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/white"
+            android:src="@drawable/micro"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnComplete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:backgroundTint="@color/Red"
+            android:text="Hoàn thành"
+            android:layout_marginTop="20dp"
+            android:textColor="@android:color/white"
+            app:cornerRadius="8dp" />
     </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/btnMicro"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/micro"
-        android:backgroundTint="@color/white"
-        android:layout_gravity="center"
-        android:layout_marginBottom="32dp"/>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnComplete"
-        android:layout_width="178dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:backgroundTint="@color/Red"
-        android:text="Hoàn thành"
-        android:textColor="@android:color/white"
-        app:cornerRadius="8dp" />
 </LinearLayout>

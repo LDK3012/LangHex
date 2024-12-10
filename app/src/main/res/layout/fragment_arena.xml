@@ -45,7 +45,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="180dp"
                         android:scaleType="centerCrop"
-                        tools:src="@drawable/leaderboard" />
+                        tools:src="@drawable/imgleaderboard" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -103,7 +103,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="180dp"
                         android:scaleType="centerCrop"
-                        tools:src="@drawable/battle" />
+                        tools:src="@drawable/imgarena" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
