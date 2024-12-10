@@ -11,10 +11,11 @@
 
         <FrameLayout
             android:id="@+id/mainFrame"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_weight="1"
             android:layout_height="match_parent"
             tools:ignore="MissingConstraints">
-
+        </FrameLayout>
             <com.google.android.material.bottomnavigation.BottomNavigationView
                 android:id="@+id/btnNav"
                 style="@style/Widget.MaterialComponents.BottomNavigationView.PrimarySurface"
@@ -29,6 +30,6 @@
                 app:menu="@menu/menu"
                 tools:ignore="InvalidID,MissingConstraints" />
 
-        </FrameLayout>
+
 
     </LinearLayout>
