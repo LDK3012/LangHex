@@ -16,6 +16,15 @@
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
         <activity
+            android:name=".View.ChooseTopicSpeakingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".View.ReviewActivity"
+            android:exported="false" />
+        <activity
+            android:name=".View.VstepActivity"
+            android:exported="false" />
+        <activity
             android:name=".View.LeaderboardActivity"
             android:exported="false" />
         <activity
