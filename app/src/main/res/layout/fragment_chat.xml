@@ -5,10 +5,160 @@
     android:layout_height="match_parent"
     tools:context=".View.ChatFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <!-- Layout chính với nền trắng -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp"
+            android:background="@android:color/white"
+            android:elevation="2dp">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/logo_start"
+                android:contentDescription="Logo trường"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    android:text="Trường đại học Văn Lang"
+                    android:textStyle="bold"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:textColor="#000000" />
+
+                <TextView
+                    android:text="Viện Ngôn ngữ trường đại học Văn Lang"
+                    android:textSize="12sp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#777777" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Khung trò chuyện -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:background="@android:color/white"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:padding="8dp"
+            android:clipToPadding="false"
+            android:elevation="2dp"
+            android:id="@+id/chatContainer"
+            android:backgroundTint="@android:color/white">
+
+            <!-- RecyclerView để hiển thị tin nhắn -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerChat"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:overScrollMode="never"
+                android:scrollbars="none"
+                android:clipToPadding="false" />
+
+            <!-- Khung nhập tin nhắn -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="8dp">
+
+                <EditText
+                    android:id="@+id/edtMessage"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:hint="Aa"
+                    android:background="@drawable/edittext_background"
+                    android:padding="10dp"
+                    android:textSize="14sp"
+                    android:inputType="textMultiLine"
+                    android:maxLines="4" />
+
+                <ImageButton
+                    android:id="@+id/btnSend"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/send_icon"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Gửi"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- TextView trung tâm cho dòng "Ask everything" -->
+    <!-- Sample Questions Container -->
+    <LinearLayout
+        android:id="@+id/sampleQuestionsContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center"
+        android:padding="12dp"
+        android:elevation="3dp"
+        android:visibility="visible">
+
+        <ImageView
+            android:id="@+id/sampleQuestionsIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/chatbot"
+            android:contentDescription="Sample Questions Icon"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/sampleQuestion1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đây là đâu ? Và bạn là ai ?"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:padding="8dp"
+            android:background="@drawable/sample_question_item_background"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/sampleQuestion2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cách để cải thiện kĩ năng nói ?"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:padding="8dp"
+            android:background="@drawable/sample_question_item_background"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/sampleQuestion3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ví dụ về các ngữ pháp tiếng anh thú vị ?"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:padding="8dp"
+            android:background="@drawable/sample_question_item_background" />
+    </LinearLayout>
 
 </FrameLayout>

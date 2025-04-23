@@ -14,11 +14,14 @@ public class LearningTypeActivity extends AppCompatActivity {
 
     private ImageButton btnBack;
     private CardView cardListening, cardSpeaking;
-
+    private String levelName ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_learning_type);
+        //
+        levelName = getIntent().getStringExtra("levelName") ;
+        //
         addControls();
         addEvents();
     }
@@ -39,14 +42,15 @@ public class LearningTypeActivity extends AppCompatActivity {
         cardListening.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(LearningTypeActivity.this, ListeningPracticeActivity.class);
+                Intent intent = new Intent(LearningTypeActivity.this, InternalListeningTopic.class);
                 startActivity(intent);
             }
         });
         cardSpeaking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(LearningTypeActivity.this, SpeakingPracticeActivity.class);
+                Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicSpeakingActivity.class);
+                intent.putExtra("levelName",levelName) ;
                 startActivity(intent);
             }
         });

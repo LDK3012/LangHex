@@ -16,6 +16,15 @@
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
         <activity
+            android:name=".View.InternalReadingTopic"
+            android:exported="false" />
+        <activity
+            android:name=".View.InternalListeningTopic"
+            android:exported="false" />
+        <activity
+            android:name=".View.InternalSpeakingTopic"
+            android:exported="false" />
+        <activity
             android:name=".View.ChooseTopicSpeakingActivity"
             android:exported="false" />
         <activity

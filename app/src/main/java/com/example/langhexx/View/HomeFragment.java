@@ -48,17 +48,26 @@ public class HomeFragment extends Fragment {
 
     private void setUpListView(){
         levelsList = new ArrayList<>();
-        levelsList.add(new Levels("General English", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("English 1", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("English 2", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("General English - Vstep", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A1", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A2", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A3", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A4", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A5", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A6", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A7", String.valueOf(R.drawable.example)));
         levelsAdapter = new LevelsAdapter(getActivity(), R.layout.custom_levels_lst, levelsList);
         lstLevel.setAdapter(levelsAdapter);
         lstLevel.setOnItemClickListener((parent, view, position, id) -> {
-            Intent intent = new Intent(getActivity(), LearningTypeActivity.class);
-            intent.putExtra("levelName", levelsList.get(position).getTxtLevels());
-            startActivity(intent);
+            String levelName = levelsList.get(position).getTxtLevels() ;
+            if(levelName.equals("General English - Vstep")){
+                Intent intent = new Intent(getActivity(), VstepActivity.class) ;
+                startActivity(intent);
+            }else {
+                Intent intent = new Intent(getActivity(), LearningTypeActivity.class);
+                intent.putExtra("levelName", levelsList.get(position).getTxtLevels());
+                startActivity(intent);
+            }
         });
     }
-
-
 }

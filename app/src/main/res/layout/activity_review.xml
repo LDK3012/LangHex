@@ -73,6 +73,7 @@
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout
+                        android:id="@+id/lnrListening"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical">
@@ -122,6 +123,7 @@
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout
+                        android:id="@+id/lnrSpeaking"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical">
@@ -180,6 +182,7 @@
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout
+                        android:id="@+id/lnrReading"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical">
