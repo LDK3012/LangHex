@@ -33,7 +33,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/speaker"
-                android:tint="#F9C2C2" />
+                android:tint="#F32F2F" />
 
             <TextView
                 android:id="@+id/txtQuestion"
@@ -73,15 +73,38 @@
                 android:layout_width="25dp"
                 android:layout_height="25dp"
                 android:src="@drawable/arrow"
-                android:tint="#F9C2C2" />
+                android:tint="#F32F2F" />
 
-            <TextView
-                android:id="@+id/tvResponse"
+            <!-- ProgressBar to show loading state -->
+            <ProgressBar
+                android:id="@+id/progressBar_speaking"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="----------"
+                android:visibility="gone"
+                android:layout_marginStart="8dp"
+                android:indeterminate="true" />
+
+            <!-- TextView to show response -->
+            <TextView
+                android:id="@+id/tvResponse"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="..."
                 android:paddingStart="8dp"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:visibility="gone" /> <!-- Initially hidden -->
+
+            <ImageView
+                android:id="@+id/iconWarning"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/icon_warning"
+                android:visibility="gone"
+                android:contentDescription="Cảnh báo"
+                android:tint="#FF0000"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
+
     </LinearLayout>
 </LinearLayout>

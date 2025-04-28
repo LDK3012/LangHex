@@ -11,7 +11,7 @@
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#F9C2C2"
+        android:background="#F13F3F"
         android:padding="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
@@ -30,7 +30,7 @@
             android:layout_weight="1"
             android:text="Introducing yourself\nand others"
             android:textAlignment="center"
-            android:textColor="#000"
+            android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:paddingStart="16dp"
             android:paddingEnd="16dp" />
@@ -62,16 +62,17 @@
         android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
         android:layout_height="90dp"
-        android:background="#F9C2C2"
+        android:background="#F32F2F"
         android:gravity="center">
 
         <ImageButton
             android:id="@+id/btnSpeakingMicro"
             android:layout_width="48dp"
-            android:layout_height="60dp"
-            android:src="@drawable/micro"
+            android:layout_height="65dp"
+            android:src="@drawable/microphone"
+            android:tint="@color/white"
             android:background="@android:color/transparent"
-            android:tint="#B00020" />
+            />
     </LinearLayout>
 
 </RelativeLayout>
