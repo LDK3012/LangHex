@@ -57,7 +57,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
                     android:layout_gravity="center"
-                    android:inputType="number"
+                    android:inputType="text"
                     android:textSize="11dp"
                     android:hint="Mã sinh viên"
                     android:textColorHint="#898989"
@@ -72,13 +72,12 @@
                     android:layout_height="45dp"
                     android:layout_gravity="center"
                     android:layout_marginTop="15dp"
-                    android:inputType="number"
-                    android:textSize="11dp"
-                    android:hint="Ngày tháng năm sinh ( 30122003 )"
-                    android:textColorHint="#898989"
-                    android:paddingLeft="10dp"
                     android:background="@drawable/gray_border"
-                    />
+                    android:hint="Ngày tháng năm sinh ( 30122003 )"
+                    android:inputType="text"
+                    android:paddingLeft="10dp"
+                    android:textColorHint="#898989"
+                    android:textSize="11dp" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnLogin"

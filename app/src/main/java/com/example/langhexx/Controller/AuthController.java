@@ -1,11 +1,16 @@
 package com.example.langhexx.Controller;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 
+import com.example.langhexx.Model.CustomToast;
+import com.example.langhexx.Model.User;
+import com.example.langhexx.R;
 import com.example.langhexx.View.LoginActivity;
 import com.example.langhexx.View.MainActivity;
 import com.google.android.gms.tasks.Task;
@@ -16,11 +21,14 @@ import com.google.firebase.auth.OAuthCredential;
 import com.google.firebase.auth.OAuthProvider;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AuthController {
     private FirebaseAuth firebaseAuth;
     private AuthCallback authCallback;
+    private Map<String, String> accountSample = new HashMap<>();
 
     public AuthController(AuthCallback authCallback) {
         this.firebaseAuth = FirebaseAuth.getInstance();
@@ -86,6 +94,52 @@ public class AuthController {
             Intent intent = new Intent(activity, MainActivity.class);
             activity.startActivity(intent);
             activity.finish();
+        }
+    }
+
+
+    //login by username and password
+    public void handleLogin(Context context, String username, String password) {
+        username = username.trim();
+        password = password.trim();
+
+
+        // Trường hợp cả username và password đều trống
+        if (username.isEmpty() && password.isEmpty()) {
+            CustomToast.showFail(context, "Vui lòng nhập Mssv và Password !", R.drawable.fail_icon);
+            return;
+        }
+        //
+
+        // Kiểm tra input trống trước
+        if (username.isEmpty()) {
+            CustomToast.showFail(context, "Vui lòng nhập Mssv !", R.drawable.fail_icon);
+            return;
+        }
+
+        if (password.isEmpty()) {
+            CustomToast.showFail(context, "Vui lòng nhập Password !", R.drawable.fail_icon);
+            return;
+        }
+
+        User user = new User(username, password);
+
+        if (!user.isValidUsername()) {
+            CustomToast.showFail(context, "Mssv hoặc Password không đúng !", R.drawable.fail_icon);
+            return;
+        }
+
+        if (!user.isValidPassword()) {
+            CustomToast.showFail(context, "Mssv hoặc Password không đúng !", R.drawable.fail_icon);
+            return;
+        }
+
+        if (user.authenticate()) {
+            CustomToast.showSuccess(context, "Đăng nhập thành công", R.drawable.success);
+            context.startActivity(new Intent(context, MainActivity.class));
+            ((Activity) context).finish();
+        } else {
+            CustomToast.showFail(context, "Mssv hoặc Password không đúng !", R.drawable.fail_icon);
         }
     }
 

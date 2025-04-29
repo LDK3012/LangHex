@@ -38,6 +38,7 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.R; // Thay đổi thành R của bạn
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
 
 public class InternalSpeakingTopic extends AppCompatActivity {
     private LinearLayout questionContainer;
@@ -87,6 +89,8 @@ public class InternalSpeakingTopic extends AppCompatActivity {
     private int correctSoundId;
     private int incorrectSoundId;
     private boolean soundsLoaded = false;
+    //
+
 
     // Speech Recognizer (Consider initializing lazily if preferred)
     // private SpeechRecognizer speechRecognizer;
@@ -125,78 +129,6 @@ public class InternalSpeakingTopic extends AppCompatActivity {
     }
 
 
-    //
-    // Phương thức hiển thị Custom Toast
-    public void showCustomSuccessToast(Context context, String message, int iconResId) {
-        // Lấy LayoutInflater
-        LayoutInflater inflater = LayoutInflater.from(context);
-        // Inflate layout tùy chỉnh
-        View layout = inflater.inflate(R.layout.custom_success_toast_layout, null); // Sử dụng layout đã tạo
-
-        // Tham chiếu đến các thành phần trong layout
-        ImageView toastIcon = layout.findViewById(R.id.toast_icon);
-        TextView toastText = layout.findViewById(R.id.toast_text);
-
-        // Đặt nội dung và icon
-        toastText.setText(message);
-        if (iconResId != 0) { // Kiểm tra xem có cung cấp icon không
-            toastIcon.setImageResource(iconResId);
-            toastIcon.setVisibility(View.VISIBLE);
-        } else {
-            toastIcon.setVisibility(View.GONE); // Ẩn ImageView nếu không có icon
-        }
-
-        // Tạo đối tượng Toast
-        Toast toast = new Toast(context.getApplicationContext());
-
-        // Đặt vị trí (Gravity) - Ví dụ: hiển thị ở trên cùng, căn giữa ngang
-        // Giống như trong hình ảnh, thông báo xuất hiện từ trên xuống
-        toast.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 50); // 0 là xOffset, 50 là yOffset (điều chỉnh nếu cần)
-
-        // Đặt thời gian hiển thị (SHORT hoặc LONG)
-        toast.setDuration(Toast.LENGTH_LONG);
-
-        // Gán layout tùy chỉnh cho Toast
-        toast.setView(layout);
-
-        // Hiển thị Toast
-        toast.show();
-    }
-    public void showCustomFailToast(Context context, String message, int iconResId) {
-        // Lấy LayoutInflater
-        LayoutInflater inflater = LayoutInflater.from(context);
-        // Inflate layout tùy chỉnh
-        View layout = inflater.inflate(R.layout.custome_fail_toast_layout, null); // Sử dụng layout đã tạo
-
-        // Tham chiếu đến các thành phần trong layout
-        ImageView toastIcon = layout.findViewById(R.id.toast_icon);
-        TextView toastText = layout.findViewById(R.id.toast_text);
-
-        // Đặt nội dung và icon
-        toastText.setText(message);
-        if (iconResId != 0) { // Kiểm tra xem có cung cấp icon không
-            toastIcon.setImageResource(iconResId);
-            toastIcon.setVisibility(View.VISIBLE);
-        } else {
-            toastIcon.setVisibility(View.GONE); // Ẩn ImageView nếu không có icon
-        }
-
-        // Tạo đối tượng Toast
-        Toast toast = new Toast(context.getApplicationContext());
-
-        // Đặt vị trí (Gravity) - Ví dụ: hiển thị ở trên cùng, căn giữa ngang
-        // Giống như trong hình ảnh, thông báo xuất hiện từ trên xuống
-        toast.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 50); // 0 là xOffset, 50 là yOffset (điều chỉnh nếu cần)
-
-        // Đặt thời gian hiển thị (SHORT hoặc LONG)
-        toast.setDuration(Toast.LENGTH_LONG);
-
-        // Gán layout tùy chỉnh cho Toast
-        toast.setView(layout);
-
-        // Hiển thị Toast
-        toast.show();
-    }
 
     public void addEvent(){
         btnClose.setOnClickListener(new View.OnClickListener() {
@@ -848,7 +780,7 @@ public class InternalSpeakingTopic extends AppCompatActivity {
 
             // --- DO NOT ADVANCE ---
             btnMicro.setEnabled(true); // Re-enable mic for retry on the SAME question
-            showCustomFailToast(this, "Chưa đúng. Xem gợi ý và thử lại.", R.drawable.fail_icon);
+            CustomToast.showFail(this, "Chưa đúng. Xem gợi ý và thử lại.", R.drawable.fail_icon);
             //Toast.makeText(this, "Chưa đúng. Xem gợi ý và thử lại.", Toast.LENGTH_LONG).show(); // Vietnamese Toast
         }
     }
