@@ -151,6 +151,7 @@
                         android:textStyle="bold"></TextView>
 
                     <TextView
+                        android:id="@+id/txtFontSize"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_center_item"
@@ -160,6 +161,7 @@
                         android:textStyle="bold"></TextView>
 
                     <TextView
+                        android:id="@+id/txtLanguage"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_center_item"
@@ -169,6 +171,7 @@
                         android:textStyle="bold"></TextView>
 
                     <TextView
+                        android:id="@+id/txtTheme"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_downward_item"

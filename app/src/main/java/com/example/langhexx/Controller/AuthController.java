@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.User;
+import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
 import com.example.langhexx.View.LoginActivity;
 import com.example.langhexx.View.MainActivity;
@@ -73,11 +74,14 @@ public class AuthController {
 
     public void signOut(Activity activity) {
         new AlertDialog.Builder(activity)
-                .setTitle("Confirm Logout")
-                .setMessage("Are you sure you want to logout?")
+                .setTitle("Xác nhận")
+                .setMessage("Bạn có chắc muốn đăng xuất ?")
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(activity);
+                        sessionManager.logout();
+                        //
                         firebaseAuth.signOut();
                         Intent intent = new Intent(activity, LoginActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -90,7 +94,9 @@ public class AuthController {
     }
 
     public void checkUserSession(Activity activity) {
-        if (firebaseAuth.getCurrentUser() != null) {
+        UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(activity) ;
+
+        if (firebaseAuth.getCurrentUser() != null || sessionManager.isLoggedIn()) {
             Intent intent = new Intent(activity, MainActivity.class);
             activity.startActivity(intent);
             activity.finish();
@@ -135,6 +141,10 @@ public class AuthController {
         }
 
         if (user.authenticate()) {
+            //save login session
+            UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(context) ;
+            sessionManager.createLoginSession(username);
+            //
             CustomToast.showSuccess(context, "Đăng nhập thành công", R.drawable.success);
             context.startActivity(new Intent(context, MainActivity.class));
             ((Activity) context).finish();

@@ -6,9 +6,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.langhexx.Controller.AuthController;
+import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
 
 public class ProfileDetail extends AppCompatActivity {
@@ -16,20 +19,31 @@ public class ProfileDetail extends AppCompatActivity {
     private Button btnBack;
     private Button btnLogout ;
     private AuthController authController ;
+    private EditText edtProfileName ,edtEmail ;
+    private TextView txtEmail ;
+    private TextView txtFontSize, txtTheme , txtLanguage ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile_detail);
         addControls();
+        setName();
         addEvents();
     }
 
-    public void addControls(){
+    private void addControls(){
         btnBack = findViewById(R.id.btnBack);
         btnLogout = findViewById(R.id.btnLogout) ;
+        txtEmail = findViewById(R.id.txtEmail) ;
+        edtProfileName = findViewById(R.id.edtProfileName) ;
+        edtEmail = findViewById(R.id.edtEmail) ;
+        //
+        txtFontSize = findViewById(R.id.txtFontSize) ;
+        txtLanguage = findViewById(R.id.txtLanguage) ;
+        txtTheme = findViewById(R.id.txtTheme) ;
     }
 
-    public void addEvents(){
+    private void addEvents(){
         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -54,5 +68,13 @@ public class ProfileDetail extends AppCompatActivity {
                 authController.signOut(ProfileDetail.this);
             }
         });
+    }
+
+    private void setName(){
+        UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(this) ;
+        txtEmail.setVisibility(View.GONE);
+        edtEmail.setVisibility(View.GONE);
+        //
+        edtProfileName.setText(sessionManager.getUsername());
     }
 }

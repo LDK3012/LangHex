@@ -10,11 +10,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
 
 public class ProfileFragment extends Fragment {
 
-    TextView txtProfileDetail, txtFeedback;
+    TextView txtProfileDetail, txtFeedback, txtName, txtEmail;
 
 
     @Override
@@ -22,6 +23,8 @@ public class ProfileFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
         addControls(view);
+        //
+        setName();
         addEvents();
         return view;
     }
@@ -29,6 +32,8 @@ public class ProfileFragment extends Fragment {
     public void addControls(View view){
         txtProfileDetail = view.findViewById(R.id.txtInfo);
         txtFeedback = view.findViewById(R.id.txtFeedback);
+        txtName = view.findViewById(R.id.txtName) ;
+        txtEmail = view.findViewById(R.id.txtMail) ;
     }
 
     public void addEvents(){
@@ -47,6 +52,13 @@ public class ProfileFragment extends Fragment {
                 startActivity(intent);
             }
         });
+    }
+
+    //
+    private void setName(){
+        UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(getContext()) ;
+        txtName.setText("Leaner");
+        txtEmail.setText(sessionManager.getUsername());
     }
 
 }

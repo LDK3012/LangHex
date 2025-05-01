@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"  android:layout_height="wrap_content" android:orientation="vertical"
+    android:paddingTop="24dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="8dp"> <TextView
+    android:id="@+id/dialogTitle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Thông báo"
+    android:textAppearance="?attr/textAppearanceHeadline6" android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/txtEmptyNotifications"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Không có thông báo mới."
+        android:gravity="center"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp"
+        android:visibility="gone" /> <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerNotifications"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:overScrollMode="ifContentScrolls"
+        android:clipToPadding="false"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:layout_marginBottom="16dp"/>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCloseDialog"
+        style="@style/Widget.MaterialComponents.Button.TextButton.Dialog" android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end" android:text="Đóng" />
+
+</LinearLayout>
