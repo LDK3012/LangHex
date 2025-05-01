@@ -20,9 +20,8 @@ public class FeedbackActivity extends AppCompatActivity {
 
     protected void attachBaseContext(Context newBase) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(newBase);
-        String savedLanguage = prefs.getString("user_language", Locale.getDefault().getLanguage()); // Đọc ngôn ngữ đã lưu
-        Context context = LocaleHelper.onAttach(newBase, savedLanguage); // Truyền ngôn ngữ đã lưu
-        super.attachBaseContext(context);
+        String savedLanguage = prefs.getString("user_language", Locale.getDefault().getLanguage()); // Lấy ngôn ngữ đã lưu, mặc định là ngôn ngữ hệ thống
+        super.attachBaseContext(LocaleHelper.onAttach(newBase, savedLanguage));
     }
 
     Button btnBack;
