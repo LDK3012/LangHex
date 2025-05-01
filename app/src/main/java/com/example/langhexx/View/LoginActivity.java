@@ -64,9 +64,6 @@ public class LoginActivity extends AppCompatActivity implements AuthController.A
         });
     }
 
-
-
-
     @Override
     public void onSuccess() {
         CustomToast.showSuccess(this, "Đăng nhập thành công!", R.drawable.success);
