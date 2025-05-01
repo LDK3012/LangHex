@@ -1,6 +1,7 @@
 package com.example.langhexx.View;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -9,6 +10,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,11 +21,15 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.example.langhexx.Controller.NotificationAdapter;
+import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.Levels;
 import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 
@@ -33,7 +40,10 @@ public class HomeFragment extends Fragment {
     private ImageView imgAvatar;
     private ArrayList<Levels> levelsList;
     private LevelsAdapter levelsAdapter;
-
+    private FirebaseAuth mAuth ;
+    private UsernamePasswordSessionManager sessionManager;
+    //
+    private static final String TAG = "HomeFragment";
     public HomeFragment(){
 
     }
@@ -42,14 +52,11 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home_fragement, container, false);
+        //
+        mAuth = FirebaseAuth.getInstance() ;
+        sessionManager = new UsernamePasswordSessionManager(getContext()) ;
         addControls(view);
-        //
-        UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(getContext()) ;
-        if (sessionManager.isLoggedIn()){
-            String username = sessionManager.getUsername() ;
-            txtName.setText(username);
-        }
-        //
+        loadUserProfile();
         addEvents();
         setUpListView();
         return view;
@@ -96,6 +103,70 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    private void loadUserProfile() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+
+        // Ưu tiên kiểm tra Firebase User
+        if (currentUser != null) {
+            String displayName = currentUser.getDisplayName();
+            String email = currentUser.getEmail();
+            Uri photoUrl = currentUser.getPhotoUrl();
+            CustomToast.showFail(getContext(),String.valueOf(photoUrl),R.drawable.fail_icon);
+            String nameToDisplay = null;
+
+            // Xử lý displayName để lấy tên
+            if (!TextUtils.isEmpty(displayName)) {
+                String[] parts = displayName.split("-");
+                if (parts.length > 1 && !TextUtils.isEmpty(parts[1])) {
+                    nameToDisplay = parts[1].trim(); // Lấy phần tử thứ 2 (tên) và loại bỏ khoảng trắng thừa
+                } else {
+                    // Nếu định dạng không đúng như mong đợi, sử dụng toàn bộ displayName
+                    nameToDisplay = displayName;
+                }
+            }
+
+            // Nếu không lấy được tên từ displayName, thử dùng email
+            if (TextUtils.isEmpty(nameToDisplay) && !TextUtils.isEmpty(email)) {
+                nameToDisplay = email;
+            }
+
+            // Nếu cả hai đều rỗng, đặt tên mặc định
+            if (TextUtils.isEmpty(nameToDisplay)) {
+                nameToDisplay = "Người dùng"; // Giá trị mặc định cuối cùng
+            }
+
+            // Đặt tên đã xử lý vào TextView
+            txtName.setText(nameToDisplay);
+
+            // Hiển thị Avatar
+            if (photoUrl != null && getActivity() != null) {
+                Glide.with(requireActivity()) // Sử dụng requireActivity() an toàn hơn
+                        .load(photoUrl)
+                        .error(R.drawable.unknown_avatar) // Ảnh thay thế khi lỗi
+                        .placeholder(R.drawable.unknown_avatar) // Ảnh giữ chỗ khi đang tải
+                        .circleCrop()
+                        .into(imgAvatar);
+            } else {
+                // Đặt ảnh avatar mặc định nếu không có URL hoặc context null
+                imgAvatar.setImageResource(R.drawable.unknown_avatar); // Đảm bảo bạn có drawable này
+            }
+
+        } else if (sessionManager.isLoggedIn()) {
+            // Xử lý đăng nhập bằng Username/Password
+            String username = sessionManager.getUsername();
+            if (!TextUtils.isEmpty(username)) {
+                txtName.setText(username);
+            } else {
+                txtName.setText("Người dùng");
+            }
+            imgAvatar.setImageResource(R.drawable.avatar); // Đảm bảo bạn có drawable này
+
+        } else {
+            // Trường hợp không đăng nhập (Khách)
+            txtName.setText("Khách");
+            imgAvatar.setImageResource(R.drawable.avatar); // Đảm bảo bạn có drawable này
+        }
+    }
 
     private void showNotificationDialog() {
         // Dùng MaterialAlertDialogBuilder để có style Material mặc định
