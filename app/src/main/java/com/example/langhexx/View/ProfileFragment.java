@@ -1,5 +1,6 @@
 package com.example.langhexx.View;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -10,12 +11,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.example.langhexx.Controller.LocaleHelper;
 import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
 
 public class ProfileFragment extends Fragment {
 
-    TextView txtProfileDetail, txtFeedback, txtName, txtEmail;
+    TextView txtProfileDetail, txtFeedback, txtName, txtEmail, txtLanguage;
 
 
     @Override
@@ -34,6 +36,7 @@ public class ProfileFragment extends Fragment {
         txtFeedback = view.findViewById(R.id.txtFeedback);
         txtName = view.findViewById(R.id.txtName) ;
         txtEmail = view.findViewById(R.id.txtMail) ;
+        txtLanguage = view.findViewById(R.id.txtLanguage);
     }
 
     public void addEvents(){
@@ -51,6 +54,21 @@ public class ProfileFragment extends Fragment {
                 Intent intent = new Intent(getActivity(), FeedbackActivity.class);
                 startActivity(intent);
             }
+        });
+
+        txtLanguage.setOnClickListener(v -> {
+            String[] langNames = {"Tiếng Việt", "English"};
+            String[] langCodes = {"vi", "en"};
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+            builder.setTitle("Chọn ngôn ngữ");
+            builder.setItems(langNames, (dialog, which) -> {
+                LocaleHelper.setLocale(requireActivity(), langCodes[which]);
+
+                // Tải lại activity chứa fragment (áp dụng ngôn ngữ)
+                requireActivity().recreate();
+            });
+            builder.show();
         });
     }
 
