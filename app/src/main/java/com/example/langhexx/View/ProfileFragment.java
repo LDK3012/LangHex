@@ -70,7 +70,7 @@ public class ProfileFragment extends Fragment {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString("user_language", selectedLangCode);
-            editor.apply();
+            editor.commit();
 
             updateLanguageTextView(); // Cập nhật text của txtLanguage ngay lập tức
 
