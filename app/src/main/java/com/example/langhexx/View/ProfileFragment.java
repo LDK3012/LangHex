@@ -91,16 +91,6 @@ public class ProfileFragment extends Fragment {
     }
 
     private void updateLanguageTextView() {
-        Context context = getContext();
-        if (context != null) {
-            String currentLang = LocaleHelper.getLanguage(context);
-            if (currentLang.equals("vi")) {
-                txtLanguage.setText(R.string.vietnamese); // Thêm string resource cho "Tiếng Việt"
-            } else if (currentLang.equals("en")) {
-                txtLanguage.setText(R.string.english); // Thêm string resource cho "English"
-            } else {
-                txtLanguage.setText(R.string.select_language); // Mặc định
-            }
-        }
+        txtLanguage.setText(R.string.select_language);
     }
 }
