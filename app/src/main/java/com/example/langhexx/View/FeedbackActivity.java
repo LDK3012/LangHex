@@ -16,13 +16,7 @@ import com.example.langhexx.R;
 
 import java.util.Locale;
 
-public class FeedbackActivity extends AppCompatActivity {
-
-    protected void attachBaseContext(Context newBase) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(newBase);
-        String savedLanguage = prefs.getString("user_language", Locale.getDefault().getLanguage()); // Lấy ngôn ngữ đã lưu, mặc định là ngôn ngữ hệ thống
-        super.attachBaseContext(LocaleHelper.onAttach(newBase, savedLanguage));
-    }
+public class FeedbackActivity extends BaseActivity {
 
     Button btnBack;
 

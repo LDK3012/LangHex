@@ -70,16 +70,12 @@ public class ProfileFragment extends Fragment {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString("user_language", selectedLangCode);
-            editor.commit();
+            editor.apply();
 
             updateLanguageTextView(); // Cập nhật text của txtLanguage ngay lập tức
 
-            // Khởi động lại toàn bộ ứng dụng
-            Intent intent = requireActivity().getBaseContext().getPackageManager()
-                    .getLaunchIntentForPackage(requireActivity().getBaseContext().getPackageName());
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            requireActivity().finish(); // Kết thúc Activity hiện tại
+            // Nếu bạn muốn Activity hiện tại (chứa Fragment) được tạo lại để thấy thay đổi ngay lập tức
+            requireActivity().recreate();
         });
         builder.show();
     }
