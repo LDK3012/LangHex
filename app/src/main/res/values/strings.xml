@@ -3,4 +3,6 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="default_web_client_id">685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com</string>
+    <string name="select_language">Chọn ngôn ngữ</string>
+
 </resources>

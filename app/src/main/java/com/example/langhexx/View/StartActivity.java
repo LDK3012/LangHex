@@ -1,15 +1,28 @@
 package com.example.langhexx.View;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.langhexx.Controller.LocaleHelper;
 import com.example.langhexx.R;
 
+import java.util.Locale;
+
 public class StartActivity extends AppCompatActivity {
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(newBase);
+        String savedLanguage = prefs.getString("user_language", Locale.getDefault().getLanguage()); // Lấy ngôn ngữ đã lưu, mặc định là ngôn ngữ hệ thống
+        super.attachBaseContext(LocaleHelper.onAttach(newBase, savedLanguage));
+    }
 
     ProgressBar progressBar;
     TextView welcomeTextView;
@@ -19,6 +32,7 @@ public class StartActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
 
