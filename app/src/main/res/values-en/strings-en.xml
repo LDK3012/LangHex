@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">LangHexx</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment" translatable="false">Hello blank fragment</string>
+    <string name="default_web_client_id">685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com</string>
+
     <!--    FeedbackActivity-->
     <string name="feedback_title">Application Feedback</string>
     <string name="feedback_hint">Enter content to provide feedback about the application</string>
