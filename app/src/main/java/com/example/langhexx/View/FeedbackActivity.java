@@ -19,8 +19,9 @@ import java.util.Locale;
 public class FeedbackActivity extends AppCompatActivity {
 
     protected void attachBaseContext(Context newBase) {
-        Log.d("FeedbackActivity", "attachBaseContext called");
-        Context context = LocaleHelper.onAttach(newBase);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(newBase);
+        String savedLanguage = prefs.getString("user_language", Locale.getDefault().getLanguage()); // Đọc ngôn ngữ đã lưu
+        Context context = LocaleHelper.onAttach(newBase, savedLanguage); // Truyền ngôn ngữ đã lưu
         super.attachBaseContext(context);
     }
 
@@ -28,8 +29,6 @@ public class FeedbackActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Locale currentLocale = getBaseContext().getResources().getConfiguration().locale;
-        Log.d("FeedbackActivity", "onCreate - Locale: " + currentLocale.getLanguage());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feedback);
         addControls();
