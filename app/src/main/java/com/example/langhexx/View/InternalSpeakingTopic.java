@@ -309,10 +309,14 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         txtResponse.setVisibility(View.VISIBLE);
         responseSpeaker.setVisibility(View.VISIBLE);
         //
-        loadAvatarBasedOnLogin(avatarUser) ;
-        avatarUser.setVisibility(View.VISIBLE);
-
         responseSpeaker.setOnClickListener(v -> controller.onResponseSpeakerClicked(userAnswer)); // Forward event
+        if (avatarUser.getVisibility() != View.VISIBLE) {
+            // Nếu avatar CHƯA hiển thị -> Đây là lần đầu hiển thị câu trả lời cho câu hỏi này
+            loadAvatarBasedOnLogin(avatarUser); // Gọi hàm tải avatar (Firebase, MS Graph, or default)
+            avatarUser.setVisibility(View.VISIBLE); // Làm cho avatar hiển thị
+        } else {
+            // Nếu avatar ĐÃ hiển thị -> Không cần làm gì cả, chỉ cần giữ nguyên
+        }
     }
 
     // --- Phương thức mới: Load Avatar dựa trên trạng thái đăng nhập ---
