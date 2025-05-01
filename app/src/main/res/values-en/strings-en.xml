@@ -10,7 +10,7 @@
     <string name="general_settings">General Settings</string>
     <string name="app_info">App Info</string>
     <string name="send_feedback">Send Feedback</string>
-    <string name="font_style_and_size">Font Style &amp; Size</string>
+    <string name="font_style_and_size">Font Style and Size</string>
     <string name="select_language">Select Language</string>
     <string name="app_theme">App Theme</string>
 </resources>
