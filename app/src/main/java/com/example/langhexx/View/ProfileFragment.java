@@ -5,20 +5,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.preference.PreferenceManager;
+import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import com.example.langhexx.Controller.LocaleHelper;
 import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
-
-import java.util.prefs.Preferences;
+import java.util.Locale;
 
 public class ProfileFragment extends Fragment {
 
@@ -27,10 +23,11 @@ public class ProfileFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_profile, container, false);
+        View view = inflater.inflate(R.layout.fragment_profile, container, false); // Thay your_profile_layout_file bằng tên file XML bạn đã cung cấp
         addControls(view);
         setName();
         addEvents();
+        updateLanguageTextView(); // Cập nhật text hiển thị ban đầu của txtLanguage
         return view;
     }
 
@@ -40,18 +37,6 @@ public class ProfileFragment extends Fragment {
         txtName = view.findViewById(R.id.txtName);
         txtEmail = view.findViewById(R.id.txtMail);
         txtLanguage = view.findViewById(R.id.txtLanguage);
-        // Đặt text ban đầu cho txtLanguage (có thể lấy từ LocaleHelper)
-        Context context = getContext();
-        if (context != null) {
-            String currentLang = LocaleHelper.getLanguage(context);
-            if (currentLang.equals("vi")) {
-                txtLanguage.setText("Tiếng Việt");
-            } else if (currentLang.equals("en")) {
-                txtLanguage.setText("English");
-            } else {
-                txtLanguage.setText("Ngôn ngữ"); // Mặc định
-            }
-        }
     }
 
     public void addEvents() {
@@ -87,12 +72,7 @@ public class ProfileFragment extends Fragment {
             editor.putString("user_language", selectedLangCode);
             editor.apply();
 
-            // Cập nhật text của txtLanguage ngay lập tức
-            if (selectedLangCode.equals("vi")) {
-                txtLanguage.setText("Tiếng Việt");
-            } else if (selectedLangCode.equals("en")) {
-                txtLanguage.setText("English");
-            }
+            updateLanguageTextView(); // Cập nhật text của txtLanguage ngay lập tức
 
             // Khởi động lại toàn bộ ứng dụng
             Intent intent = requireActivity().getBaseContext().getPackageManager()
@@ -106,7 +86,21 @@ public class ProfileFragment extends Fragment {
 
     private void setName() {
         UsernamePasswordSessionManager sessionManager = new UsernamePasswordSessionManager(getContext());
-        txtName.setText("Leaner"); // Bạn có thể lấy tên người dùng thực tế từ session
-        txtEmail.setText(sessionManager.getUsername());
+        txtName.setText(getString(R.string.profile_name_placeholder)); // Sử dụng string resource
+        txtEmail.setText(getString(R.string.profile_email_placeholder)); // Sử dụng string resource
+    }
+
+    private void updateLanguageTextView() {
+        Context context = getContext();
+        if (context != null) {
+            String currentLang = LocaleHelper.getLanguage(context);
+            if (currentLang.equals("vi")) {
+                txtLanguage.setText(R.string.vietnamese); // Thêm string resource cho "Tiếng Việt"
+            } else if (currentLang.equals("en")) {
+                txtLanguage.setText(R.string.english); // Thêm string resource cho "English"
+            } else {
+                txtLanguage.setText(R.string.select_language); // Mặc định
+            }
+        }
     }
 }
