@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="vietnamese">Vietnamese</string>
-    <string name="english">English</string>
+    <!--    FeedbackActivity-->
+    <string name="feedback_title">Application Feedback</string>
+    <string name="feedback_hint">Enter content to provide feedback about the application</string>
+    <string name="attach_image">Attach Image</string>
+    <string name="send_now">Send Now</string>
+    <string name="quick_support_option">For faster support, you can choose the options below</string>
+    <string name="phone_number">028.7105.9999</string>
+    <string name="support_email">support.vnn@vlu.edu.vn</string>
+    <string name="company_address">45 Nguyen Khac Nhu St, Co Giang Ward, Dist. 1, HCMC</string>
+    <string name="facebook_page">Faculty of Languages - Van Lang University</string>
+
+    <!--    ProfileFragment-->
     <string name="profile_name_placeholder">Duy Khang Liêng</string>
     <string name="profile_email_placeholder">khang.2174801030008@vanlanguni.vn</string>
     <string name="account">Account</string>
@@ -10,7 +20,9 @@
     <string name="general_settings">General Settings</string>
     <string name="app_info">App Info</string>
     <string name="send_feedback">Send Feedback</string>
-    <string name="font_style_and_size">Font Style and Size</string>
+    <string name="font_style_and_size">Font Style &amp; Size</string>
     <string name="select_language">Select Language</string>
     <string name="app_theme">App Theme</string>
+    <string name="vietnamese">Vietnamese</string>
+    <string name="english">English</string>
 </resources>

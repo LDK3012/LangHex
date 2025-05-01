@@ -1,10 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">LangHexx</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment" translatable="false">Hello blank fragment</string>
-    <string name="default_web_client_id">685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com</string>
-    <string name="vietnamese">Tiếng Việt</string>
-    <string name="english">Tiếng Anh</string>
+    <!--    FeedbackActivity-->
+    <string name="feedback_title">Phản hồi về ứng dụng</string>
+    <string name="feedback_hint">Nhập nội dung để phản hồi về ứng dụng</string>
+    <string name="attach_image">Ảnh đính kèm</string>
+    <string name="send_now">Gửi ngay</string>
+    <string name="quick_support_option">Nếu cần hỗ trợ nhanh bạn có thể tùy chọn dưới đây</string>
+    <string name="phone_number">028.7105.9999</string>
+    <string name="support_email">support.vnn@vlu.edu.vn</string>
+    <string name="company_address">45 Nguyễn Khắc Nhu, P. Cô Giang, Q.1, TP. HCM</string>
+    <string name="facebook_page">Viện ngôn ngữ - Trường đại học Văn Lang</string>
+
+    <!--    ProfileFragment-->
     <string name="profile_name_placeholder">Duy Khang Liêng</string>
     <string name="profile_email_placeholder">khang.2174801030008@vanlanguni.vn</string>
     <string name="account">Tài khoản</string>
@@ -16,4 +23,6 @@
     <string name="font_style_and_size">Kiểu chữ và Cỡ chữ</string>
     <string name="select_language">Chọn ngôn ngữ</string>
     <string name="app_theme">Chủ đề ứng dụng</string>
+    <string name="vietnamese">Tiếng Việt</string>
+    <string name="english">Tiếng Anh</string>
 </resources>
