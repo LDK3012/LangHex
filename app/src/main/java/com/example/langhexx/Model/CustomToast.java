@@ -41,7 +41,7 @@ public class CustomToast {
 
         Toast toast = new Toast(context.getApplicationContext());
         toast.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 50);
-        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setDuration(Toast.LENGTH_SHORT);
         toast.setView(layout);
         toast.show();
     }

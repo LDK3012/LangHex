@@ -56,7 +56,6 @@ public class ProfileFragment extends Fragment {
         addControls(view);
         loadUserProfileInfo();
         addEvents();
-        updateLanguageTextView(); // Cập nhật text hiển thị ban đầu của txtLanguage
         return view;
     }
 
@@ -173,6 +172,9 @@ public class ProfileFragment extends Fragment {
             // As requested: Set name to "Learner" and email to the stored username
             txtName.setText("Leaner"); // "Learner"
             txtEmail.setText(!TextUtils.isEmpty(username) ? username : "Unknown");
+            if (getActivity() != null) { // Ensure context is available for resource
+                avatarImg.setImageResource(R.drawable.avatar); // Specific default for session users
+            }
         }
         // Priority 3: Guest User (Not logged in either way)
         else {
@@ -288,6 +290,7 @@ public class ProfileFragment extends Fragment {
         });
     }
 
+
     private void clearMsGraphToken() {
         if (getContext() == null) return;
         Log.w(TAG, "Clearing potentially invalid MS Graph Token from SharedPreferences.");
@@ -295,9 +298,4 @@ public class ProfileFragment extends Fragment {
         prefs.edit().remove(MS_GRAPH_TOKEN_KEY).apply();
     }
 
-
-    private void updateLanguageTextView() {
-        // Ensure this string resource exists in both languages
-        txtLanguage.setText(R.string.select_language);
-    }
 }

@@ -9,7 +9,8 @@ import android.widget.Button;
 
 import com.example.langhexx.R;
 
-public class FeedbackActivity extends AppCompatActivity {
+
+public class FeedbackActivity extends AppCompatActivity  {
 
 
     Button btnBack;
