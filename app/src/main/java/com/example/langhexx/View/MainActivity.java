@@ -73,12 +73,13 @@ import androidx.fragment.app.FragmentTransaction;
 
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 
 import com.example.langhexx.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ChatFragment.KeyboardVisibilityListener{
 
     BottomNavigationView bottomNavigationView;
     FragmentManager fragmentManager;
@@ -117,6 +118,26 @@ public class MainActivity extends AppCompatActivity {
             bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_arena);
         } else if (activeFragment == profileFragment) {
             bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_profile);
+        }
+    }
+
+
+    public void onKeyboardVisibilityChanged(boolean isVisible) {
+        if (bottomNavigationView != null) {
+            // Chỉ ẩn/hiện nếu Fragment hiện tại là ChatFragment (tùy chọn, nếu cần)
+            Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.mainFrame); // Thay ID container
+            if (currentFragment instanceof ChatFragment) {
+                if (isVisible) {
+                    // Ẩn BottomNavigationView (có thể thêm animation)
+                    bottomNavigationView.setVisibility(View.GONE);
+                } else {
+                    // Hiện BottomNavigationView (có thể thêm animation)
+                    bottomNavigationView.setVisibility(View.VISIBLE);
+                }
+            } else {
+                // Đảm bảo BottomNav luôn hiển thị nếu không phải ChatFragment
+                bottomNavigationView.setVisibility(View.VISIBLE);
+            }
         }
     }
 

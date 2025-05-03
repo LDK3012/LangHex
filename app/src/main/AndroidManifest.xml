@@ -15,6 +15,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
+
+
         <activity
             android:name=".View.ChooseTopicListeningActivity"
             android:exported="false" />
@@ -60,6 +62,7 @@
             android:exported="false" />
         <activity
             android:name=".View.MainActivity"
+            android:windowSoftInputMode="adjustPan"
             android:exported="false" />
         <activity
             android:name=".View.LoginActivity"
