@@ -1,20 +1,2614 @@
-package com.example.langhexx.View;
+//package com.example.langhexx.View; // Thay đổi package name nếu cần
+//
+//import android.content.Intent;
+//import android.media.MediaPlayer;
+//import android.os.Bundle;
+//import android.os.Handler;
+//import android.speech.tts.TextToSpeech;
+//import android.speech.tts.UtteranceProgressListener;
+//import android.util.Log;
+//import android.view.View;
+//import android.widget.Button;
+//import android.widget.ImageButton;
+//import android.widget.ListView;
+//import android.widget.ProgressBar; // Đảm bảo import ProgressBar
+//import android.widget.RadioButton;
+//import android.widget.RadioGroup;
+//import android.widget.SeekBar;
+//import android.widget.TextView; // Giữ lại cho các TextView khác (như tiêu đề câu hỏi)
+//import android.widget.Toast;
+//
+//import androidx.annotation.NonNull;
+//import androidx.appcompat.app.AppCompatActivity;
+//
+//// Thay đổi import Controller và Model nếu cần
+//import com.example.langhexx.Controller.ListeningQuestionListAdapter;
+//import com.example.langhexx.Model.ListeningQuestion;
+//import com.example.langhexx.R; // Thay đổi R nếu cần
+//
+//import com.google.firebase.database.DataSnapshot;
+//import com.google.firebase.database.DatabaseError;
+//import com.google.firebase.database.DatabaseReference;
+//import com.google.firebase.database.FirebaseDatabase;
+//import com.google.firebase.database.ValueEventListener;
+//
+//import java.io.File;
+//import java.io.IOException;
+//import java.util.ArrayList;
+//import java.util.HashMap;
+//import java.util.List;
+//import java.util.Locale;
+//import java.util.Map;
+//import java.util.UUID;
+//
+//public class InternalListeningTopic extends AppCompatActivity implements
+//        TextToSpeech.OnInitListener,
+//        MediaPlayer.OnPreparedListener,
+//        MediaPlayer.OnCompletionListener,
+//        SeekBar.OnSeekBarChangeListener {
+//
+//    private static final String TAG = "InternalListenTopic";
+//    // Tạo ID duy nhất cho mỗi lần tổng hợp để tránh trùng lặp listener
+//    private final String SYNTHESIS_UTTERANCE_ID = "SynthesisUtteranceId_" + UUID.randomUUID().toString();
+//
+//    // --- UI Elements ---
+//    private ImageButton btnPlayAudio;
+//    private SeekBar seekBarAudio;
+//    private ListView lvQuestions;
+//    private Button btnSubmit;
+//    private ProgressBar progressBarAudioLoading; // ProgressBar để thay thế Toast
+//
+//    // --- TTS Members ---
+//    private TextToSpeech tts;
+//    private boolean isTtsInitialized = false;
+//    private String scriptToSpeak;
+//
+//    // --- MediaPlayer Members ---
+//    private MediaPlayer mediaPlayer;
+//    private boolean isMediaPlayerPrepared = false;
+//    private boolean isPlaying = false;
+//    private File audioFile; // File âm thanh tạm được tổng hợp
+//    private Handler progressHandler = new Handler(); // Handler để cập nhật tiến trình SeekBar
+//    private Runnable updateSeekBarRunnable;
+//    private TextView tvScreenTitle;
+//
+//    // --- Data Members ---
+//    private List<ListeningQuestion> questionsList;
+//    private ListeningQuestionListAdapter questionListAdapter;
+//    private String levelName;
+//    private String topicTitle;
+//    private String exerciseTitle;
+//    private ArrayList<String> allExerciseTitles;
+//    //submit status
+//    private static final int STATE_SUBMIT = 0;
+//    private static final int STATE_RETRY = 1;
+//    private static final int STATE_NEXT = 2;
+//    private static final int STATE_FINISHED = -1;
+//    private int currentButtonState = STATE_SUBMIT;
+//
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.activity_internal_listening_topic); // Sử dụng layout có ProgressBar
+//
+//        // --- Nhận dữ liệu từ Intent ---
+//        Intent intent = getIntent();
+//        if (intent != null) {
+//            levelName = intent.getStringExtra("LEVEL_NAME");
+//            topicTitle = intent.getStringExtra("TOPIC_TITLE");
+//            exerciseTitle = intent.getStringExtra("EXERCISE_TITLE");
+//        } else {
+//            // Xử lý trường hợp không có Intent hoặc dữ liệu
+//            Toast.makeText(this, "Error: Missing exercise identifiers.", Toast.LENGTH_LONG).show();
+//            Log.e(TAG, "Intent is null or missing required extras.");
+//            finish(); // Đóng activity nếu thiếu dữ liệu cần thiết
+//            return;
+//        }
+//
+//        // Kiểm tra null cho các identifier
+//        if (levelName == null || topicTitle == null || exerciseTitle == null) {
+//            Toast.makeText(this, "Error: Invalid exercise identifiers.", Toast.LENGTH_LONG).show();
+//            Log.e(TAG, "One or more identifiers are null: level=" + levelName + ", topic=" + topicTitle + ", exercise=" + exerciseTitle);
+//            finish();
+//            return;
+//        }
+//
+//        addControls();
+//        //
+//        if (tvScreenTitle != null && exerciseTitle != null) {
+//            tvScreenTitle.setText(exerciseTitle);
+//        }
+//        //
+//        setupListView();
+//        initializeTextToSpeech(); // Khởi tạo TTS trước
+//        loadExerciseDataFromFirebase(); // Tải dữ liệu (sẽ kích hoạt tổng hợp TTS khi có script)
+//        loadAllExerciseTitlesFromFirebase();
+//        addEvents();
+//    }
+//
+//    private void addControls() {
+//        btnPlayAudio = findViewById(R.id.btnPlayAudio);
+//        seekBarAudio = findViewById(R.id.seekBarAudio);
+//        lvQuestions = findViewById(R.id.lvQuestions);
+//        btnSubmit = findViewById(R.id.btnSubmit);
+//        progressBarAudioLoading = findViewById(R.id.progressBarAudioLoading); // Lấy ProgressBar
+//        tvScreenTitle = findViewById(R.id.tvScreenTitle);
+//        // --- Đặt trạng thái ban đầu bằng hàm reset ---
+//        resetAudioControlsUI();
+//    }
+//
+//    private void setupListView() {
+//        questionsList = new ArrayList<>();
+//        // Khởi tạo Adapter
+//        questionListAdapter = new ListeningQuestionListAdapter(this, questionsList);
+//        lvQuestions.setAdapter(questionListAdapter);
+//    }
+//
+//    private void initializeTextToSpeech() {
+//        Log.d(TAG, "Initializing TextToSpeech...");
+//        try {
+//            tts = new TextToSpeech(this, this);
+//        } catch (Exception e) {
+//            Log.e(TAG, "Exception initializing TTS", e);
+//            Toast.makeText(this, "Failed to initialize Text-to-Speech component.", Toast.LENGTH_LONG).show();
+//            resetAudioControlsUI(); // Đảm bảo UI ở trạng thái không thể phát
+//        }
+//    }
+//
+//    // --- OnInitListener Implementation ---
+//    @Override
+//    public void onInit(int status) {
+//        if (status == TextToSpeech.SUCCESS) {
+//            // Ưu tiên tiếng Anh Mỹ, nếu không có thì dùng tiếng Anh chung
+//            int result = tts.setLanguage(Locale.US);
+//            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+//                Log.w(TAG, "TTS language US not supported, trying default English.");
+//                result = tts.setLanguage(Locale.ENGLISH);
+//                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+//                    Log.e(TAG, "TTS language English is not supported.");
+//                    Toast.makeText(this, "Required TTS language not supported.", Toast.LENGTH_SHORT).show();
+//                    resetAudioControlsUI();
+//                    return;
+//                }
+//            }
+//
+//            Log.i(TAG, "TTS Initialized successfully with language: " + (tts.getLanguage() != null ? tts.getLanguage() : "Unknown"));
+//            isTtsInitialized = true;
+//            // Nếu script đã được tải trong khi TTS đang khởi tạo, bắt đầu tổng hợp ngay
+//            if (scriptToSpeak != null && !scriptToSpeak.isEmpty() && audioFile == null) {
+//                Log.d(TAG, "TTS ready, starting synthesis from onInit.");
+//                synthesizeScriptToFile();
+//            } else {
+//                Log.d(TAG, "TTS ready, waiting for script or synthesis already in progress/done.");
+//            }
+//
+//        } else {
+//            Log.e(TAG, "TTS Initialization failed! Status code: " + status);
+//            Toast.makeText(this, "Failed to initialize Text-to-Speech engine (Code: " + status + ").", Toast.LENGTH_SHORT).show();
+//            resetAudioControlsUI();
+//        }
+//    }
+//
+//    private void loadExerciseDataFromFirebase() {
+//        // Đã kiểm tra null các identifier trong onCreate
+//
+//        DatabaseReference exerciseRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/") // Thay URL nếu cần
+//                .getReference("Lessons")
+//                .child("Levels")
+//                .child(levelName)
+//                .child("Listening")
+//                .child("Topics")
+//                .child(topicTitle)
+//                .child("Exercises")
+//                .child(exerciseTitle);
+//
+//        Log.i(TAG, "Loading data from Firebase path: " + exerciseRef.toString());
+//
+//        // Hiển thị loading indicator ngay khi bắt đầu tải
+//        showLoadingIndicator();
+//
+//        exerciseRef.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                if (!snapshot.exists()) {
+//                    Log.e(TAG, "Exercise data not found at the specified Firebase path.");
+//                    Toast.makeText(InternalListeningTopic.this, "Exercise data not found.", Toast.LENGTH_SHORT).show();
+//                    hideLoadingIndicatorWithError(); // Ẩn loading và reset UI nếu lỗi
+//                    finish(); // Đóng activity nếu không có dữ liệu
+//                    return;
+//                }
+//
+//                // Lấy script để tổng hợp
+//                scriptToSpeak = snapshot.child("script").getValue(String.class);
+//                boolean hasScript = scriptToSpeak != null && !scriptToSpeak.isEmpty();
+//
+//                if (hasScript) {
+//                    Log.d(TAG,"Script loaded from Firebase (" + scriptToSpeak.length() + " chars).");
+//                    // Chỉ bắt đầu tổng hợp nếu TTS đã sẵn sàng và chưa có file audio
+//                    if (isTtsInitialized && audioFile == null) {
+//                        Log.d(TAG, "Script loaded, TTS ready, starting synthesis.");
+//                        synthesizeScriptToFile(); // Hàm này sẽ tự quản lý ProgressBar
+//                    } else if (!isTtsInitialized){
+//                        Log.d(TAG, "Script loaded, waiting for TTS initialization to complete.");
+//                        // ProgressBar vẫn hiển thị, onInit sẽ gọi synthesizeScriptToFile
+//                    } else {
+//                        Log.d(TAG, "Script loaded, but synthesis might be already done or in progress.");
+//                        // Nếu audioFile đã tồn tại (ví dụ từ cache), setupMediaPlayer sẽ được gọi
+//                        if(audioFile != null && audioFile.exists()) {
+//                            setupMediaPlayer();
+//                        }
+//                    }
+//                } else {
+//                    Log.w(TAG, "'script' field is missing, empty, or not a String in Firebase.");
+//                    Toast.makeText(InternalListeningTopic.this, "No audio script found.", Toast.LENGTH_SHORT).show();
+//                    hideLoadingIndicatorWithError(); // Ẩn loading, reset UI vì không có audio
+//                }
+//
+//                // Lấy danh sách câu hỏi (luôn thực hiện dù có script hay không)
+//                DataSnapshot questionsSnapshot = snapshot.child("questions");
+//                if (!questionsSnapshot.exists()) {
+//                    Log.w(TAG, "No 'questions' node found in Firebase data.");
+//                    if (questionsList.isEmpty()) { // Chỉ Toast nếu chưa có câu hỏi nào
+//                        Toast.makeText(InternalListeningTopic.this, "No questions found for this exercise.", Toast.LENGTH_SHORT).show();
+//                    }
+//                    // Nếu không có script VÀ không có câu hỏi, thì không còn gì để làm
+//                    if (!hasScript) {
+//                        finish(); // Có thể đóng activity
+//                    }
+//                } else {
+//                    List<ListeningQuestion> loadedQuestions = new ArrayList<>();
+//                    int questionCounter = 1;
+//                    for (DataSnapshot questionSnap : questionsSnapshot.getChildren()) {
+//                        try {
+//                            ListeningQuestion question = parseQuestionSnapshot(questionSnap, questionCounter);
+//                            if (question != null) {
+//                                loadedQuestions.add(question);
+//                                questionCounter++;
+//                            }
+//                        } catch (Exception e) {
+//                            Log.e(TAG, "Error parsing question data for key: " + questionSnap.getKey(), e);
+//                        }
+//                    }
+//                    questionsList.clear();
+//                    questionsList.addAll(loadedQuestions);
+//                    questionListAdapter.updateData(questionsList); // Cập nhật adapter
+//                    Log.i(TAG, "Successfully loaded " + questionsList.size() + " questions.");
+//                }
+//
+//                // Nếu không có script, không cần chờ TTS, ẩn loading indicator ở đây
+//                if (!hasScript) {
+//                    hideLoadingIndicatorWithError(); // Reset audio controls
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Log.e(TAG, "Firebase data loading cancelled or failed: " + error.getMessage(), error.toException());
+//                Toast.makeText(InternalListeningTopic.this, "Error loading exercise data: " + error.getMessage(), Toast.LENGTH_LONG).show();
+//                hideLoadingIndicatorWithError(); // Ẩn loading và reset UI
+//                // Cân nhắc đóng activity hoặc cho phép thử lại
+//            }
+//        });
+//    }
+//
+//    // Hàm helper để parse dữ liệu câu hỏi từ Firebase Snapshot
+//    private ListeningQuestion parseQuestionSnapshot(DataSnapshot questionSnap, int questionNumber) {
+//        ListeningQuestion question = new ListeningQuestion();
+//        question.setId(questionSnap.getKey()); // Lấy key làm ID
+//
+//        String text = questionSnap.child("questionText").getValue(String.class);
+//        String answer = questionSnap.child("correctAnswer").getValue(String.class);
+//
+//        // Lấy options một cách an toàn hơn
+//        Map<String, String> stringOptionsMap = new HashMap<>();
+//        DataSnapshot optionsSnapshot = questionSnap.child("options");
+//        if (optionsSnapshot.exists() && optionsSnapshot.getValue() instanceof Map) {
+//            try {
+//                @SuppressWarnings("unchecked") // Cần thiết cho cast này
+//                Map<String, Object> optionsMapObject = (Map<String, Object>) optionsSnapshot.getValue();
+//                if (optionsMapObject != null) {
+//                    for (Map.Entry<String, Object> entry : optionsMapObject.entrySet()) {
+//                        // Chuyển đổi mọi giá trị sang String
+//                        stringOptionsMap.put(entry.getKey(), String.valueOf(entry.getValue()));
+//                    }
+//                }
+//            } catch (ClassCastException e) {
+//                Log.e(TAG, "Error casting options to Map for question: " + questionSnap.getKey(), e);
+//            }
+//        } else {
+//            Log.w(TAG, "Options node is missing or not a Map for question: " + questionSnap.getKey());
+//        }
+//        question.setOptions(stringOptionsMap);
+//
+//        // Kiểm tra dữ liệu cần thiết
+//        if (text != null && !text.isEmpty() &&
+//                answer != null && !answer.isEmpty() &&
+//                !stringOptionsMap.isEmpty()) {
+//            question.setQuestionText(text);
+//            question.setCorrectAnswer(answer);
+//            question.setQuestionNumberText("Question " + questionNumber + ":"); // Set số thứ tự
+//            return question;
+//        } else {
+//            Log.w(TAG, "Skipping question due to missing data: Key=" + questionSnap.getKey() +
+//                    ", Text=" + text + ", Answer=" + answer + ", OptionsEmpty=" + stringOptionsMap.isEmpty());
+//            return null; // Trả về null nếu thiếu dữ liệu
+//        }
+//    }
+//
+//
+//    private void synthesizeScriptToFile() {
+//        if (!isTtsInitialized) {
+//            Log.w(TAG, "Cannot synthesize: TTS not ready.");
+//            Toast.makeText(this, "Text-to-Speech engine is not ready.", Toast.LENGTH_SHORT).show();
+//            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+//            return;
+//        }
+//        if (scriptToSpeak == null || scriptToSpeak.isEmpty()) {
+//            Log.w(TAG, "Cannot synthesize: Script is empty or null.");
+//            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+//            return;
+//        }
+//        // Tránh gọi lại nếu đang tổng hợp hoặc đã có file/player
+//        if (audioFile != null && audioFile.exists()){
+//            Log.d(TAG, "Synthesis request ignored, audio file already exists or MediaPlayer is set up.");
+//            if(mediaPlayer == null) {
+//                Log.d(TAG, "Audio file exists but player not ready, attempting setup.");
+//                setupMediaPlayer(); // Vẫn cần hiển thị loading khi setup player từ file cũ
+//            } else if (isMediaPlayerPrepared) {
+//                hideLoadingIndicator(); // Nếu player đã sẵn sàng thì ẩn loading
+//            }
+//            return;
+//        }
+//
+//        try {
+//            File outputDir = getCacheDir();
+//            if (!outputDir.exists()) { outputDir.mkdirs(); }
+//            String filename = "listening_" + levelName + "_" + topicTitle + "_" + exerciseTitle.hashCode() + ".wav";
+//            audioFile = new File(outputDir, filename);
+//
+//            if (audioFile.exists() && audioFile.length() > 0) {
+//                Log.i(TAG, "Using existing synthesized file: " + audioFile.getAbsolutePath());
+//                showLoadingIndicator(); // Hiển thị loading khi setup từ file cũ
+//                setupMediaPlayer();
+//                return;
+//            }
+//            if (audioFile.exists()) { audioFile.delete(); }
+//
+//            Log.i(TAG, "Starting TTS synthesis to file: " + audioFile.getAbsolutePath());
+//            showLoadingIndicator(); // Hiển thị loading trước khi bắt đầu tổng hợp
+//
+//            // Đặt listener TRƯỚC KHI gọi synthesizeToFile
+//            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+//                @Override
+//                public void onStart(String utteranceId) {
+//                    Log.d(TAG, "TTS Synthesis started: " + utteranceId);
+//                }
+//                @Override
+//                public void onDone(String utteranceId) {
+//                    Log.d(TAG, "TTS Synthesis done: " + utteranceId);
+//                    if (SYNTHESIS_UTTERANCE_ID.equals(utteranceId) && !isFinishing()) {
+//                        runOnUiThread(() -> {
+//                            if (audioFile != null && audioFile.exists() && audioFile.length() > 0) {
+//                                Log.i(TAG, "Synthesis successful. Setting up MediaPlayer.");
+//                                setupMediaPlayer(); // ProgressBar vẫn hiển thị, setupMediaPlayer sẽ xử lý
+//                            } else {
+//                                Log.e(TAG, "Synthesis done, but file invalid.");
+//                                Toast.makeText(InternalListeningTopic.this, "Error creating audio file.", Toast.LENGTH_SHORT);
+//                                audioFile = null;
+//                                hideLoadingIndicatorWithError();
+//                            }
+//                        });
+//                    }
+//                }
+//                @Override
+//                public void onError(String utteranceId, int errorCode) {
+//                    Log.e(TAG, "TTS Synthesis error: " + utteranceId + ", Code: " + errorCode);
+//                    if (SYNTHESIS_UTTERANCE_ID.equals(utteranceId) && !isFinishing()) {
+//                        runOnUiThread(() -> {
+//                            Toast.makeText(InternalListeningTopic.this, "Audio synthesis failed (Error " + errorCode + ")", Toast.LENGTH_LONG);
+//                            if (audioFile != null && audioFile.exists()) { audioFile.delete(); }
+//                            audioFile = null;
+//                            hideLoadingIndicatorWithError();
+//                        });
+//                    }
+//                }
+//                @Override
+//                public void onError(String utteranceId) {
+//                    onError(utteranceId, TextToSpeech.ERROR);
+//                }
+//            });
+//
+//            // Bắt đầu tổng hợp
+//            HashMap<String, String> params = new HashMap<>();
+//            params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, SYNTHESIS_UTTERANCE_ID);
+//            int result = tts.synthesizeToFile(scriptToSpeak, params, audioFile.getAbsolutePath());
+//
+//            if (result != TextToSpeech.SUCCESS) {
+//                Log.e(TAG, "synthesizeToFile immediate failure. Code: " + result);
+//                Toast.makeText(this, "Failed to start audio synthesis (Code: " + result + ").", Toast.LENGTH_SHORT);
+//                if (audioFile != null && audioFile.exists()) { audioFile.delete(); }
+//                audioFile = null;
+//                hideLoadingIndicatorWithError();
+//            } else {
+//                Log.d(TAG, "synthesizeToFile request submitted.");
+//            }
+//
+//        } catch (Exception e) {
+//            Log.e(TAG, "Exception during synthesis", e);
+//            Toast.makeText(this, "Error preparing audio: " + e.getMessage(), Toast.LENGTH_SHORT);
+//            if (audioFile != null && audioFile.exists()) { audioFile.delete(); }
+//            audioFile = null;
+//            hideLoadingIndicatorWithError();
+//        }
+//    }
+//
+//    private void setupMediaPlayer() {
+//        if (audioFile == null || !audioFile.exists() || audioFile.length() == 0) {
+//            Log.e(TAG, "Cannot setup MediaPlayer: Audio file invalid.");
+//            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+//            return;
+//        }
+//
+//        // Đảm bảo vẫn hiển thị loading khi bắt đầu setup player
+//        showLoadingIndicator();
+//
+//        releaseMediaPlayer(); // Giải phóng trình phát cũ
+//
+//        try {
+//            Log.d(TAG, "Setting up MediaPlayer source: " + audioFile.getAbsolutePath());
+//            mediaPlayer = new MediaPlayer();
+//            mediaPlayer.setDataSource(audioFile.getAbsolutePath());
+//            mediaPlayer.setOnPreparedListener(this);
+//            mediaPlayer.setOnCompletionListener(this);
+//            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+//                Log.e(TAG, "MediaPlayer Error: what=" + what + ", extra=" + extra);
+//                String errorMsg = "Error playing audio"; // Default message
+//                // Add specific messages if needed
+//                Toast.makeText(InternalListeningTopic.this, errorMsg + " (Code: " + what + ")", Toast.LENGTH_LONG).show();
+//                releaseMediaPlayer();
+//                hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+//                return true;
+//            });
+//            Log.d(TAG, "MediaPlayer prepareAsync called.");
+//            mediaPlayer.prepareAsync();
+//
+//        } catch (Exception e) { // Bắt các Exception có thể xảy ra
+//            Log.e(TAG, "Exception setting up MediaPlayer", e);
+//            Toast.makeText(this, "Error loading audio: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+//            releaseMediaPlayer();
+//            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+//        }
+//    }
+//
+//    // --- MediaPlayer.OnPreparedListener ---
+//    @Override
+//    public void onPrepared(MediaPlayer mp) {
+//        if (mediaPlayer == null) {
+//            Log.w(TAG, "onPrepared called but MediaPlayer is null.");
+//            return;
+//        }
+//
+//        Log.d(TAG, "MediaPlayer prepared.");
+//        isMediaPlayerPrepared = true;
+//        try {
+//            int duration = mediaPlayer.getDuration();
+//            if (duration > 0) {
+//                Log.d(TAG, "Audio duration: " + duration + "ms");
+//                // --- Audio sẵn sàng, ẩn loading, hiện nút Play ---
+//                hideLoadingIndicator(); // Ẩn ProgressBar, hiện nút Play và bật controls
+//                seekBarAudio.setMax(duration);
+//            } else {
+//                Log.w(TAG, "MediaPlayer prepared but duration is invalid: " + duration);
+//                Toast.makeText(this, "Audio file seems corrupted.", Toast.LENGTH_LONG).show();
+//                releaseMediaPlayer();
+//                if (audioFile != null && audioFile.exists()) audioFile.delete();
+//                audioFile = null;
+//                hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+//            }
+//        } catch (IllegalStateException e) {
+//            Log.e(TAG, "IllegalStateException in onPrepared.", e);
+//            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI nếu lỗi
+//        }
+//    }
+//
+//    // --- MediaPlayer.OnCompletionListener ---
+//    @Override
+//    public void onCompletion(MediaPlayer mp) {
+//        if (mediaPlayer == null || !isMediaPlayerPrepared) {
+//            Log.w(TAG, "onCompletion called but player invalid.");
+//            return;
+//        }
+//
+//        Log.d(TAG, "MediaPlayer playback completed.");
+//        isPlaying = false;
+//        try {
+//            runOnUiThread(() -> {
+//                if (mediaPlayer != null) {
+//                    seekBarAudio.setProgress(mediaPlayer.getDuration());
+//                    try {
+//                        mediaPlayer.seekTo(0);
+//                        seekBarAudio.setProgress(0);
+//                    } catch (IllegalStateException seekEx) {
+//                        Log.w(TAG, "Seek failed on completion", seekEx);
+//                    }
+//                }
+//                if(btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Reset icon Play
+//            });
+//            stopSeekBarUpdate();
+//        } catch (IllegalStateException e){
+//            Log.e(TAG,"IllegalStateException in onCompletion", e);
+//            releaseMediaPlayer();
+//            runOnUiThread(this::resetAudioControlsUI);
+//        }
+//    }
+//
+//    private void addEvents() {
+//        if (btnPlayAudio != null) {
+//            btnPlayAudio.setOnClickListener(v -> togglePlayPause());
+//        }
+//        if (btnSubmit != null) {
+//            btnSubmit.setOnClickListener(v -> {
+//                Log.d(TAG, "Submit button clicked. Current state: " + currentButtonState);
+//                switch (currentButtonState) {
+//                    case STATE_SUBMIT:
+//                        submitAnswers();
+//                        break;
+//                    case STATE_RETRY:
+//                        retryExercise();
+//                        break;
+//                    case STATE_NEXT:
+//                        goToNextExercise();
+//                        break;
+//                    case STATE_FINISHED: // *** THÊM CASE NÀY ***
+//                        Log.i(TAG,"'Finish ! Back Now' button clicked. Finishing activity.");
+//                        finish(); // Đóng Activity hiện tại để quay về màn hình trước (chọn exercise)
+//                        break;
+//                    default:
+//                        Log.w(TAG, "Unknown button state clicked: " + currentButtonState);
+//                        break;
+//                }
+//            });
+//        }
+//        if (seekBarAudio != null) {
+//            seekBarAudio.setOnSeekBarChangeListener(this);
+//        }
+//    }
+//
+//    private void retryExercise() {
+//        Log.i(TAG, "Retry button clicked.");
+//
+//        // 1. Yêu cầu Adapter reset trạng thái
+//        if (questionListAdapter != null) {
+//            questionListAdapter.resetQuizState();
+//        } else {
+//            Log.e(TAG, "Adapter is null, cannot reset state for retry.");
+//            // Optionally, try to reload data or show an error
+//            Toast.makeText(this, "Error resetting quiz.", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        // 2. Reset trạng thái và text của nút
+//        currentButtonState = STATE_SUBMIT;
+//        if (btnSubmit != null) {
+//            btnSubmit.setText("Submit");
+//            btnSubmit.setEnabled(true); // Đảm bảo nút được bật lại
+//            btnSubmit.setAlpha(1.0f);
+//        }
+//
+//        // 3. Cuộn ListView lên đầu (tùy chọn)
+//        if (lvQuestions != null) {
+//            lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(0));
+//        }
+//
+//        Log.d(TAG,"Exercise state reset for retry. Button state: SUBMIT");
+//    }
+//
+//    private void goToNextExercise() {
+//        Log.i(TAG, "Attempting to go to the next exercise.");
+//
+//        if (allExerciseTitles == null || allExerciseTitles.isEmpty()) {
+//            Log.e(TAG, "Exercise titles list is not loaded or empty. Cannot determine next exercise.");
+//            Toast.makeText(this, "Could not load the exercise list.", Toast.LENGTH_SHORT).show();
+//            // Vô hiệu hóa nút hoặc xử lý khác
+//            if(btnSubmit != null) {
+//                btnSubmit.setText("Error"); // Hoặc "Finished"
+//                btnSubmit.setEnabled(false);
+//                btnSubmit.setAlpha(0.5f);
+//            }
+//            return;
+//        }
+//
+//        int currentIndex = allExerciseTitles.indexOf(exerciseTitle);
+//        Log.d(TAG, "Current exercise '" + exerciseTitle + "' found at index: " + currentIndex);
+//
+//        if (currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1) {
+//            // Có bài tập tiếp theo
+//            String nextExerciseTitle = allExerciseTitles.get(currentIndex + 1);
+//            Log.i(TAG, "Next exercise title: " + nextExerciseTitle);
+//
+//            // Tạo Intent để mở lại Activity này với bài tập mới
+//            Intent nextIntent = new Intent(InternalListeningTopic.this, InternalListeningTopic.class);
+//            nextIntent.putExtra("LEVEL_NAME", levelName);
+//            nextIntent.putExtra("TOPIC_TITLE", topicTitle);
+//            nextIntent.putExtra("EXERCISE_TITLE", nextExerciseTitle);
+//            // QUAN TRỌNG: Đặt cờ để xóa Activity hiện tại khỏi stack nếu cần,
+//            // nhưng thường thì chỉ cần finish() là đủ cho luồng đơn giản này.
+//            // nextIntent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT); // Xem xét nếu cần trả kết quả về
+//
+//            startActivity(nextIntent);
+//            finish(); // Đóng Activity hiện tại
+//
+//        } else {
+//            // Không tìm thấy bài hiện tại hoặc đã là bài cuối cùng
+//            if (currentIndex == -1) {
+//                Log.e(TAG, "Current exercise title '" + exerciseTitle + "' not found in the loaded list!");
+//                Toast.makeText(this, "Error: Could not find current exercise in list.", Toast.LENGTH_LONG).show();
+//            } else {
+//                Log.i(TAG, "This is the last exercise in the topic.");
+//                Toast.makeText(this, "Congratulations! You've completed all exercises in this topic.", Toast.LENGTH_LONG).show();
+//            }
+//            // Cập nhật nút Submit thành "Finished" hoặc trạng thái tương tự và vô hiệu hóa
+//            if (btnSubmit != null) {
+//                btnSubmit.setText("Finished!");
+//                btnSubmit.setEnabled(false);
+//                btnSubmit.setAlpha(0.5f);
+//                currentButtonState = -1; // Đặt trạng thái không xác định hoặc hoàn thành
+//            }
+//        }
+//    }
+//
+//    // --- Logic Play/Pause cho MediaPlayer ---
+//    private void togglePlayPause() {
+//        if (progressBarAudioLoading != null && progressBarAudioLoading.getVisibility() == View.VISIBLE) {
+//            Log.d(TAG, "Play button clicked while loading, ignoring.");
+//            Toast.makeText(this, "Audio is loading...", Toast.LENGTH_SHORT).show();
+//            return; // Không làm gì khi đang load
+//        }
+//
+//        if (!isMediaPlayerPrepared || mediaPlayer == null) {
+//            Log.w(TAG, "togglePlayPause called but MediaPlayer not prepared or null.");
+//            // Thử setup lại nếu có file và player chưa sẵn sàng (và không đang load)
+//            if(audioFile != null && audioFile.exists() && mediaPlayer == null){
+//                Log.d(TAG, "Attempting to re-setup MediaPlayer on play click.");
+//                setupMediaPlayer(); // Hàm này sẽ tự hiển thị loading
+//            } else {
+//                Toast.makeText(this, "Audio not ready.", Toast.LENGTH_SHORT).show();
+//            }
+//            return;
+//        }
+//
+//        try {
+//            if (isPlaying) { // Đang phát -> Tạm dừng
+//                mediaPlayer.pause();
+//                isPlaying = false;
+//                btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
+//                stopSeekBarUpdate();
+//                Log.d(TAG, "Playback paused at " + mediaPlayer.getCurrentPosition() + "ms");
+//            } else { // Đang dừng/hoàn thành -> Phát (lại)
+//                mediaPlayer.start();
+//                isPlaying = true;
+//                btnPlayAudio.setImageResource(R.drawable.ic_pause); // Đổi icon thành Pause
+//                startSeekBarUpdate();
+//                Log.d(TAG, "Playback started/resumed from " + mediaPlayer.getCurrentPosition() + "ms");
+//            }
+//        } catch (IllegalStateException e){
+//            Log.e(TAG, "IllegalStateException during togglePlayPause", e);
+//            Toast.makeText(this, "Error controlling playback.", Toast.LENGTH_SHORT).show();
+//            releaseMediaPlayer();
+//            runOnUiThread(this::resetAudioControlsUI);
+//        }
+//    }
+//
+//    // --- Cập nhật SeekBar bằng Handler ---
+//    private void startSeekBarUpdate() {
+//        stopSeekBarUpdate(); // Clear previous runnable if exists
+//        updateSeekBarRunnable = new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    if (mediaPlayer != null && isPlaying && isMediaPlayerPrepared) {
+//                        int currentPosition = mediaPlayer.getCurrentPosition();
+//                        seekBarAudio.setProgress(currentPosition);
+//                        progressHandler.postDelayed(this, 300); // Update roughly 3 times per second
+//                    } else {
+//                        stopSeekBarUpdate(); // Stop if conditions are no longer met
+//                    }
+//                } catch (IllegalStateException e){
+//                    Log.w(TAG, "IllegalStateException in updateSeekBarRunnable.", e);
+//                    stopSeekBarUpdate();
+//                } catch (Exception e) { // Catch any other potential exceptions
+//                    Log.e(TAG, "Exception in updateSeekBarRunnable", e);
+//                    stopSeekBarUpdate();
+//                }
+//            }
+//        };
+//        progressHandler.post(updateSeekBarRunnable); // Start the update loop
+//    }
+//
+//    private void stopSeekBarUpdate() {
+//        if (updateSeekBarRunnable != null) {
+//            progressHandler.removeCallbacks(updateSeekBarRunnable);
+//            updateSeekBarRunnable = null; // Clear the reference
+//        }
+//    }
+//
+//    // --- SeekBar.OnSeekBarChangeListener Implementation ---
+//    @Override
+//    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//        // No action needed here while just displaying progress,
+//        // but could be used for showing time labels etc.
+//    }
+//
+//    @Override
+//    public void onStartTrackingTouch(SeekBar seekBar) {
+//        // User started dragging the thumb
+//        stopSeekBarUpdate(); // Pause automatic updates while user is controlling
+//        Log.d(TAG, "SeekBar tracking started.");
+//    }
+//
+//    @Override
+//    public void onStopTrackingTouch(SeekBar seekBar) {
+//        // User finished dragging the thumb
+//        Log.d(TAG, "SeekBar tracking stopped at: " + seekBar.getProgress());
+//        if (mediaPlayer != null && isMediaPlayerPrepared) {
+//            try {
+//                mediaPlayer.seekTo(seekBar.getProgress()); // Move playback position
+//                if (isPlaying) {
+//                    startSeekBarUpdate(); // Resume automatic updates if it was playing
+//                } else {
+//                    // If paused, just update the progress visually one last time
+//                    // seekTo should have updated internal position, get it again
+//                    seekBarAudio.setProgress(mediaPlayer.getCurrentPosition());
+//                }
+//            } catch (IllegalStateException e){
+//                Log.e(TAG, "IllegalStateException during seekTo", e);
+//                Toast.makeText(this, "Error seeking audio.", Toast.LENGTH_SHORT).show();
+//                releaseMediaPlayer();
+//                runOnUiThread(this::resetAudioControlsUI);
+//            }
+//        } else {
+//            Log.w(TAG, "Cannot seek: MediaPlayer invalid.");
+//        }
+//    }
+//    // --- End SeekBar.OnSeekBarChangeListener ---
+//
+//
+//    private void submitAnswers() {
+//        Log.i(TAG, "Submit process started (State: SUBMIT).");
+//
+//        // Dừng phát nhạc nếu đang phát
+//        if (mediaPlayer != null && isPlaying) {
+//            try {
+//                mediaPlayer.pause();
+//                isPlaying = false; // Update state flag
+//                if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
+//                stopSeekBarUpdate(); // Stop seekbar updates
+//                Log.d(TAG, "Playback paused on submit.");
+//            } catch (IllegalStateException e) {
+//                Log.w(TAG, "Error pausing media on submit", e);
+//            }
+//        }
+//
+//        // Kiểm tra Adapter
+//        if (questionListAdapter == null) {
+//            Log.e(TAG, "Adapter is null, cannot submit.");
+//            Toast.makeText(this, "Error: Cannot process answers.", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        // Lấy câu trả lời từ Adapter
+//        Map<Integer, Integer> userAnswers = questionListAdapter.getSelectedAnswers();
+//        int totalQuestions = questionsList.size();
+//
+//        // Kiểm tra nếu không có câu hỏi
+//        if (totalQuestions == 0) {
+//            Log.w(TAG, "No questions to submit.");
+//            Toast.makeText(this, "No questions available in this exercise.", Toast.LENGTH_SHORT).show();
+//            if (btnSubmit != null) {
+//                btnSubmit.setEnabled(false);
+//                btnSubmit.setAlpha(0.5f);
+//            }
+//            return;
+//        }
+//
+//        // --- Kiểm tra tất cả câu hỏi đã được trả lời chưa ---
+//        boolean allAnswered = true;
+//        int firstUnanswered = -1;
+//        for (int i = 0; i < totalQuestions; i++) {
+//            if (userAnswers.getOrDefault(i, -1) == -1) {
+//                allAnswered = false;
+//                firstUnanswered = i;
+//                Log.d(TAG, "Question at index " + i + " not answered.");
+//                break;
+//            }
+//        }
+//
+//        if (!allAnswered) {
+//            Toast.makeText(this, "Please answer all questions.", Toast.LENGTH_LONG).show();
+//            final int scrollToPos = firstUnanswered;
+//            if (lvQuestions != null && scrollToPos != -1) {
+//                lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(scrollToPos));
+//                Log.d(TAG,"Scrolling to first unanswered question at index: " + scrollToPos);
+//            }
+//            return;
+//        }
+//
+//        // --- Chấm điểm và chuẩn bị dữ liệu kết quả ---
+//        Log.d(TAG, "All questions answered. Scoring " + totalQuestions + " questions.");
+//        int correctCount = 0;
+//        Map<Integer, Boolean> correctnessMap = new HashMap<>();
+//        for (int i = 0; i < totalQuestions; i++) {
+//            if (i >= questionsList.size()) {
+//                Log.e(TAG, "Index out of bounds accessing questionsList at " + i);
+//                continue;
+//            }
+//            ListeningQuestion question = questionsList.get(i);
+//            int selectedRadioButtonId = userAnswers.get(i);
+//            String selectedAnswerKey = "";
+//            if (selectedRadioButtonId != -1) {
+//                View selectedRbView = findViewById(selectedRadioButtonId);
+//                if (selectedRbView instanceof RadioButton) {
+//                    CharSequence tag = ((RadioButton) selectedRbView).getTag() instanceof CharSequence ? (CharSequence)((RadioButton) selectedRbView).getTag() : null;
+//                    if (tag != null) {
+//                        selectedAnswerKey = tag.toString();
+//                    } else {
+//                        Log.w(TAG, "RadioButton with ID " + selectedRadioButtonId + " has no tag or tag is not CharSequence!");
+//                        if (selectedRadioButtonId == R.id.rbOptionA) selectedAnswerKey = "A";
+//                        else if (selectedRadioButtonId == R.id.rbOptionB) selectedAnswerKey = "B";
+//                        else if (selectedRadioButtonId == R.id.rbOptionC) selectedAnswerKey = "C";
+//                        else if (selectedRadioButtonId == R.id.rbOptionD) selectedAnswerKey = "D";
+//                    }
+//                }
+//            } else {
+//                Log.e(TAG,"Selected RadioButton ID is -1 for question " + i + " despite passing allAnswered check!");
+//            }
+//            boolean isCorrect = false;
+//            if (question.getCorrectAnswer() != null && selectedAnswerKey.equalsIgnoreCase(question.getCorrectAnswer())) {
+//                correctCount++;
+//                isCorrect = true;
+//            }
+//            correctnessMap.put(i, isCorrect);
+//            Log.v(TAG, "Q" + (i + 1) + " (Index " + i + "): Selected Key='" + selectedAnswerKey + "', Correct Key='" + question.getCorrectAnswer() + "', Result=" + isCorrect);
+//        }
+//
+//        // --- Hiển thị điểm số tổng quát qua Toast ---
+//        String resultMessage = String.format(Locale.getDefault(), "Result: %d / %d correct!", correctCount, totalQuestions);
+//        Toast.makeText(this, resultMessage, Toast.LENGTH_LONG).show();
+//        Log.i(TAG, "Final Score: " + correctCount + "/" + totalQuestions);
+//
+//        // --- Gửi kết quả cho Adapter ---
+//        questionListAdapter.showResults(userAnswers, correctnessMap);
+//
+//        // --- Cập nhật trạng thái và text của nút Submit ---
+//        boolean allCorrect = (correctCount == totalQuestions);
+//        int currentIndex = -1;
+//        boolean hasNext = false;
+//
+//        if (allExerciseTitles != null && !allExerciseTitles.isEmpty() && exerciseTitle != null) {
+//            currentIndex = allExerciseTitles.indexOf(exerciseTitle);
+//            hasNext = currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1;
+//            Log.d(TAG,"Checking for next exercise inside submitAnswers. Index: " + currentIndex + ", List size: " + allExerciseTitles.size() + ", HasNext: " + hasNext);
+//        } else {
+//            Log.w(TAG,"Cannot determine next exercise status inside submitAnswers - exercise titles list not ready or current title missing.");
+//            hasNext = false;
+//        }
+//
+//        // Quyết định trạng thái nút Submit
+//        if (allCorrect) {
+//            if (hasNext) {
+//                Log.i(TAG,"All answers correct. Setting button to NEXT.");
+//                currentButtonState = STATE_NEXT;
+//                if (btnSubmit != null) {
+//                    btnSubmit.setText("Next");
+//                    btnSubmit.setEnabled(true);
+//                    btnSubmit.setAlpha(1.0f);
+//                }
+//            } else {
+//                // Đúng hết VÀ KHÔNG còn bài tiếp theo
+//                Log.i(TAG,"All answers correct. This is the last exercise. Setting button to FINISH ! BACK NOW.");
+//                currentButtonState = STATE_FINISHED; // Trạng thái hoàn thành topic
+//                if (btnSubmit != null) {
+//                    btnSubmit.setText("Finish ! Back Now"); // *** THAY ĐỔI TEXT ***
+//                    btnSubmit.setEnabled(true);         // *** GIỮ NÚT BẬT ***
+//                    btnSubmit.setAlpha(1.0f);          // *** GIỮ NÚT RÕ RÀNG ***
+//                }
+//            }
+//        } else {
+//            // Có câu trả lời sai
+//            Log.i(TAG,"Some answers incorrect. Setting button to RETRY.");
+//            currentButtonState = STATE_RETRY;
+//            if (btnSubmit != null) {
+//                btnSubmit.setText("Retry");
+//                btnSubmit.setEnabled(true);
+//                btnSubmit.setAlpha(1.0f);
+//            }
+//        }
+//        Log.d(TAG, "Submit process finished. Button state: " + currentButtonState + " ("+(btnSubmit != null ? btnSubmit.getText() : "null")+")");
+//    }
+//
+//    // --- Lifecycle Methods ---
+//
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        Log.d(TAG,"onPause called.");
+//        // Pause audio playback if playing
+//        if (mediaPlayer != null && isPlaying) {
+//            try {
+//                mediaPlayer.pause();
+//            } catch (IllegalStateException e){
+//                Log.e(TAG,"Error pausing media on pause.",e);
+//            }
+//            // UI update (icon) will be handled in onResume to ensure correct state upon return
+//            stopSeekBarUpdate();
+//            Log.d(TAG, "Playback paused due to onPause.");
+//        }
+//        // Stop any ongoing TTS synthesis or speech
+//        if (tts != null) {
+//            try {
+//                tts.stop();
+//            } catch (Exception e) {
+//                Log.w(TAG, "Error stopping TTS on pause", e);
+//            }
+//        }
+//    }
+//
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        Log.d(TAG,"onResume called.");
+//        // Restore the UI state of the play/pause button and seek bar updates
+//        if (mediaPlayer != null && isMediaPlayerPrepared) {
+//            // Check the actual player state, as it might have changed (e.g., finished while paused)
+//            try {
+//                isPlaying = mediaPlayer.isPlaying();
+//            } catch (IllegalStateException e) {
+//                Log.w(TAG, "Error checking isPlaying onResume", e);
+//                isPlaying = false; // Assume not playing if state is invalid
+//                // Consider resetting UI or player if state is bad
+//            }
+//
+//            // Only update UI if audio isn't currently loading
+//            if (progressBarAudioLoading == null || progressBarAudioLoading.getVisibility() == View.GONE) {
+//                if (isPlaying) {
+//                    if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.ic_pause);
+//                    startSeekBarUpdate(); // Resume seekbar updates
+//                } else {
+//                    if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
+//                    try {
+//                        // Update seekbar to the current position if paused
+//                        if(seekBarAudio != null && mediaPlayer != null) { // Add null check for mediaPlayer
+//                            seekBarAudio.setProgress(mediaPlayer.getCurrentPosition());
+//                        }
+//                    } catch(IllegalStateException e) {
+//                        Log.w(TAG, "Error setting progress onResume", e);
+//                        // Handle potential error if player is in a bad state
+//                    }
+//                }
+//            }
+//        } else if (progressBarAudioLoading != null && progressBarAudioLoading.getVisibility() == View.GONE) {
+//            // If the player is not ready AND we are not loading, ensure UI is in the reset state
+//            resetAudioControlsUI();
+//        }
+//    }
+//
+//
+//    @Override
+//    protected void onStop() {
+//        super.onStop();
+//        Log.d(TAG,"onStop called.");
+//        // Release potentially heavy resources if the activity is not visible for long.
+//        // Consider if releasing the MediaPlayer here is desired, or just in onDestroy.
+//        // If released here, it needs to be re-initialized in onStart or onResume.
+//        // For simplicity, current logic releases only in onDestroy.
+//    }
+//
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        Log.i(TAG,"onDestroy called. Releasing resources.");
+//
+//        // 1. Release MediaPlayer
+//        releaseMediaPlayer(); // Handles stopping, resetting, releasing
+//
+//        // 2. Shutdown TextToSpeech
+//        if (tts != null) {
+//            Log.d(TAG,"Shutting down TTS engine.");
+//            try {
+//                tts.stop(); // Stop any ongoing speech/synthesis
+//                tts.shutdown(); // Release TTS resources
+//            } catch (Exception e) {
+//                Log.e(TAG,"TTS shutdown exception", e);
+//            }
+//            tts = null; // Clear reference
+//            isTtsInitialized = false;
+//        }
+//
+//        // 3. Delete temporary audio file
+//        if (audioFile != null && audioFile.exists()) {
+//            Log.d(TAG, "Deleting temp file: " + audioFile.getName());
+//            if (!audioFile.delete()) {
+//                Log.w(TAG, "Failed to delete temp audio file: " + audioFile.getAbsolutePath());
+//            }
+//            audioFile = null; // Clear reference
+//        }
+//
+//        // 4. Stop Handler callbacks
+//        stopSeekBarUpdate(); // Ensure the runnable is removed
+//        if (progressHandler != null) {
+//            progressHandler.removeCallbacksAndMessages(null); // Remove any pending messages/runnables
+//        }
+//
+//        Log.i(TAG,"onDestroy finished.");
+//    }
+//
+//    // --- Phương thức giải phóng MediaPlayer ---
+//    private void releaseMediaPlayer() {
+//        Log.d(TAG,"Releasing MediaPlayer resources...");
+//        stopSeekBarUpdate(); // Stop seekbar updates first
+//
+//        if (mediaPlayer != null) {
+//            try {
+//                if (mediaPlayer.isPlaying()) {
+//                    mediaPlayer.stop(); // Stop playback
+//                }
+//                mediaPlayer.reset(); // Reset to idle state
+//                mediaPlayer.release(); // Release system resources
+//                Log.i(TAG, "MediaPlayer released.");
+//            } catch (Exception e){ // Catch IllegalStateException or others
+//                Log.e(TAG, "Exception releasing MediaPlayer", e);
+//            } finally {
+//                mediaPlayer = null; // Always set to null after attempting release
+//            }
+//        } else {
+//            Log.d(TAG,"MediaPlayer already null.");
+//        }
+//        // Reset state flags
+//        isMediaPlayerPrepared = false;
+//        isPlaying = false;
+//        // Don't reset the whole UI here; other parts of the code call resetAudioControlsUI when needed
+//    }
+//
+//    // --- Hàm helper để reset UI điều khiển audio ---
+//    private void resetAudioControlsUI(){
+//        Log.d(TAG, "Resetting audio controls UI to initial state.");
+//        // Ensure UI updates happen on the main thread
+//        runOnUiThread(()-> {
+//            // Hide ProgressBar
+//            if (progressBarAudioLoading != null) {
+//                progressBarAudioLoading.setVisibility(View.GONE);
+//            }
+//            // Show Play button, set default icon, and disable it
+//            if (btnPlayAudio != null) {
+//                btnPlayAudio.setVisibility(View.VISIBLE);
+//                btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Default icon
+//                btnPlayAudio.setEnabled(false); // Disabled initially
+//            }
+//            // Disable SeekBar and reset progress
+//            if (seekBarAudio != null) {
+//                seekBarAudio.setEnabled(false); // Disabled initially
+//                seekBarAudio.setProgress(0);    // Reset progress
+//            }
+//        });
+//    }
+//
+//    // --- Hàm helper để hiển thị loading ---
+//    private void showLoadingIndicator() {
+//        runOnUiThread(() -> {
+//            if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.VISIBLE);
+//            if (btnPlayAudio != null) btnPlayAudio.setVisibility(View.INVISIBLE); // Hide play button
+//            // Disable controls while loading
+//            if (seekBarAudio != null) seekBarAudio.setEnabled(false);
+//            if (btnPlayAudio != null) btnPlayAudio.setEnabled(false); // Disable hidden button too
+//        });
+//    }
+//
+//    // --- Hàm helper để ẩn loading khi thành công ---
+//    private void hideLoadingIndicator() {
+//        runOnUiThread(() -> {
+//            if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.GONE);
+//            if (btnPlayAudio != null) {
+//                btnPlayAudio.setVisibility(View.VISIBLE); // Show play button
+//                btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Set default icon (might change later if playing)
+//                btnPlayAudio.setEnabled(true); // Enable interaction
+//            }
+//            if (seekBarAudio != null) seekBarAudio.setEnabled(true); // Enable interaction
+//        });
+//    }
+//
+//    // --- Hàm helper để ẩn loading khi có lỗi ---
+//    private void hideLoadingIndicatorWithError() {
+//        // This effectively resets the UI to its initial, disabled state
+//        resetAudioControlsUI();
+//    }
+//
+//    @Override
+//    public void onBackPressed() {
+//        Log.d(TAG,"onBackPressed called.");
+//        // Gracefully stop ongoing processes before exiting
+//
+//        // Pause MediaPlayer if playing
+//        if (mediaPlayer != null && isPlaying) {
+//            try {
+//                mediaPlayer.pause();
+//            } catch (IllegalStateException e) {
+//                Log.w(TAG,"Error pausing on back press",e);
+//            }
+//        }
+//
+//        // Stop TTS if speaking/synthesizing
+//        if (tts != null) {
+//            try {
+//                tts.stop();
+//            } catch (Exception e) {
+//                Log.w(TAG, "Error stopping TTS on back press", e);
+//            }
+//        }
+//
+//        // Stop handler callbacks
+//        stopSeekBarUpdate();
+//
+//        // Release MediaPlayer resources (optional but good practice before finishing)
+//        // Note: onDestroy will also call releaseMediaPlayer, but doing it here ensures
+//        // it happens even if super.onBackPressed() somehow skips onDestroy quickly.
+//        // releaseMediaPlayer(); // Consider if needed here in addition to onDestroy
+//
+//        super.onBackPressed(); // Perform the default back action (finish activity)
+//        Log.d(TAG,"Activity finishing via back press.");
+//    }
+//
+//
+//    private void loadAllExerciseTitlesFromFirebase() {
+//        if (levelName == null || topicTitle == null) {
+//            Log.e(TAG, "Cannot load exercise titles: Level or Topic name is null.");
+//            // Có thể disable nút Next hoặc xử lý lỗi khác
+//            return;
+//        }
+//
+//        allExerciseTitles = new ArrayList<>(); // Khởi tạo list
+//
+//        DatabaseReference exercisesRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
+//                .getReference("Lessons")
+//                .child("Levels")
+//                .child(levelName)
+//                .child("Listening")
+//                .child("Topics")
+//                .child(topicTitle)
+//                .child("Exercises"); // Tham chiếu đến node chứa TẤT CẢ exercises
+//
+//        Log.d(TAG, "Loading all exercise titles from: " + exercisesRef.toString());
+//
+//        exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                if (snapshot.exists()) {
+//                    allExerciseTitles.clear(); // Xóa list cũ (nếu có)
+//                    for (DataSnapshot exerciseSnap : snapshot.getChildren()) {
+//                        String title = exerciseSnap.getKey();
+//                        if (title != null && !title.isEmpty()) {
+//                            allExerciseTitles.add(title);
+//                            Log.v(TAG, "Found exercise title: " + title);
+//                        }
+//                    }
+//                    Log.i(TAG, "Loaded " + allExerciseTitles.size() + " exercise titles for topic: " + topicTitle);
+//                    updateSubmitButtonStateAfterTitlesLoaded();
+//
+//                } else {
+//                    Log.w(TAG, "No exercises found under topic: " + topicTitle);
+//                    // Không có bài tập nào khác, có thể xử lý ở đây
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Log.e(TAG, "Failed to load exercise titles: " + error.getMessage());
+//                Toast.makeText(InternalListeningTopic.this, "Error loading exercise list.", Toast.LENGTH_SHORT).show();
+//                // Có thể vô hiệu hóa chức năng "Next"
+//            }
+//        });
+//    }
+//
+//    private void updateSubmitButtonStateAfterTitlesLoaded() {
+//        if (questionListAdapter == null || btnSubmit == null) {
+//            Log.w(TAG,"Cannot update submit button state: Adapter or Button is null.");
+//            return;
+//        }
+//
+//        if (currentButtonState != STATE_SUBMIT) {
+//            Log.d(TAG, "Attempting to update button state after titles loaded. Current state: " + currentButtonState);
+//
+//            int currentIndex = -1;
+//            boolean hasNext = false;
+//            if (allExerciseTitles != null && !allExerciseTitles.isEmpty() && exerciseTitle != null) {
+//                currentIndex = allExerciseTitles.indexOf(exerciseTitle);
+//                hasNext = currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1;
+//            } else {
+//                hasNext = false;
+//                Log.w(TAG,"Exercise titles list is null, empty or title is missing when updating button state.");
+//            }
+//
+//            boolean allCorrect = questionListAdapter.areAllAnswersCorrect();
+//            Log.d(TAG, "Updating button state check: CurrentIndex=" + currentIndex + ", HasNext=" + hasNext + ", AllCorrect=" + allCorrect + ", CurrentState=" + currentButtonState);
+//
+//            if (currentButtonState == STATE_NEXT || currentButtonState == STATE_FINISHED) {
+//                if (allCorrect) {
+//                    if (hasNext) {
+//                        Log.d(TAG, "Re-confirming button state to NEXT.");
+//                        currentButtonState = STATE_NEXT;
+//                        btnSubmit.setText("Next");
+//                        btnSubmit.setEnabled(true);
+//                        btnSubmit.setAlpha(1.0f);
+//                    } else {
+//                        // Đúng hết nhưng không có bài tiếp theo -> Đảm bảo là FINISHED
+//                        Log.d(TAG, "Re-confirming button state to FINISH ! BACK NOW.");
+//                        currentButtonState = STATE_FINISHED;
+//                        btnSubmit.setText("Finish ! Back Now"); // *** THAY ĐỔI TEXT ***
+//                        btnSubmit.setEnabled(true);         // *** GIỮ NÚT BẬT ***
+//                        btnSubmit.setAlpha(1.0f);          // *** GIỮ NÚT RÕ RÀNG ***
+//                    }
+//                } else {
+//                    Log.w(TAG, "State was NEXT/FINISHED but not all answers are correct! Resetting to RETRY.");
+//                    currentButtonState = STATE_RETRY;
+//                    btnSubmit.setText("Retry");
+//                    btnSubmit.setEnabled(true);
+//                    btnSubmit.setAlpha(1.0f);
+//                }
+//            }
+//            else if (currentButtonState == STATE_RETRY) {
+//                Log.d(TAG, "Button state is RETRY, no update needed after title load.");
+//            }
+//        } else {
+//            Log.d(TAG, "Button state is still SUBMIT, no update needed after title load.");
+//        }
+//    }
+//}
 
+package com.example.langhexx.View; // Thay đổi package name nếu cần
+
+import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Handler;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ListView;
+import android.widget.ProgressBar; // Đảm bảo import ProgressBar
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.SeekBar;
+import android.widget.TextView; // Giữ lại cho các TextView khác (như tiêu đề câu hỏi)
+// Removed standard Toast import as it's replaced by CustomToast
+// import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-import com.example.langhexx.R;
+// Thay đổi import Controller và Model nếu cần
+import com.example.langhexx.Controller.ListeningQuestionListAdapter;
+import com.example.langhexx.Model.ListeningQuestion;
+import com.example.langhexx.R; // Thay đổi R nếu cần
 
-public class InternalListeningTopic extends AppCompatActivity {
+// Import CustomToast
+import com.example.langhexx.Model.CustomToast;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+
+public class InternalListeningTopic extends AppCompatActivity implements
+        TextToSpeech.OnInitListener,
+        MediaPlayer.OnPreparedListener,
+        MediaPlayer.OnCompletionListener,
+        SeekBar.OnSeekBarChangeListener {
+
+    private static final String TAG = "InternalListenTopic";
+    // Tạo ID duy nhất cho mỗi lần tổng hợp để tránh trùng lặp listener
+    private final String SYNTHESIS_UTTERANCE_ID = "SynthesisUtteranceId_" + UUID.randomUUID().toString();
+
+    // --- UI Elements ---
+    private ImageButton btnPlayAudio;
+    private SeekBar seekBarAudio;
+    private ListView lvQuestions;
+    private Button btnSubmit;
+    private ProgressBar progressBarAudioLoading; // ProgressBar để thay thế Toast
+
+    // --- TTS Members ---
+    private TextToSpeech tts;
+    private boolean isTtsInitialized = false;
+    private String scriptToSpeak;
+
+    // --- MediaPlayer Members ---
+    private MediaPlayer mediaPlayer;
+    private boolean isMediaPlayerPrepared = false;
+    private boolean isPlaying = false;
+    private File audioFile; // File âm thanh tạm được tổng hợp
+    private Handler progressHandler = new Handler(); // Handler để cập nhật tiến trình SeekBar
+    private Runnable updateSeekBarRunnable;
+    private TextView tvScreenTitle;
+
+    // --- Data Members ---
+    private List<ListeningQuestion> questionsList;
+    private ListeningQuestionListAdapter questionListAdapter;
+    private String levelName;
+    private String topicTitle;
+    private String exerciseTitle;
+    private ArrayList<String> allExerciseTitles;
+    //submit status
+    private static final int STATE_SUBMIT = 0;
+    private static final int STATE_RETRY = 1;
+    private static final int STATE_NEXT = 2;
+    private static final int STATE_FINISHED = -1; // Renamed from -1 for clarity if needed
+    private int currentButtonState = STATE_SUBMIT;
+
+    // --- Placeholder Icon Resource IDs ---
+    // !!! IMPORTANT: Create these drawables in your res/drawable folder !!!
+    private final int SUCCESS_ICON = R.drawable.success; // e.g., a checkmark icon
+    private final int FAIL_ICON = R.drawable.fail_icon;       // e.g., an 'X' or exclamation icon
+    private final int INFO_ICON = R.drawable.fail_icon;       // e.g., an 'i' icon (optional, can use FAIL_ICON)
+    // --- End Placeholder Icons ---
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_internal_listening_topic);
+        setContentView(R.layout.activity_internal_listening_topic); // Sử dụng layout có ProgressBar
+
+        // --- Nhận dữ liệu từ Intent ---
+        Intent intent = getIntent();
+        if (intent != null) {
+            levelName = intent.getStringExtra("LEVEL_NAME");
+            topicTitle = intent.getStringExtra("TOPIC_TITLE");
+            exerciseTitle = intent.getStringExtra("EXERCISE_TITLE");
+        } else {
+            // Xử lý trường hợp không có Intent hoặc dữ liệu
+            CustomToast.showFail(this, "Error: Missing exercise identifiers.", FAIL_ICON);
+            Log.e(TAG, "Intent is null or missing required extras.");
+            finish(); // Đóng activity nếu thiếu dữ liệu cần thiết
+            return;
+        }
+
+        // Kiểm tra null cho các identifier
+        if (levelName == null || topicTitle == null || exerciseTitle == null) {
+            CustomToast.showFail(this, "Error: Invalid exercise identifiers.", FAIL_ICON);
+            Log.e(TAG, "One or more identifiers are null: level=" + levelName + ", topic=" + topicTitle + ", exercise=" + exerciseTitle);
+            finish();
+            return;
+        }
+
+        addControls();
+        //
+        if (tvScreenTitle != null && exerciseTitle != null) {
+            tvScreenTitle.setText(exerciseTitle);
+        }
+        //
+        setupListView();
+        initializeTextToSpeech(); // Khởi tạo TTS trước
+        loadExerciseDataFromFirebase(); // Tải dữ liệu (sẽ kích hoạt tổng hợp TTS khi có script)
+        loadAllExerciseTitlesFromFirebase();
+        addEvents();
+    }
+
+    private void addControls() {
+        btnPlayAudio = findViewById(R.id.btnPlayAudio);
+        seekBarAudio = findViewById(R.id.seekBarAudio);
+        lvQuestions = findViewById(R.id.lvQuestions);
+        btnSubmit = findViewById(R.id.btnSubmit);
+        progressBarAudioLoading = findViewById(R.id.progressBarAudioLoading); // Lấy ProgressBar
+        tvScreenTitle = findViewById(R.id.tvScreenTitle);
+        // --- Đặt trạng thái ban đầu bằng hàm reset ---
+        resetAudioControlsUI();
+    }
+
+    private void setupListView() {
+        questionsList = new ArrayList<>();
+        // Khởi tạo Adapter
+        questionListAdapter = new ListeningQuestionListAdapter(this, questionsList);
+        lvQuestions.setAdapter(questionListAdapter);
+    }
+
+    private void initializeTextToSpeech() {
+        Log.d(TAG, "Initializing TextToSpeech...");
+        try {
+            tts = new TextToSpeech(this, this);
+        } catch (Exception e) {
+            Log.e(TAG, "Exception initializing TTS", e);
+            CustomToast.showFail(this, "Failed to initialize Text-to-Speech component.", FAIL_ICON);
+            resetAudioControlsUI(); // Đảm bảo UI ở trạng thái không thể phát
+        }
+    }
+
+    // --- OnInitListener Implementation ---
+    @Override
+    public void onInit(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+            // Ưu tiên tiếng Anh Mỹ, nếu không có thì dùng tiếng Anh chung
+            int result = tts.setLanguage(Locale.US);
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.w(TAG, "TTS language US not supported, trying default English.");
+                result = tts.setLanguage(Locale.ENGLISH);
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e(TAG, "TTS language English is not supported.");
+                    CustomToast.showFail(this, "Required TTS language not supported.", FAIL_ICON);
+                    resetAudioControlsUI();
+                    return;
+                }
+            }
+
+            Log.i(TAG, "TTS Initialized successfully with language: " + (tts.getLanguage() != null ? tts.getLanguage() : "Unknown"));
+            // Optional: Show success toast for TTS init
+            // CustomToast.showSuccess(this, "TTS Ready.", SUCCESS_ICON);
+            isTtsInitialized = true;
+            // Nếu script đã được tải trong khi TTS đang khởi tạo, bắt đầu tổng hợp ngay
+            if (scriptToSpeak != null && !scriptToSpeak.isEmpty() && audioFile == null) {
+                Log.d(TAG, "TTS ready, starting synthesis from onInit.");
+                synthesizeScriptToFile();
+            } else {
+                Log.d(TAG, "TTS ready, waiting for script or synthesis already in progress/done.");
+            }
+
+        } else {
+            Log.e(TAG, "TTS Initialization failed! Status code: " + status);
+            CustomToast.showFail(this, "Failed to initialize Text-to-Speech engine (Code: " + status + ").", FAIL_ICON);
+            resetAudioControlsUI();
+        }
+    }
+
+    private void loadExerciseDataFromFirebase() {
+        // Đã kiểm tra null các identifier trong onCreate
+
+        DatabaseReference exerciseRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/") // Thay URL nếu cần
+                .getReference("Lessons")
+                .child("Levels")
+                .child(levelName)
+                .child("Listening")
+                .child("Topics")
+                .child(topicTitle)
+                .child("Exercises")
+                .child(exerciseTitle);
+
+        Log.i(TAG, "Loading data from Firebase path: " + exerciseRef.toString());
+
+        // Hiển thị loading indicator ngay khi bắt đầu tải
+        showLoadingIndicator();
+
+        exerciseRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    Log.e(TAG, "Exercise data not found at the specified Firebase path.");
+                    CustomToast.showFail(InternalListeningTopic.this, "Exercise data not found.", FAIL_ICON);
+                    hideLoadingIndicatorWithError(); // Ẩn loading và reset UI nếu lỗi
+                    finish(); // Đóng activity nếu không có dữ liệu
+                    return;
+                }
+
+                // Lấy script để tổng hợp
+                scriptToSpeak = snapshot.child("script").getValue(String.class);
+                boolean hasScript = scriptToSpeak != null && !scriptToSpeak.isEmpty();
+
+                if (hasScript) {
+                    Log.d(TAG,"Script loaded from Firebase (" + scriptToSpeak.length() + " chars).");
+                    // Chỉ bắt đầu tổng hợp nếu TTS đã sẵn sàng và chưa có file audio
+                    if (isTtsInitialized && audioFile == null) {
+                        Log.d(TAG, "Script loaded, TTS ready, starting synthesis.");
+                        synthesizeScriptToFile(); // Hàm này sẽ tự quản lý ProgressBar
+                    } else if (!isTtsInitialized){
+                        Log.d(TAG, "Script loaded, waiting for TTS initialization to complete.");
+                        // ProgressBar vẫn hiển thị, onInit sẽ gọi synthesizeScriptToFile
+                    } else {
+                        Log.d(TAG, "Script loaded, but synthesis might be already done or in progress.");
+                        // Nếu audioFile đã tồn tại (ví dụ từ cache), setupMediaPlayer sẽ được gọi
+                        if(audioFile != null && audioFile.exists()) {
+                            setupMediaPlayer();
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "'script' field is missing, empty, or not a String in Firebase.");
+                    CustomToast.showFail(InternalListeningTopic.this, "No audio script found.", INFO_ICON); // Use info or fail icon
+                    hideLoadingIndicatorWithError(); // Ẩn loading, reset UI vì không có audio
+                }
+
+                // Lấy danh sách câu hỏi (luôn thực hiện dù có script hay không)
+                DataSnapshot questionsSnapshot = snapshot.child("questions");
+                if (!questionsSnapshot.exists()) {
+                    Log.w(TAG, "No 'questions' node found in Firebase data.");
+                    if (questionsList.isEmpty()) { // Chỉ Toast nếu chưa có câu hỏi nào
+                        CustomToast.showFail(InternalListeningTopic.this, "No questions found for this exercise.", INFO_ICON); // Use info or fail icon
+                    }
+                    // Nếu không có script VÀ không có câu hỏi, thì không còn gì để làm
+                    if (!hasScript) {
+                        finish(); // Có thể đóng activity
+                    }
+                } else {
+                    List<ListeningQuestion> loadedQuestions = new ArrayList<>();
+                    int questionCounter = 1;
+                    for (DataSnapshot questionSnap : questionsSnapshot.getChildren()) {
+                        try {
+                            ListeningQuestion question = parseQuestionSnapshot(questionSnap, questionCounter);
+                            if (question != null) {
+                                loadedQuestions.add(question);
+                                questionCounter++;
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing question data for key: " + questionSnap.getKey(), e);
+                        }
+                    }
+                    questionsList.clear();
+                    questionsList.addAll(loadedQuestions);
+                    questionListAdapter.updateData(questionsList); // Cập nhật adapter
+                    Log.i(TAG, "Successfully loaded " + questionsList.size() + " questions.");
+                }
+
+                // Nếu không có script, không cần chờ TTS, ẩn loading indicator ở đây
+                if (!hasScript) {
+                    hideLoadingIndicatorWithError(); // Reset audio controls
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Firebase data loading cancelled or failed: " + error.getMessage(), error.toException());
+                CustomToast.showFail(InternalListeningTopic.this, "Error loading exercise data: " + error.getMessage(), FAIL_ICON);
+                hideLoadingIndicatorWithError(); // Ẩn loading và reset UI
+                // Cân nhắc đóng activity hoặc cho phép thử lại
+            }
+        });
+    }
+
+    // Hàm helper để parse dữ liệu câu hỏi từ Firebase Snapshot
+    private ListeningQuestion parseQuestionSnapshot(DataSnapshot questionSnap, int questionNumber) {
+        ListeningQuestion question = new ListeningQuestion();
+        question.setId(questionSnap.getKey()); // Lấy key làm ID
+
+        String text = questionSnap.child("questionText").getValue(String.class);
+        String answer = questionSnap.child("correctAnswer").getValue(String.class);
+
+        // Lấy options một cách an toàn hơn
+        Map<String, String> stringOptionsMap = new HashMap<>();
+        DataSnapshot optionsSnapshot = questionSnap.child("options");
+        if (optionsSnapshot.exists() && optionsSnapshot.getValue() instanceof Map) {
+            try {
+                @SuppressWarnings("unchecked") // Cần thiết cho cast này
+                Map<String, Object> optionsMapObject = (Map<String, Object>) optionsSnapshot.getValue();
+                if (optionsMapObject != null) {
+                    for (Map.Entry<String, Object> entry : optionsMapObject.entrySet()) {
+                        // Chuyển đổi mọi giá trị sang String
+                        stringOptionsMap.put(entry.getKey(), String.valueOf(entry.getValue()));
+                    }
+                }
+            } catch (ClassCastException e) {
+                Log.e(TAG, "Error casting options to Map for question: " + questionSnap.getKey(), e);
+            }
+        } else {
+            Log.w(TAG, "Options node is missing or not a Map for question: " + questionSnap.getKey());
+        }
+        question.setOptions(stringOptionsMap);
+
+        // Kiểm tra dữ liệu cần thiết
+        if (text != null && !text.isEmpty() &&
+                answer != null && !answer.isEmpty() &&
+                !stringOptionsMap.isEmpty()) {
+            question.setQuestionText(text);
+            question.setCorrectAnswer(answer);
+            question.setQuestionNumberText("Question " + questionNumber + ":"); // Set số thứ tự
+            return question;
+        } else {
+            Log.w(TAG, "Skipping question due to missing data: Key=" + questionSnap.getKey() +
+                    ", Text=" + text + ", Answer=" + answer + ", OptionsEmpty=" + stringOptionsMap.isEmpty());
+            return null; // Trả về null nếu thiếu dữ liệu
+        }
+    }
+
+
+    private void synthesizeScriptToFile() {
+        if (!isTtsInitialized) {
+            Log.w(TAG, "Cannot synthesize: TTS not ready.");
+            CustomToast.showFail(this, "Text-to-Speech engine is not ready.", FAIL_ICON);
+            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+            return;
+        }
+        if (scriptToSpeak == null || scriptToSpeak.isEmpty()) {
+            Log.w(TAG, "Cannot synthesize: Script is empty or null.");
+            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+            return;
+        }
+        // Tránh gọi lại nếu đang tổng hợp hoặc đã có file/player
+        if (audioFile != null && audioFile.exists()){
+            Log.d(TAG, "Synthesis request ignored, audio file already exists or MediaPlayer is set up.");
+            if(mediaPlayer == null) {
+                Log.d(TAG, "Audio file exists but player not ready, attempting setup.");
+                setupMediaPlayer(); // Vẫn cần hiển thị loading khi setup player từ file cũ
+            } else if (isMediaPlayerPrepared) {
+                hideLoadingIndicator(); // Nếu player đã sẵn sàng thì ẩn loading
+            }
+            return;
+        }
+
+        try {
+            File outputDir = getCacheDir();
+            if (!outputDir.exists()) { outputDir.mkdirs(); }
+            String filename = "listening_" + levelName + "_" + topicTitle + "_" + exerciseTitle.hashCode() + ".wav";
+            audioFile = new File(outputDir, filename);
+
+            if (audioFile.exists() && audioFile.length() > 0) {
+                Log.i(TAG, "Using existing synthesized file: " + audioFile.getAbsolutePath());
+                showLoadingIndicator(); // Hiển thị loading khi setup từ file cũ
+                setupMediaPlayer();
+                return;
+            }
+            if (audioFile.exists()) { audioFile.delete(); }
+
+            Log.i(TAG, "Starting TTS synthesis to file: " + audioFile.getAbsolutePath());
+            showLoadingIndicator(); // Hiển thị loading trước khi bắt đầu tổng hợp
+
+            // Đặt listener TRƯỚC KHI gọi synthesizeToFile
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override
+                public void onStart(String utteranceId) {
+                    Log.d(TAG, "TTS Synthesis started: " + utteranceId);
+                }
+                @Override
+                public void onDone(String utteranceId) {
+                    Log.d(TAG, "TTS Synthesis done: " + utteranceId);
+                    if (SYNTHESIS_UTTERANCE_ID.equals(utteranceId) && !isFinishing()) {
+                        runOnUiThread(() -> {
+                            if (audioFile != null && audioFile.exists() && audioFile.length() > 0) {
+                                Log.i(TAG, "Synthesis successful. Setting up MediaPlayer.");
+                                setupMediaPlayer(); // ProgressBar vẫn hiển thị, setupMediaPlayer sẽ xử lý
+                            } else {
+                                Log.e(TAG, "Synthesis done, but file invalid.");
+                                CustomToast.showFail(InternalListeningTopic.this, "Error creating audio file.", FAIL_ICON);
+                                audioFile = null;
+                                hideLoadingIndicatorWithError();
+                            }
+                        });
+                    }
+                }
+                @Override
+                public void onError(String utteranceId, int errorCode) {
+                    Log.e(TAG, "TTS Synthesis error: " + utteranceId + ", Code: " + errorCode);
+                    if (SYNTHESIS_UTTERANCE_ID.equals(utteranceId) && !isFinishing()) {
+                        runOnUiThread(() -> {
+                            CustomToast.showFail(InternalListeningTopic.this, "Audio synthesis failed (Error " + errorCode + ")", FAIL_ICON);
+                            if (audioFile != null && audioFile.exists()) { audioFile.delete(); }
+                            audioFile = null;
+                            hideLoadingIndicatorWithError();
+                        });
+                    }
+                }
+                @Override
+                public void onError(String utteranceId) {
+                    // Call the overloaded onError with a generic error code
+                    onError(utteranceId, TextToSpeech.ERROR);
+                }
+            });
+
+            // Bắt đầu tổng hợp
+            HashMap<String, String> params = new HashMap<>();
+            params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, SYNTHESIS_UTTERANCE_ID);
+            int result = tts.synthesizeToFile(scriptToSpeak, params, audioFile.getAbsolutePath());
+
+            if (result != TextToSpeech.SUCCESS) {
+                Log.e(TAG, "synthesizeToFile immediate failure. Code: " + result);
+                CustomToast.showFail(this, "Failed to start audio synthesis (Code: " + result + ").", FAIL_ICON);
+                if (audioFile != null && audioFile.exists()) { audioFile.delete(); }
+                audioFile = null;
+                hideLoadingIndicatorWithError();
+            } else {
+                Log.d(TAG, "synthesizeToFile request submitted.");
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Exception during synthesis", e);
+            CustomToast.showFail(this, "Error preparing audio: " + e.getMessage(), FAIL_ICON);
+            if (audioFile != null && audioFile.exists()) { audioFile.delete(); }
+            audioFile = null;
+            hideLoadingIndicatorWithError();
+        }
+    }
+
+    private void setupMediaPlayer() {
+        if (audioFile == null || !audioFile.exists() || audioFile.length() == 0) {
+            Log.e(TAG, "Cannot setup MediaPlayer: Audio file invalid.");
+            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+            return;
+        }
+
+        // Đảm bảo vẫn hiển thị loading khi bắt đầu setup player
+        showLoadingIndicator();
+
+        releaseMediaPlayer(); // Giải phóng trình phát cũ
+
+        try {
+            Log.d(TAG, "Setting up MediaPlayer source: " + audioFile.getAbsolutePath());
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDataSource(audioFile.getAbsolutePath());
+            mediaPlayer.setOnPreparedListener(this);
+            mediaPlayer.setOnCompletionListener(this);
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e(TAG, "MediaPlayer Error: what=" + what + ", extra=" + extra);
+                String errorMsg = "Error playing audio"; // Default message
+                // Add specific messages based on 'what' or 'extra' if needed
+                CustomToast.showFail(InternalListeningTopic.this, errorMsg + " (Code: " + what + ")", FAIL_ICON);
+                releaseMediaPlayer();
+                hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+                return true; // Return true to indicate the error was handled
+            });
+            Log.d(TAG, "MediaPlayer prepareAsync called.");
+            mediaPlayer.prepareAsync();
+
+        } catch (IOException | IllegalStateException | SecurityException | IllegalArgumentException e) { // Catch specific exceptions
+            Log.e(TAG, "Exception setting up MediaPlayer", e);
+            CustomToast.showFail(this, "Error loading audio: " + e.getMessage(), FAIL_ICON);
+            releaseMediaPlayer();
+            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+        }
+    }
+
+    // --- MediaPlayer.OnPreparedListener ---
+    @Override
+    public void onPrepared(MediaPlayer mp) {
+        if (mediaPlayer == null) {
+            Log.w(TAG, "onPrepared called but MediaPlayer is null.");
+            return;
+        }
+
+        Log.d(TAG, "MediaPlayer prepared.");
+        isMediaPlayerPrepared = true;
+        try {
+            int duration = mediaPlayer.getDuration();
+            if (duration > 0) {
+                Log.d(TAG, "Audio duration: " + duration + "ms");
+                // --- Audio sẵn sàng, ẩn loading, hiện nút Play ---
+                hideLoadingIndicator(); // Ẩn ProgressBar, hiện nút Play và bật controls
+                seekBarAudio.setMax(duration);
+            } else {
+                Log.w(TAG, "MediaPlayer prepared but duration is invalid: " + duration);
+                CustomToast.showFail(this, "Audio file seems corrupted.", FAIL_ICON);
+                releaseMediaPlayer();
+                if (audioFile != null && audioFile.exists()) audioFile.delete();
+                audioFile = null;
+                hideLoadingIndicatorWithError(); // Ẩn loading, reset UI
+            }
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "IllegalStateException in onPrepared.", e);
+            CustomToast.showFail(this, "Error accessing audio properties.", FAIL_ICON);
+            hideLoadingIndicatorWithError(); // Ẩn loading, reset UI nếu lỗi
+        }
+    }
+
+    // --- MediaPlayer.OnCompletionListener ---
+    @Override
+    public void onCompletion(MediaPlayer mp) {
+        if (mediaPlayer == null || !isMediaPlayerPrepared) {
+            Log.w(TAG, "onCompletion called but player invalid.");
+            return;
+        }
+
+        Log.d(TAG, "MediaPlayer playback completed.");
+        isPlaying = false;
+        try {
+            // Ensure UI updates run on the main thread
+            runOnUiThread(() -> {
+                if (mediaPlayer != null && isMediaPlayerPrepared) { // Check again inside Runnable
+                    try {
+                        seekBarAudio.setProgress(mediaPlayer.getDuration()); // Show end of track
+                        // Wait a tiny bit before seeking to 0 to make the end position visible
+                        new Handler().postDelayed(() -> {
+                            try {
+                                if (mediaPlayer != null && isMediaPlayerPrepared) { // Check again
+                                    mediaPlayer.seekTo(0);
+                                    seekBarAudio.setProgress(0);
+                                }
+                            } catch (IllegalStateException seekEx) {
+                                Log.w(TAG, "Delayed seek failed on completion", seekEx);
+                            }
+                        }, 100); // 100ms delay
+                    } catch (IllegalStateException getDurEx) {
+                        Log.w(TAG, "Get duration failed on completion", getDurEx);
+                    }
+                }
+                if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Reset icon Play
+            });
+            stopSeekBarUpdate();
+        } catch (Exception e){ // Catch unexpected exceptions
+            Log.e(TAG,"Exception in onCompletion", e);
+            releaseMediaPlayer();
+            runOnUiThread(this::resetAudioControlsUI);
+        }
+    }
+
+    private void addEvents() {
+        if (btnPlayAudio != null) {
+            btnPlayAudio.setOnClickListener(v -> togglePlayPause());
+        }
+        if (btnSubmit != null) {
+            btnSubmit.setOnClickListener(v -> {
+                Log.d(TAG, "Submit button clicked. Current state: " + currentButtonState);
+                switch (currentButtonState) {
+                    case STATE_SUBMIT:
+                        submitAnswers();
+                        break;
+                    case STATE_RETRY:
+                        retryExercise();
+                        break;
+                    case STATE_NEXT:
+                        goToNextExercise();
+                        break;
+                    case STATE_FINISHED: // Handle the finished state
+                        Log.i(TAG,"'Finish ! Back Now' button clicked. Finishing activity.");
+                        finish(); // Close Activity to go back
+                        break;
+                    default:
+                        Log.w(TAG, "Unknown button state clicked: " + currentButtonState);
+                        break;
+                }
+            });
+        }
+        if (seekBarAudio != null) {
+            seekBarAudio.setOnSeekBarChangeListener(this);
+        }
+    }
+
+    private void retryExercise() {
+        Log.i(TAG, "Retry button clicked.");
+
+        // 1. Yêu cầu Adapter reset trạng thái
+        if (questionListAdapter != null) {
+            questionListAdapter.resetQuizState();
+        } else {
+            Log.e(TAG, "Adapter is null, cannot reset state for retry.");
+            CustomToast.showFail(this, "Error resetting quiz.", FAIL_ICON);
+            return;
+        }
+
+        // 2. Reset trạng thái và text của nút
+        currentButtonState = STATE_SUBMIT;
+        if (btnSubmit != null) {
+            btnSubmit.setText("Submit");
+            btnSubmit.setEnabled(true); // Đảm bảo nút được bật lại
+            btnSubmit.setAlpha(1.0f);
+        }
+
+        // 3. Cuộn ListView lên đầu (tùy chọn)
+        if (lvQuestions != null) {
+            lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(0));
+        }
+
+        Log.d(TAG,"Exercise state reset for retry. Button state: SUBMIT");
+    }
+
+    private void goToNextExercise() {
+        Log.i(TAG, "Attempting to go to the next exercise.");
+
+        if (allExerciseTitles == null || allExerciseTitles.isEmpty()) {
+            Log.e(TAG, "Exercise titles list is not loaded or empty. Cannot determine next exercise.");
+            CustomToast.showFail(this, "Could not load the exercise list.", FAIL_ICON);
+            // Vô hiệu hóa nút hoặc xử lý khác
+            if(btnSubmit != null) {
+                btnSubmit.setText("Error"); // Hoặc "Finished"
+                btnSubmit.setEnabled(false);
+                btnSubmit.setAlpha(0.5f);
+            }
+            return;
+        }
+
+        int currentIndex = allExerciseTitles.indexOf(exerciseTitle);
+        Log.d(TAG, "Current exercise '" + exerciseTitle + "' found at index: " + currentIndex);
+
+        if (currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1) {
+            // Có bài tập tiếp theo
+            String nextExerciseTitle = allExerciseTitles.get(currentIndex + 1);
+            Log.i(TAG, "Next exercise title: " + nextExerciseTitle);
+
+            // Tạo Intent để mở lại Activity này với bài tập mới
+            Intent nextIntent = new Intent(InternalListeningTopic.this, InternalListeningTopic.class);
+            nextIntent.putExtra("LEVEL_NAME", levelName);
+            nextIntent.putExtra("TOPIC_TITLE", topicTitle);
+            nextIntent.putExtra("EXERCISE_TITLE", nextExerciseTitle);
+            // QUAN TRỌNG: Consider adding flags if you need specific back stack behavior,
+            // e.g., Intent.FLAG_ACTIVITY_CLEAR_TOP if you want only one InternalListeningTopic active.
+            // For simple sequential flow, just starting and finishing is usually fine.
+            // nextIntent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT); // If returning result is needed
+
+            startActivity(nextIntent);
+            finish(); // Đóng Activity hiện tại
+
+        } else {
+            // Không tìm thấy bài hiện tại hoặc đã là bài cuối cùng
+            if (currentIndex == -1) {
+                Log.e(TAG, "Current exercise title '" + exerciseTitle + "' not found in the loaded list!");
+                CustomToast.showFail(this, "Error: Could not find current exercise in list.", FAIL_ICON);
+            } else {
+                Log.i(TAG, "This is the last exercise in the topic.");
+                // Use CustomToast for the completion message
+                CustomToast.showSuccess(this, "Congratulations! You've completed all exercises in this topic.", SUCCESS_ICON);
+            }
+            // Cập nhật nút Submit thành "Finished ! Back Now" và để nó clickable
+            if (btnSubmit != null) {
+                btnSubmit.setText("Finish ! Back Now");
+                btnSubmit.setEnabled(true); // Keep enabled to allow going back
+                btnSubmit.setAlpha(1.0f);
+                currentButtonState = STATE_FINISHED; // Set to finished state
+            }
+        }
+    }
+
+    // --- Logic Play/Pause cho MediaPlayer ---
+    private void togglePlayPause() {
+        if (progressBarAudioLoading != null && progressBarAudioLoading.getVisibility() == View.VISIBLE) {
+            Log.d(TAG, "Play button clicked while loading, ignoring.");
+            CustomToast.showFail(this, "Audio is loading...", INFO_ICON); // Use info or fail icon
+            return; // Không làm gì khi đang load
+        }
+
+        if (!isMediaPlayerPrepared || mediaPlayer == null) {
+            Log.w(TAG, "togglePlayPause called but MediaPlayer not prepared or null.");
+            // Thử setup lại nếu có file và player chưa sẵn sàng (và không đang load)
+            if(audioFile != null && audioFile.exists() && mediaPlayer == null){
+                Log.d(TAG, "Attempting to re-setup MediaPlayer on play click.");
+                setupMediaPlayer(); // Hàm này sẽ tự hiển thị loading
+            } else {
+                CustomToast.showFail(this, "Audio not ready.", FAIL_ICON);
+            }
+            return;
+        }
+
+        try {
+            if (isPlaying) { // Đang phát -> Tạm dừng
+                mediaPlayer.pause();
+                isPlaying = false;
+                btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
+                stopSeekBarUpdate();
+                Log.d(TAG, "Playback paused at " + mediaPlayer.getCurrentPosition() + "ms");
+            } else { // Đang dừng/hoàn thành -> Phát (lại)
+                mediaPlayer.start();
+                isPlaying = true;
+                btnPlayAudio.setImageResource(R.drawable.ic_pause); // Đổi icon thành Pause
+                startSeekBarUpdate();
+                Log.d(TAG, "Playback started/resumed from " + mediaPlayer.getCurrentPosition() + "ms");
+            }
+        } catch (IllegalStateException e){
+            Log.e(TAG, "IllegalStateException during togglePlayPause", e);
+            CustomToast.showFail(this, "Error controlling playback.", FAIL_ICON);
+            releaseMediaPlayer();
+            runOnUiThread(this::resetAudioControlsUI);
+        }
+    }
+
+    // --- Cập nhật SeekBar bằng Handler ---
+    private void startSeekBarUpdate() {
+        stopSeekBarUpdate(); // Clear previous runnable if exists
+        updateSeekBarRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (mediaPlayer != null && isPlaying && isMediaPlayerPrepared) {
+                        int currentPosition = mediaPlayer.getCurrentPosition();
+                        seekBarAudio.setProgress(currentPosition);
+                        progressHandler.postDelayed(this, 300); // Update roughly 3 times per second
+                    } else {
+                        stopSeekBarUpdate(); // Stop if conditions are no longer met
+                    }
+                } catch (IllegalStateException e){
+                    Log.w(TAG, "IllegalStateException in updateSeekBarRunnable.", e);
+                    stopSeekBarUpdate();
+                    // Optionally reset UI if player becomes unusable
+                } catch (Exception e) { // Catch any other potential exceptions
+                    Log.e(TAG, "Exception in updateSeekBarRunnable", e);
+                    stopSeekBarUpdate();
+                }
+            }
+        };
+        progressHandler.post(updateSeekBarRunnable); // Start the update loop
+    }
+
+    private void stopSeekBarUpdate() {
+        if (updateSeekBarRunnable != null) {
+            progressHandler.removeCallbacks(updateSeekBarRunnable);
+            updateSeekBarRunnable = null; // Clear the reference
+        }
+    }
+
+    // --- SeekBar.OnSeekBarChangeListener Implementation ---
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        // Could update a time TextView here if needed:
+        // if (fromUser && mediaPlayer != null && isMediaPlayerPrepared) {
+        //    updatePlaybackTimeTextView(progress);
+        // }
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+        // User started dragging the thumb
+        if (mediaPlayer != null && isMediaPlayerPrepared) { // Only stop if player is valid
+            stopSeekBarUpdate(); // Pause automatic updates while user is controlling
+        }
+        Log.d(TAG, "SeekBar tracking started.");
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+        // User finished dragging the thumb
+        Log.d(TAG, "SeekBar tracking stopped at: " + seekBar.getProgress());
+        if (mediaPlayer != null && isMediaPlayerPrepared) {
+            try {
+                mediaPlayer.seekTo(seekBar.getProgress()); // Move playback position
+                // Immediately update the visual progress after seeking
+                seekBarAudio.setProgress(mediaPlayer.getCurrentPosition());
+                if (isPlaying) {
+                    startSeekBarUpdate(); // Resume automatic updates if it was playing
+                }
+                // updatePlaybackTimeTextView(seekBar.getProgress()); // Update time display
+            } catch (IllegalStateException e){
+                Log.e(TAG, "IllegalStateException during seekTo", e);
+                CustomToast.showFail(this, "Error seeking audio.", FAIL_ICON);
+                releaseMediaPlayer();
+                runOnUiThread(this::resetAudioControlsUI);
+            }
+        } else {
+            Log.w(TAG, "Cannot seek: MediaPlayer invalid.");
+            seekBar.setProgress(0); // Reset seekbar if player is not ready
+        }
+    }
+    // --- End SeekBar.OnSeekBarChangeListener ---
+
+
+    private void submitAnswers() {
+        Log.i(TAG, "Submit process started (State: SUBMIT).");
+
+        // Dừng phát nhạc nếu đang phát
+        if (mediaPlayer != null && isPlaying) {
+            try {
+                mediaPlayer.pause();
+                isPlaying = false; // Update state flag
+                if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
+                stopSeekBarUpdate(); // Stop seekbar updates
+                Log.d(TAG, "Playback paused on submit.");
+            } catch (IllegalStateException e) {
+                Log.w(TAG, "Error pausing media on submit", e);
+                // Continue submission even if pause fails
+            }
+        }
+
+        // Kiểm tra Adapter
+        if (questionListAdapter == null) {
+            Log.e(TAG, "Adapter is null, cannot submit.");
+            CustomToast.showFail(this, "Error: Cannot process answers.", FAIL_ICON);
+            return;
+        }
+
+        // Lấy câu trả lời từ Adapter
+        Map<Integer, Integer> userAnswers = questionListAdapter.getSelectedAnswers();
+        int totalQuestions = questionsList.size();
+
+        // Kiểm tra nếu không có câu hỏi
+        if (totalQuestions == 0) {
+            Log.w(TAG, "No questions to submit.");
+            CustomToast.showFail(this, "No questions available in this exercise.", INFO_ICON); // Use info or fail
+            if (btnSubmit != null) {
+                btnSubmit.setEnabled(false);
+                btnSubmit.setAlpha(0.5f);
+            }
+            return;
+        }
+
+        // --- Kiểm tra tất cả câu hỏi đã được trả lời chưa ---
+        boolean allAnswered = true;
+        int firstUnanswered = -1;
+        for (int i = 0; i < totalQuestions; i++) {
+            // Check if the key exists and the value is not -1
+            if (!userAnswers.containsKey(i) || userAnswers.get(i) == -1) {
+                allAnswered = false;
+                firstUnanswered = i;
+                Log.d(TAG, "Question at index " + i + " not answered.");
+                break;
+            }
+        }
+
+
+        if (!allAnswered) {
+            CustomToast.showFail(this, "Please answer all questions.", FAIL_ICON); // Use fail icon for user error
+            final int scrollToPos = firstUnanswered;
+            if (lvQuestions != null && scrollToPos != -1) {
+                // Use post to ensure the scroll happens after the layout pass if needed
+                lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(scrollToPos));
+                Log.d(TAG,"Scrolling to first unanswered question at index: " + scrollToPos);
+            }
+            return;
+        }
+
+        // --- Chấm điểm và chuẩn bị dữ liệu kết quả ---
+        Log.d(TAG, "All questions answered. Scoring " + totalQuestions + " questions.");
+        int correctCount = 0;
+        Map<Integer, Boolean> correctnessMap = new HashMap<>();
+        for (int i = 0; i < totalQuestions; i++) {
+            // Defensively check list bounds
+            if (i >= questionsList.size()) {
+                Log.e(TAG, "Index out of bounds accessing questionsList at " + i);
+                continue;
+            }
+            ListeningQuestion question = questionsList.get(i);
+            if (question == null) {
+                Log.e(TAG, "Question object is null at index " + i);
+                continue;
+            }
+
+            int selectedRadioButtonId = userAnswers.getOrDefault(i, -1); // Default to -1 if somehow missing
+            String selectedAnswerKey = "";
+
+            // Get the key from the selected RadioButton's tag
+            if (selectedRadioButtonId != -1) {
+                // Find the RadioButton within the specific ListView item's view hierarchy
+                View listItemView = lvQuestions.getChildAt(i - lvQuestions.getFirstVisiblePosition()); // Adjust index for visible items
+                if (listItemView != null) {
+                    RadioButton selectedRb = listItemView.findViewById(selectedRadioButtonId);
+                    if (selectedRb != null && selectedRb.getTag() instanceof String) {
+                        selectedAnswerKey = (String) selectedRb.getTag();
+                    } else if (selectedRb != null) {
+                        Log.w(TAG,"RadioButton tag is missing or not a String for ID " + selectedRadioButtonId + " in question index " + i);
+                        // Fallback logic if needed, though relying on tags is better
+                    } else {
+                        Log.e(TAG, "Could not find RadioButton with ID " + selectedRadioButtonId + " in ListView item " + i);
+                    }
+                } else {
+                    Log.e(TAG, "Could not get ListView item view for index " + i + " to find RadioButton tag.");
+                    // This can happen if the item is scrolled off-screen.
+                    // The adapter *should* hold the state, but retrieving the tag here is complex if view is recycled.
+                    // Consider storing the selected key directly in the adapter instead of just the ID.
+                    // For now, we might get empty selectedAnswerKey if the view is not accessible.
+                }
+
+            } else {
+                Log.e(TAG,"Selected RadioButton ID is -1 for question " + i + " despite passing allAnswered check!");
+            }
+
+            boolean isCorrect = false;
+            if (question.getCorrectAnswer() != null && !selectedAnswerKey.isEmpty() && selectedAnswerKey.equalsIgnoreCase(question.getCorrectAnswer())) {
+                correctCount++;
+                isCorrect = true;
+            }
+            correctnessMap.put(i, isCorrect);
+            Log.v(TAG, "Q" + (i + 1) + " (Index " + i + "): Selected Key='" + selectedAnswerKey + "', Correct Key='" + question.getCorrectAnswer() + "', Result=" + isCorrect);
+        }
+
+
+        // --- Hiển thị điểm số tổng quát qua CustomToast ---
+        String resultMessage = String.format(Locale.getDefault(), "Result: %d / %d correct!", correctCount, totalQuestions);
+        CustomToast.showSuccess(this, resultMessage, SUCCESS_ICON); // Use success icon for results
+        Log.i(TAG, "Final Score: " + correctCount + "/" + totalQuestions);
+
+        // --- Gửi kết quả cho Adapter để cập nhật UI của từng câu hỏi ---
+        questionListAdapter.showResults(userAnswers, correctnessMap);
+
+        // --- Cập nhật trạng thái và text của nút Submit ---
+        boolean allCorrect = (correctCount == totalQuestions);
+        int currentIndex = -1;
+        boolean hasNext = false;
+
+        if (allExerciseTitles != null && !allExerciseTitles.isEmpty() && exerciseTitle != null) {
+            currentIndex = allExerciseTitles.indexOf(exerciseTitle);
+            hasNext = currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1;
+            Log.d(TAG,"Checking for next exercise inside submitAnswers. Index: " + currentIndex + ", List size: " + allExerciseTitles.size() + ", HasNext: " + hasNext);
+        } else {
+            Log.w(TAG,"Cannot determine next exercise status inside submitAnswers - exercise titles list not ready or current title missing.");
+            hasNext = false; // Assume no next if list is not ready
+        }
+
+        // Quyết định trạng thái nút Submit
+        if (allCorrect) {
+            if (hasNext) {
+                Log.i(TAG,"All answers correct. Setting button to NEXT.");
+                currentButtonState = STATE_NEXT;
+                if (btnSubmit != null) {
+                    btnSubmit.setText("Next");
+                    btnSubmit.setEnabled(true);
+                    btnSubmit.setAlpha(1.0f);
+                }
+            } else {
+                // Đúng hết VÀ KHÔNG còn bài tiếp theo
+                Log.i(TAG,"All answers correct. This is the last exercise. Setting button to FINISH ! BACK NOW.");
+                currentButtonState = STATE_FINISHED; // Trạng thái hoàn thành topic
+                if (btnSubmit != null) {
+                    btnSubmit.setText("Finish ! Back Now"); // Text for finish state
+                    btnSubmit.setEnabled(true);         // Keep enabled to allow going back
+                    btnSubmit.setAlpha(1.0f);          // Keep button visible
+                }
+            }
+        } else {
+            // Có câu trả lời sai
+            Log.i(TAG,"Some answers incorrect. Setting button to RETRY.");
+            currentButtonState = STATE_RETRY;
+            if (btnSubmit != null) {
+                btnSubmit.setText("Retry");
+                btnSubmit.setEnabled(true);
+                btnSubmit.setAlpha(1.0f);
+            }
+        }
+        Log.d(TAG, "Submit process finished. Button state: " + currentButtonState + " ("+(btnSubmit != null ? btnSubmit.getText() : "null")+")");
+    }
+
+    // --- Lifecycle Methods ---
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG,"onPause called.");
+        // Pause audio playback if playing
+        if (mediaPlayer != null && isPlaying) {
+            try {
+                mediaPlayer.pause();
+                isPlaying = false; // Manually update state as pause doesn't trigger completion
+                // UI update (icon) will be handled in onResume to ensure correct state upon return
+                Log.d(TAG, "Playback paused due to onPause.");
+            } catch (IllegalStateException e){
+                Log.e(TAG,"Error pausing media on pause.",e);
+            }
+            stopSeekBarUpdate(); // Stop seekbar updates when paused
+        }
+        // Stop any ongoing TTS synthesis or speech
+        if (tts != null) {
+            try {
+                tts.stop();
+            } catch (Exception e) {
+                Log.w(TAG, "Error stopping TTS on pause", e);
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG,"onResume called.");
+        // Restore the UI state of the play/pause button and seek bar updates
+        if (mediaPlayer != null && isMediaPlayerPrepared) {
+            // Check the actual player state, not relying on our isPlaying flag which might be stale after onPause
+            boolean currentlyPlaying = false;
+            try {
+                currentlyPlaying = mediaPlayer.isPlaying();
+                this.isPlaying = currentlyPlaying; // Update our flag
+            } catch (IllegalStateException e) {
+                Log.w(TAG, "Error checking isPlaying onResume", e);
+                this.isPlaying = false; // Assume not playing if state is invalid
+                // Consider resetting UI or player if state is bad
+                resetAudioControlsUI();
+                return; // Exit early if player state is bad
+            }
+
+            // Only update UI if audio isn't currently loading
+            if (progressBarAudioLoading == null || progressBarAudioLoading.getVisibility() == View.GONE) {
+                if (currentlyPlaying) {
+                    if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.ic_pause);
+                    startSeekBarUpdate(); // Resume seekbar updates
+                } else {
+                    if (btnPlayAudio != null) btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
+                    // Ensure seekbar shows current position if paused
+                    try {
+                        if(seekBarAudio != null && mediaPlayer != null) {
+                            seekBarAudio.setProgress(mediaPlayer.getCurrentPosition());
+                        }
+                    } catch(IllegalStateException e) {
+                        Log.w(TAG, "Error setting progress onResume", e);
+                        // Handle potential error if player is in a bad state
+                    }
+                }
+                // Ensure controls are enabled if player is prepared and not loading
+                if(btnPlayAudio != null) btnPlayAudio.setEnabled(true);
+                if(seekBarAudio != null) seekBarAudio.setEnabled(true);
+            }
+        } else if (progressBarAudioLoading != null && progressBarAudioLoading.getVisibility() == View.GONE) {
+            // If the player is not ready AND we are not loading, ensure UI is in the reset/disabled state
+            resetAudioControlsUI();
+        }
+        // If loading was interrupted, maybe restart loading? Depends on desired behavior.
+        // Current logic: if loading was happening, progressBar is visible, and the above conditions won't reset UI.
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG,"onStop called.");
+        // Actions usually done in onPause are sufficient for stopping playback/TTS.
+        // Resource release is typically done in onDestroy.
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG,"onDestroy called. Releasing resources.");
+
+        // 1. Release MediaPlayer
+        releaseMediaPlayer(); // Handles stopping, resetting, releasing
+
+        // 2. Shutdown TextToSpeech
+        if (tts != null) {
+            Log.d(TAG,"Shutting down TTS engine.");
+            try {
+                tts.stop(); // Stop any ongoing speech/synthesis
+                tts.shutdown(); // Release TTS resources
+            } catch (Exception e) {
+                Log.e(TAG,"TTS shutdown exception", e);
+            }
+            tts = null; // Clear reference
+            isTtsInitialized = false;
+        }
+
+        // 3. Delete temporary audio file (optional but good practice)
+        if (audioFile != null && audioFile.exists()) {
+            Log.d(TAG, "Deleting temp file: " + audioFile.getName());
+            if (!audioFile.delete()) {
+                Log.w(TAG, "Failed to delete temp audio file: " + audioFile.getAbsolutePath());
+            }
+            audioFile = null; // Clear reference
+        }
+
+        // 4. Stop Handler callbacks
+        stopSeekBarUpdate(); // Ensure the runnable is removed
+        if (progressHandler != null) {
+            progressHandler.removeCallbacksAndMessages(null); // Remove any pending messages/runnables
+        }
+
+        Log.i(TAG,"onDestroy finished.");
+    }
+
+    // --- Phương thức giải phóng MediaPlayer ---
+    private void releaseMediaPlayer() {
+        Log.d(TAG,"Releasing MediaPlayer resources...");
+        stopSeekBarUpdate(); // Stop seekbar updates first
+
+        if (mediaPlayer != null) {
+            try {
+                // Check state before calling stop/reset/release
+                if (isMediaPlayerPrepared || mediaPlayer.isPlaying()) { // More robust check
+                    if (mediaPlayer.isPlaying()) {
+                        mediaPlayer.stop();
+                    }
+                    mediaPlayer.reset(); // Reset before release
+                }
+                mediaPlayer.release(); // Release system resources
+                Log.i(TAG, "MediaPlayer released.");
+            } catch (IllegalStateException e){ // Catch potential state errors
+                Log.e(TAG, "IllegalStateException releasing MediaPlayer", e);
+            } catch (Exception e) { // Catch any other unexpected errors
+                Log.e(TAG, "Exception releasing MediaPlayer", e);
+            } finally {
+                mediaPlayer = null; // Always set to null after attempting release
+            }
+        } else {
+            Log.d(TAG,"MediaPlayer already null.");
+        }
+        // Reset state flags associated with MediaPlayer
+        isMediaPlayerPrepared = false;
+        isPlaying = false;
+        // UI reset should be handled where appropriate (e.g., error, initial state)
+    }
+
+    // --- Hàm helper để reset UI điều khiển audio ---
+    private void resetAudioControlsUI(){
+        Log.d(TAG, "Resetting audio controls UI to initial state.");
+        // Ensure UI updates happen on the main thread
+        runOnUiThread(()-> {
+            // Hide ProgressBar
+            if (progressBarAudioLoading != null) {
+                progressBarAudioLoading.setVisibility(View.GONE);
+            }
+            // Show Play button, set default icon, and disable it
+            if (btnPlayAudio != null) {
+                btnPlayAudio.setVisibility(View.VISIBLE);
+                btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Default icon
+                btnPlayAudio.setEnabled(false); // Disabled initially until prepared
+                btnPlayAudio.setAlpha(0.5f); // Indicate disabled state visually
+            }
+            // Disable SeekBar and reset progress
+            if (seekBarAudio != null) {
+                seekBarAudio.setEnabled(false); // Disabled initially until prepared
+                seekBarAudio.setProgress(0);    // Reset progress
+                seekBarAudio.setAlpha(0.5f);    // Indicate disabled state visually
+            }
+        });
+    }
+
+    // --- Hàm helper để hiển thị loading ---
+    private void showLoadingIndicator() {
+        runOnUiThread(() -> {
+            if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.VISIBLE);
+            if (btnPlayAudio != null) btnPlayAudio.setVisibility(View.INVISIBLE); // Hide play button
+            // Ensure controls are visually disabled while loading
+            if (seekBarAudio != null) {
+                seekBarAudio.setEnabled(false);
+                seekBarAudio.setAlpha(0.5f);
+            }
+            if (btnPlayAudio != null) btnPlayAudio.setEnabled(false); // Already hidden, but disable too
+        });
+    }
+
+    // --- Hàm helper để ẩn loading khi thành công (Audio Ready) ---
+    private void hideLoadingIndicator() {
+        runOnUiThread(() -> {
+            if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.GONE);
+            // Show and enable controls now that audio is ready
+            if (btnPlayAudio != null) {
+                btnPlayAudio.setVisibility(View.VISIBLE);
+                btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Set default play icon
+                btnPlayAudio.setEnabled(true);
+                btnPlayAudio.setAlpha(1.0f); // Full opacity
+            }
+            if (seekBarAudio != null) {
+                seekBarAudio.setEnabled(true);
+                seekBarAudio.setAlpha(1.0f); // Full opacity
+            }
+        });
+    }
+
+    // --- Hàm helper để ẩn loading khi có lỗi ---
+    private void hideLoadingIndicatorWithError() {
+        // This resets the UI to its initial, disabled state.
+        resetAudioControlsUI();
+    }
+
+    @Override
+    public void onBackPressed() {
+        Log.d(TAG,"onBackPressed called.");
+        // Optional: Add a confirmation dialog if quiz is in progress?
+        // Show confirmation dialog here if needed
+
+        // Gracefully stop ongoing processes before exiting
+        if (mediaPlayer != null && isPlaying) {
+            try {
+                mediaPlayer.pause();
+            } catch (IllegalStateException e) {
+                Log.w(TAG,"Error pausing on back press",e);
+            }
+        }
+        if (tts != null) {
+            try {
+                tts.stop();
+            } catch (Exception e) {
+                Log.w(TAG, "Error stopping TTS on back press", e);
+            }
+        }
+        stopSeekBarUpdate();
+
+        // Let onDestroy handle the release of MediaPlayer and TTS resources.
+        // Calling releaseMediaPlayer() here is redundant if onDestroy is guaranteed to run.
+
+        super.onBackPressed(); // Perform the default back action (finish activity)
+        Log.d(TAG,"Activity finishing via back press.");
+    }
+
+
+    private void loadAllExerciseTitlesFromFirebase() {
+        if (levelName == null || topicTitle == null) {
+            Log.e(TAG, "Cannot load exercise titles: Level or Topic name is null.");
+            // Optionally disable the 'Next' functionality here or show an error
+            // CustomToast.showFail(this, "Cannot load topic list.", FAIL_ICON);
+            return;
+        }
+
+        allExerciseTitles = new ArrayList<>(); // Initialize or clear the list
+
+        DatabaseReference exercisesRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
+                .getReference("Lessons")
+                .child("Levels")
+                .child(levelName)
+                .child("Listening")
+                .child("Topics")
+                .child(topicTitle)
+                .child("Exercises"); // Reference to the parent node containing all exercises by title
+
+        Log.d(TAG, "Loading all exercise titles from: " + exercisesRef.toString());
+
+        exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                allExerciseTitles.clear(); // Clear previous list if re-loading
+                if (snapshot.exists()) {
+                    for (DataSnapshot exerciseSnap : snapshot.getChildren()) {
+                        String title = exerciseSnap.getKey();
+                        if (title != null && !title.isEmpty()) {
+                            allExerciseTitles.add(title);
+                            Log.v(TAG, "Found exercise title: " + title);
+                        }
+                    }
+                    // Consider sorting the titles if Firebase doesn't guarantee order
+                    // Collections.sort(allExerciseTitles);
+                    Log.i(TAG, "Loaded " + allExerciseTitles.size() + " exercise titles for topic: " + topicTitle);
+                    // Crucially, update the button state *after* the list is loaded,
+                    // especially if the quiz was already submitted before the list arrived.
+                    updateSubmitButtonStateAfterTitlesLoaded();
+
+                } else {
+                    Log.w(TAG, "No exercises found under topic: " + topicTitle);
+                    // Handle case where there are no exercises (list remains empty)
+                    updateSubmitButtonStateAfterTitlesLoaded(); // Update button state even if empty
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Failed to load exercise titles: " + error.getMessage());
+                CustomToast.showFail(InternalListeningTopic.this, "Error loading exercise list.", FAIL_ICON);
+                // Disable "Next" functionality if titles couldn't be loaded
+                // Maybe set button to retry or finish depending on current state
+            }
+        });
+    }
+
+    // This method re-evaluates the Submit button state after the exercise list is loaded.
+    // It's important if the user submitted answers *before* the list finished loading.
+    private void updateSubmitButtonStateAfterTitlesLoaded() {
+        if (btnSubmit == null) {
+            Log.w(TAG,"Cannot update submit button state: Button is null.");
+            return;
+        }
+        // Only proceed if the quiz has already been submitted (state is not SUBMIT)
+        if (currentButtonState != STATE_SUBMIT) {
+            Log.d(TAG, "Re-evaluating button state after titles loaded. Current state: " + currentButtonState);
+
+            boolean allCorrect = false;
+            if (questionListAdapter != null) {
+                allCorrect = questionListAdapter.areAllAnswersCorrect(); // Check correctness state from adapter
+            } else {
+                Log.w(TAG,"Adapter is null during button state update.");
+                // Cannot determine correctness, maybe default to retry or keep current state?
+                return; // Or handle appropriately
+            }
+
+            int currentIndex = -1;
+            boolean hasNext = false;
+            if (allExerciseTitles != null && !allExerciseTitles.isEmpty() && exerciseTitle != null) {
+                currentIndex = allExerciseTitles.indexOf(exerciseTitle);
+                hasNext = currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1;
+            } else {
+                hasNext = false; // Default to no next if list/title is invalid
+                Log.w(TAG,"Exercise titles list/title invalid when re-evaluating button state.");
+            }
+
+            Log.d(TAG, "Button re-evaluation: AllCorrect=" + allCorrect + ", HasNext=" + hasNext + ", CurrentState=" + currentButtonState);
+
+            // Now, set the definitive state based on correctness and 'hasNext'
+            if (allCorrect) {
+                if (hasNext) {
+                    Log.d(TAG, "Titles loaded: Setting button state to NEXT.");
+                    currentButtonState = STATE_NEXT;
+                    btnSubmit.setText("Next");
+                    btnSubmit.setEnabled(true);
+                    btnSubmit.setAlpha(1.0f);
+                } else {
+                    // Correct and NO next exercise
+                    Log.d(TAG, "Titles loaded: Setting button state to FINISH ! BACK NOW.");
+                    currentButtonState = STATE_FINISHED;
+                    btnSubmit.setText("Finish ! Back Now");
+                    btnSubmit.setEnabled(true);
+                    btnSubmit.setAlpha(1.0f);
+                }
+            } else {
+                // Incorrect answers, state must be RETRY
+                Log.d(TAG, "Titles loaded: Setting/Confirming button state to RETRY.");
+                currentButtonState = STATE_RETRY;
+                btnSubmit.setText("Retry");
+                btnSubmit.setEnabled(true);
+                btnSubmit.setAlpha(1.0f);
+            }
+        } else {
+            Log.d(TAG, "Button state is still SUBMIT, no update needed after title load.");
+            // Button remains "Submit" until the user actually submits.
+        }
     }
 }

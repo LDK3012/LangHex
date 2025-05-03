@@ -451,7 +451,7 @@ public class HomeFragment extends Fragment {
 
     // Method to clear the potentially invalid token
     private void clearMsGraphToken() {
-        if (getContext() == null) return;
+        if (getContext() == null) return ;
         Log.w(TAG, "Clearing potentially invalid MS Graph Token from SharedPreferences.");
         SharedPreferences prefs = getContext().getSharedPreferences(MS_GRAPH_PREFS, Context.MODE_PRIVATE);
         prefs.edit().remove(MS_GRAPH_TOKEN_KEY).apply();
