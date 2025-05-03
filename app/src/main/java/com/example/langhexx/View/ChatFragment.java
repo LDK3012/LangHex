@@ -72,6 +72,10 @@ public class ChatFragment extends Fragment {
         btnSend.setOnClickListener(v -> {
             String userMessage = edtMessage.getText().toString().trim();
             if (!TextUtils.isEmpty(userMessage)) {
+                // Hide the sample questions when the user sends a message
+                if (sampleQuestionsContainer.getVisibility() == View.VISIBLE) {
+                    sampleQuestionsContainer.setVisibility(View.GONE);
+                }
                 ChatMessage userMsg = new ChatMessage(userMessage, ChatMessage.SENDER_USER);
                 messages.add(userMsg);
                 chatAdapter.notifyItemInserted(messages.size() - 1);

@@ -32,7 +32,7 @@
                 android:id="@+id/txtName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/profile_name_placeholder"
+                android:text=""
                 android:textStyle="bold"
                 android:textColor="@color/white"
                 android:textSize="12dp"/>
@@ -41,7 +41,7 @@
                 android:id="@+id/txtMail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/profile_email_placeholder"
+                android:text=""
                 android:textColor="@color/white"
                 />
         </LinearLayout>
@@ -65,7 +65,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:padding="8dp"
-                android:text="@string/account"
+                android:text="Tài khoản"
                 android:textColor="#6F6F6F"
                 android:textStyle="bold" />
 
@@ -85,7 +85,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_upper_item"
                         android:padding="16dp"
-                        android:text="@string/personal_settings"
+                        android:text="Cài đặt riêng"
                         android:textColor="@android:color/black"
                         android:textStyle="bold">
 
@@ -97,7 +97,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_downward_item"
                         android:padding="16dp"
-                        android:text="@string/account_information"
+                        android:text="Thông tin tài khoản"
                         android:textColor="@android:color/black"
                         android:textStyle="bold">
 
@@ -110,7 +110,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:padding="8dp"
-                android:text="@string/general_settings"
+                android:text="Cài đặt chung"
                 android:textColor="#6F6F6F"
                 android:textStyle="bold" />
 
@@ -129,7 +129,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_upper_item"
                         android:padding="16dp"
-                        android:text="@string/app_info"
+                        android:text="Thông tin ứng dụng"
                         android:textColor="@android:color/black"
                         android:textStyle="bold">
 
@@ -141,7 +141,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_center_item"
                         android:padding="16dp"
-                        android:text="@string/send_feedback"
+                        android:text="Gửi phản hồi"
                         android:textColor="@android:color/black"
                         android:textStyle="bold"></TextView>
 
@@ -151,7 +151,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_center_item"
                         android:padding="16dp"
-                        android:text="@string/font_style_and_size"
+                        android:text="Kiểu chữ và cỡ chữ"
                         android:textColor="@android:color/black"
                         android:textStyle="bold"></TextView>
 
@@ -161,7 +161,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_center_item"
                         android:padding="16dp"
-                        android:text="@string/select_language"
+                        android:text="Chọn ngôn ngữ"
                         android:textColor="@android:color/black"
                         android:textStyle="bold"></TextView>
 
@@ -171,7 +171,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_downward_item"
                         android:padding="16dp"
-                        android:text="@string/app_theme"
+                        android:text="Chủ đề ứng dụng"
                         android:textColor="@android:color/black"
                         android:textStyle="bold"></TextView>
 
