@@ -33,7 +33,7 @@ public class ListeningExerciseAdapter extends RecyclerView.Adapter<ListeningExer
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         // Inflate layout cho item của bạn, ví dụ: R.layout.item_exercise_title
-        View view = LayoutInflater.from(context).inflate(R.layout.item_listening_exercise, parent, false);
+        View view = LayoutInflater.from(context).inflate(R.layout.item_exercise, parent, false);
         return new ViewHolder(view);
     }
 

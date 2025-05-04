@@ -4,7 +4,7 @@
     android:id="@+id/layout_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".View.Listening_Topic_Exercise_Activity">
+    tools:context=".View.Reading_Topic_Exercise_Activity">
 
     <LinearLayout
         android:id="@+id/header"
@@ -39,7 +39,6 @@
         android:id="@+id/rvExercises"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/header"
-        android:layout_marginTop="0dp" />
+        android:layout_below="@id/header" />
 
 </RelativeLayout>
