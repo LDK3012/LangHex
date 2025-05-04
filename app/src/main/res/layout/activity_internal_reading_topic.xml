@@ -26,14 +26,6 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tvTimer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="60:00"
-            android:textColor="#555555"
-            android:textSize="16sp" />
     </LinearLayout>
 
     <!-- TIME COUNTDOWN -->
