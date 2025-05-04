@@ -21,7 +21,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:tint="#000000" />
+            android:tint="#FFFFFF" />
 
         <TextView
             android:id="@+id/tvTitle"

@@ -89,6 +89,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     private ImageView avatarUser;
     private ImageView iconWarning;
     private ImageView questionSpeaker;
+    private TextView tvTitle ;
 
     // --- Controller ---
     private SpeakingContract.Controller controller; // Tham chiếu đến Controller
@@ -114,11 +115,14 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         // Lấy dữ liệu Intent trước khi tạo Controller
         String levelName = getIntent().getStringExtra("levelName");
         String topicTitle = getIntent().getStringExtra("topicTitle");
-
+        //
         // Initialize Controller (pass View reference and Context)
         controller = new SpeakingController(this, this, levelName, topicTitle);
 
         addControls(); // Initialize UI elements
+        //show title
+        tvTitle.setText(topicTitle);
+        //
         addEvent();    // Setup listeners to forward to Controller
         initializeSoundPool(); // Initialize SoundPool
         initTextToSpeech(); // Initialize TTS (sẽ gọi controller.onTtsReady())
@@ -175,6 +179,9 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         btnMicro = findViewById(R.id.btnSpeakingMicro);
         btnClose = findViewById(R.id.btnClose);
         scrollViewContent = findViewById(R.id.scrollViewContent);
+        tvTitle = findViewById(R.id.tvTitle) ;
+        //
+
     }
 
     private void initTextToSpeech() {
@@ -248,22 +255,12 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         // Listener cho speaker/warning sẽ được set trong updateUiForNewQuestion
     }
 
-    // --- SpeakingContract.View Implementation ---
-    // (Các phương thức này giờ chỉ cập nhật UI theo chỉ dẫn của Controller)
-
     @Override
     public void displayQuestion(String question) {
-        // Tự động đọc câu hỏi (trừ câu đầu) - Logic này có thể ở Controller hoặc View
-        // Tạm để ở View vì liên quan trực tiếp đến UI timing
         int currentIndex = -1; // Cần cách lấy index từ controller nếu logic này ở View
-        // Hoặc đơn giản là Controller quyết định khi nào gọi speakText
-        // -> Bỏ logic auto-speak ở đây, Controller sẽ gọi view.speakText khi cần
-
         updateUiForNewQuestion(question); // Cập nhật view mới
         setMicButtonEnabled(true); // Bật mic cho câu hỏi mới
         scrollDown();
-
-        // Controller sẽ quyết định có đọc câu hỏi hay không và gọi view.speakText(...)
     }
 
     @SuppressLint("InflateParams")
