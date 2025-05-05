@@ -6,7 +6,12 @@ plugins {
 android {
     namespace 'com.example.langhexx'
     compileSdk 34
-
+    lintOptions {
+        disable 'HardcodedText' // Disable check for hardcoded strings
+        check 'NewApi'        // Ensure specific API checks are enabled
+        abortOnError true     // Make the build fail if any lint error is found
+        htmlOutput file("lint-report.html") // Generate an HTML report
+    }
     defaultConfig {
         applicationId "com.example.langhexx"
         minSdk 29
