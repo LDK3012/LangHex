@@ -11,6 +11,8 @@ import com.example.langhexx.R;
 
 public class StartActivity extends AppCompatActivity {
 
+
+
     ProgressBar progressBar;
     TextView welcomeTextView;
     private int progressStatus = 0;
@@ -19,6 +21,7 @@ public class StartActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
 

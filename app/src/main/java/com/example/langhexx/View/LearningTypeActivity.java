@@ -13,7 +13,7 @@ import com.example.langhexx.R;
 public class LearningTypeActivity extends AppCompatActivity {
 
     private ImageButton btnBack;
-    private CardView cardListening, cardSpeaking;
+    private CardView cardListening, cardSpeaking , cardReading;
     private String levelName ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +30,7 @@ public class LearningTypeActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         cardListening = findViewById(R.id.cardListening);
         cardSpeaking = findViewById(R.id.cardSpeaking);
+        cardReading = findViewById(R.id.cardReading) ;
     }
 
     private void addEvents() {
@@ -42,7 +43,8 @@ public class LearningTypeActivity extends AppCompatActivity {
         cardListening.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(LearningTypeActivity.this, InternalListeningTopic.class);
+                Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicListeningActivity.class);
+                intent.putExtra("levelName",levelName) ;
                 startActivity(intent);
             }
         });
@@ -51,6 +53,15 @@ public class LearningTypeActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicSpeakingActivity.class);
                 intent.putExtra("levelName",levelName) ;
+                startActivity(intent);
+            }
+        });
+
+        cardReading.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicReadingActivity.class); // Navigate to ChooseTopicReadingActivity
+                intent.putExtra("levelName", levelName);
                 startActivity(intent);
             }
         });

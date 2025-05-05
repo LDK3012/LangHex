@@ -4,9 +4,8 @@
     android:id="@+id/layout_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".View.InternalSpeakingTopic">
+    tools:context=".View.Listening_Topic_Exercise_Activity">
 
-    <!-- Header -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -21,7 +20,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:tint="#FFFFFF" />
+            android:tint="#000000" />
 
         <TextView
             android:id="@+id/tvTitle"
@@ -36,43 +35,11 @@
             android:paddingEnd="16dp" />
     </LinearLayout>
 
-    <!-- ScrollView chứa nội dung custom -->
-    <ScrollView
-        android:id="@+id/scrollViewContent"
-        android:layout_below="@id/header"
-        android:layout_above="@+id/micArea"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvExercises"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
-
-        <LinearLayout
-            android:id="@+id/questionContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-             />
-
-        </LinearLayout>
-    </ScrollView>
-
-    <!-- Mic -->
-    <LinearLayout
-        android:id="@+id/micArea"
-        android:layout_alignParentBottom="true"
-        android:layout_width="match_parent"
-        android:layout_height="90dp"
-        android:background="#F32F2F"
-        android:gravity="center">
-
-        <ImageButton
-            android:id="@+id/btnSpeakingMicro"
-            android:layout_width="48dp"
-            android:layout_height="65dp"
-            android:src="@drawable/microphone"
-            android:tint="@color/white"
-            android:background="@android:color/transparent"
-            />
-    </LinearLayout>
+        android:layout_below="@id/header"
+        android:layout_marginTop="0dp" />
 
 </RelativeLayout>
