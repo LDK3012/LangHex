@@ -42,7 +42,6 @@ public class ProfileDetail extends AppCompatActivity {
 
     // Khai báo View theo ID trong XML mới
     private Button btnBack; // Dùng Button hoặc AppCompatButton đều được
-    private Button btnLogout;
     private ImageView imgAvatar;
     private EditText edtProfileName; // Đây là EditText
     private TextView txtEmail; // Đây là label "Email"
@@ -82,7 +81,6 @@ public class ProfileDetail extends AppCompatActivity {
 
     private void addControls() {
         btnBack = findViewById(R.id.btnBack);
-        btnLogout = findViewById(R.id.btnLogout);
         imgAvatar = findViewById(R.id.imgAvatar);
         edtProfileName = findViewById(R.id.edtProfileName);
         txtEmail = findViewById(R.id.txtEmail); // Label "Email"
@@ -95,30 +93,6 @@ public class ProfileDetail extends AppCompatActivity {
 
     private void addEvents() {
         btnBack.setOnClickListener(view -> finish()); // Lambda cho ngắn gọn
-
-        btnLogout.setOnClickListener(v -> {
-            authController = new AuthController(new AuthController.AuthCallback() {
-                @Override
-                public void onSuccess() {
-                    Toast.makeText(ProfileDetail.this, "Đăng xuất thành công!", Toast.LENGTH_SHORT).show();
-                    // Chuyển về màn hình Login hoặc màn hình chính nào đó
-                    // Intent intent = new Intent(ProfileDetail.this, LoginActivity.class);
-                    // intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    // startActivity(intent);
-                    finish(); // Đóng màn hình này
-                }
-
-                @Override
-                public void onFailure(String errorMessage) {
-                    Toast.makeText(ProfileDetail.this, "Đăng xuất thất bại: " + errorMessage, Toast.LENGTH_SHORT).show();
-                }
-            });
-            authController.signOut(ProfileDetail.this);
-        });
-
-        // Có thể thêm sự kiện cho imgPlus nếu muốn (ví dụ: chọn ảnh mới)
-        // ImageView imgPlus = findViewById(R.id.imgPlus);
-        // imgPlus.setOnClickListener(v -> { /* Xử lý chọn ảnh */ });
     }
 
     private void loadUserProfileData() {

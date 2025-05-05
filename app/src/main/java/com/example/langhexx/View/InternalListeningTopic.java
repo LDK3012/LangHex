@@ -1292,6 +1292,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 // Thay đổi import Controller và Model nếu cần
 import com.example.langhexx.Controller.ListeningQuestionListAdapter;
+import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.ListeningQuestion;
 import com.example.langhexx.R; // Thay đổi R nếu cần
 
@@ -1887,9 +1888,8 @@ public class InternalListeningTopic extends AppCompatActivity implements
             Log.d(TAG, "Check: All questions answered. Showing confirmation dialog.");
             showSubmissionConfirmationDialog();
         } else {
-            // Chưa trả lời hết -> Hiển thị Toast và cuộn đến câu hỏi
-            Log.d(TAG, "Check: Not all questions answered.");
-            Toast.makeText(this, "Please answer all questions.", Toast.LENGTH_LONG).show();
+            //
+            CustomToast.showFail(this, "Please answer all questions", R.drawable.fail_icon);
             if (lvQuestions != null && firstUnanswered != -1) {
                 final int scrollToPos = firstUnanswered;
                 lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(scrollToPos));
@@ -2120,7 +2120,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
                 Toast.makeText(this, "Error: Could not find current exercise in list.", Toast.LENGTH_LONG).show();
             } else {
                 Log.i(TAG, "This is the last exercise in the topic.");
-                Toast.makeText(this, "Congratulations! You've completed all exercises in this topic.", Toast.LENGTH_LONG).show();
+                CustomToast.showSuccess(this, "Congratulations! You've completed all exercises in this topic!" , R.drawable.success);
             }
             // Cập nhật nút Submit thành "Finished" hoặc trạng thái tương tự và vô hiệu hóa
             if (btnSubmit != null) {
@@ -2299,7 +2299,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
         }
 
         if (!allAnswered) {
-            Toast.makeText(this, "Please answer all questions.", Toast.LENGTH_LONG).show();
+            CustomToast.showFail(this, "Please answer all questions!", R.drawable.fail_icon);
             final int scrollToPos = firstUnanswered;
             if (lvQuestions != null && scrollToPos != -1) {
                 lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(scrollToPos));

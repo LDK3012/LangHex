@@ -628,6 +628,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.langhexx.Controller.ReadingQuestionListAdapter;
+import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.ReadingQuestion;
 import com.example.langhexx.R; // Adjust R if needed
 
@@ -899,7 +900,7 @@ public class InternalReadingTopic extends AppCompatActivity {
             showSubmissionConfirmationDialog();
         } else {
             Log.d(TAG, "Check: Not all answered.");
-            Toast.makeText(this, "Please answer all questions.", Toast.LENGTH_LONG).show();
+            CustomToast.showFail(this, "Please answer all questions!", R.drawable.fail_icon);
             if (lvQuestions != null && firstUnanswered != -1) {
                 int finalFirstUnanswered = firstUnanswered;
                 lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(finalFirstUnanswered));

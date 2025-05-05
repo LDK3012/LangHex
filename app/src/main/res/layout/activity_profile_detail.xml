@@ -120,16 +120,7 @@
           android:textSize="15dp"
           android:textStyle="bold" />
       
-      <androidx.appcompat.widget.AppCompatButton
-          android:id="@+id/btnLogout"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:textColor="@color/white"
-          android:background="@drawable/profile_logout_border"
-          android:text="Đăng xuất"
-          android:layout_marginTop="20dp">
 
-      </androidx.appcompat.widget.AppCompatButton>
 
     </LinearLayout>
 
