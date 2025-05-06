@@ -66,11 +66,11 @@ public class LoginActivity extends AppCompatActivity implements AuthController.A
 
     @Override
     public void onSuccess() {
-        CustomToast.showSuccess(this, "Đăng nhập thành công!", R.drawable.success);
+        CustomToast.showSuccess(this, "Login Successfully !", R.drawable.success);
     }
 
     @Override
     public void onFailure(String errorMessage) {
-        CustomToast.showSuccess(this, "Đăng nhập thất bại!", R.drawable.fail_icon);
+        CustomToast.showSuccess(this, "Fail !", R.drawable.fail_icon);
     }
 }
