@@ -118,11 +118,13 @@
                 android:id="@+id/rltReading"
                 android:layout_height="match_parent"
                 android:background="#F1FFF1">
+
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="150dp"
                     android:scaleType="centerCrop"
-                    android:src="@drawable/reading_banner"/>
+                    android:src="@drawable/reading_banner" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="50dp"

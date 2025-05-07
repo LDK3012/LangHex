@@ -13,7 +13,7 @@ import com.example.langhexx.R;
 public class LearningTypeActivity extends AppCompatActivity {
 
     private ImageButton btnBack;
-    private CardView cardListening, cardSpeaking , cardReading;
+    private CardView cardListening, cardSpeaking , cardReading, cardWriting;
     private String levelName ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +61,15 @@ public class LearningTypeActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicReadingActivity.class); // Navigate to ChooseTopicReadingActivity
+                intent.putExtra("levelName", levelName);
+                startActivity(intent);
+            }
+        });
+        //
+        cardWriting.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicWritingActivity.class); // Navigate to ChooseTopicReadingActivity
                 intent.putExtra("levelName", levelName);
                 startActivity(intent);
             }
