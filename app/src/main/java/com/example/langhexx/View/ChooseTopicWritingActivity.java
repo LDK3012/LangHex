@@ -76,7 +76,7 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME) // Sử dụng hằng số kỹ năng (đã là "Writing" trong code gốc)
+                .child("Writing") // Sử dụng hằng số kỹ năng (đã là "Writing" trong code gốc)
                 .child("Topics");
 
         Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());

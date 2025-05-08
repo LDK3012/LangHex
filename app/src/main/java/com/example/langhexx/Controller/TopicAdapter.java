@@ -1,18 +1,15 @@
 package com.example.langhexx.Controller;
 
 import android.content.Context;
-import android.util.Log; // Import Log để theo dõi
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
-// Bỏ ImageView nếu bạn không dùng nó trong ViewHolder này
-// import android.widget.ImageView;
 
-import androidx.annotation.NonNull; // Import NonNull
+import androidx.annotation.NonNull;
 
-// Import các lớp Firebase cần thiết
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -23,24 +20,25 @@ import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 
 import java.util.List;
-import java.util.Locale; // Để sử dụng String.format với Locale
+import java.util.Locale;
 
 public class TopicAdapter extends BaseAdapter {
     private Context context;
-    private int layout; // Đây là R.layout.list_speaking_topic
+    private int layoutId; // ID của layout item (ví dụ R.layout.list_speaking_topic)
     private List<Topics> topicList;
-    private String levelName; // Thêm biến để lưu levelName
-    private DatabaseReference firebaseRootRef; // Tham chiếu gốc tới Firebase
+    private String levelName;
+    private String skillName; // <-- Tham số để xác định kỹ năng (Listening, Reading, Speaking, Writing)
+    private DatabaseReference firebaseRootRef;
 
-    private static final String TAG = "TopicAdapter"; // Thẻ để log
+    private static final String TAG = "TopicAdapter";
 
-    // Sửa constructor để nhận và lưu levelName
-    public TopicAdapter(Context context, int layout, List<Topics> topicList, String levelName) {
+    // Constructor nhận thêm skillName
+    public TopicAdapter(Context context, int layoutId, List<Topics> topicList, String levelName, String skillName) {
         this.context = context;
-        this.layout = layout;
+        this.layoutId = layoutId;
         this.topicList = topicList;
-        this.levelName = levelName; // Lưu levelName
-        // Khởi tạo tham chiếu gốc một lần
+        this.levelName = levelName;
+        this.skillName = skillName; // Lưu lại skillName
         this.firebaseRootRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
     }
 
@@ -59,11 +57,9 @@ public class TopicAdapter extends BaseAdapter {
         return i;
     }
 
-    // Cập nhật ViewHolder để chứa cả tvTopicTracker
     static class ViewHolder {
         TextView txtTopicTitle;
-        TextView tvTopicTracker; // Thêm TextView cho tracker
-        // ImageView imgIcon; // Nếu bạn muốn kiểm soát icon từ adapter
+        TextView tvTopicTracker;
     }
 
     @Override
@@ -72,11 +68,10 @@ public class TopicAdapter extends BaseAdapter {
 
         if (view == null) {
             LayoutInflater inflater = LayoutInflater.from(context);
-            view = inflater.inflate(layout, viewGroup, false); // layout ở đây là R.layout.list_speaking_topic
+            view = inflater.inflate(layoutId, viewGroup, false);
             holder = new ViewHolder();
             holder.txtTopicTitle = view.findViewById(R.id.tvTopicName);
-            holder.tvTopicTracker = view.findViewById(R.id.tvTopicTracker); // Ánh xạ tvTopicTracker
-            // holder.imgIcon = view.findViewById(R.id.imgIcon); // Nếu bạn có imgIcon trong list_speaking_topic và muốn quản lý
+            holder.tvTopicTracker = view.findViewById(R.id.tvTopicTracker);
             view.setTag(holder);
         } else {
             holder = (ViewHolder) view.getTag();
@@ -85,49 +80,60 @@ public class TopicAdapter extends BaseAdapter {
         Topics topic = topicList.get(i);
         holder.txtTopicTitle.setText(topic.getTitle());
 
-        // Đặt giá trị ban đầu cho tvTopicTracker (ví dụ: "Done: 0/...")
-        holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%s", "..."));
-
-        // Tạo tham chiếu đến node "Exercises" của topic hiện tại
-        DatabaseReference exercisesRef = firebaseRootRef
-                .child("Lessons")
-                .child("Levels")
-                .child(levelName)       // Sử dụng levelName đã lưu
-                .child("Listening")     // Mục "Listening"
-                .child("Topics")
-                .child(topic.getTitle()) // Tên của topic hiện tại
-                .child("Exercises");
-
-        // Gán holder và topic title vào biến final để sử dụng trong listener
-        // Điều này quan trọng vì listener có thể được thực thi sau khi getView đã chạy cho item khác
-        final ViewHolder currentHolder = holder;
-        final String currentTopicTitle = topic.getTitle();
-
-        exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                long exerciseCount = 0;
-                if (dataSnapshot.exists()) {
-                    exerciseCount = dataSnapshot.getChildrenCount(); // Đếm số lượng child (exercises)
-                }
-
-                // Kiểm tra xem holder này có còn đang hiển thị đúng topic không trước khi cập nhật UI
-                // (Quan trọng đối với ListView và việc tái sử dụng view)
-                if (currentHolder.txtTopicTitle.getText().toString().equals(currentTopicTitle)) {
-                    currentHolder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%d", exerciseCount));
-                }
-                Log.d(TAG, "Chủ đề: " + currentTopicTitle + ", Số bài tập: " + exerciseCount);
+        // Kiểm tra nếu skillName là "Speaking" thì ẩn tracker
+        if ("Speaking".equalsIgnoreCase(skillName)) {
+            if (holder.tvTopicTracker != null) {
+                holder.tvTopicTracker.setVisibility(View.GONE);
             }
+        } else {
+            // Nếu không phải Speaking, hiển thị tracker và lấy số lượng bài tập
+            if (holder.tvTopicTracker != null) {
+                holder.tvTopicTracker.setVisibility(View.VISIBLE);
+                holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%s", "...")); // Trạng thái chờ
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Lỗi khi tải số lượng bài tập cho chủ đề " + currentTopicTitle + ": " + databaseError.getMessage());
-                if (currentHolder.txtTopicTitle.getText().toString().equals(currentTopicTitle)) {
-                    currentHolder.tvTopicTracker.setText("Done: 0/N/A"); // Hiển thị lỗi
-                }
+                // Sử dụng skillName để xây dựng đường dẫn Firebase chính xác
+                DatabaseReference exercisesRef = firebaseRootRef
+                        .child("Lessons")
+                        .child("Levels")
+                        .child(levelName)
+                        .child(skillName) // <-- SỬ DỤNG skillName ở đây
+                        .child("Topics")
+                        .child(topic.getTitle())
+                        .child("Exercises");
+
+                final ViewHolder currentHolder = holder;
+                final String currentTopicTitle = topic.getTitle();
+                final String currentSkillForListener = skillName; // Lưu lại cho listener
+
+                exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        long exerciseCount = 0;
+                        if (dataSnapshot.exists()) {
+                            exerciseCount = dataSnapshot.getChildrenCount();
+                        }
+
+                        // Đảm bảo holder vẫn đang hiển thị đúng item và tvTopicTracker không null
+                        if (currentHolder.txtTopicTitle.getText().toString().equals(currentTopicTitle) &&
+                                currentHolder.tvTopicTracker != null &&
+                                !"Speaking".equalsIgnoreCase(currentSkillForListener) ) { // Kiểm tra lại để chắc chắn không cập nhật cho Speaking
+                            currentHolder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%d", exerciseCount));
+                        }
+                        Log.d(TAG, "Kỹ năng: " + currentSkillForListener + ", Chủ đề: " + currentTopicTitle + ", Số bài tập: " + exerciseCount);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        Log.e(TAG, "Lỗi khi tải số lượng bài tập cho [" + currentSkillForListener + "] " + currentTopicTitle + ": " + databaseError.getMessage());
+                        if (currentHolder.txtTopicTitle.getText().toString().equals(currentTopicTitle) &&
+                                currentHolder.tvTopicTracker != null &&
+                                !"Speaking".equalsIgnoreCase(currentSkillForListener)) {
+                            currentHolder.tvTopicTracker.setText("Done: 0/N/A");
+                        }
+                    }
+                });
             }
-        });
-
+        }
         return view;
     }
 }

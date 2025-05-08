@@ -1,3 +1,84 @@
+//package com.example.langhexx.View;
+//
+//import androidx.annotation.NonNull;
+//import androidx.appcompat.app.AppCompatActivity;
+//
+//import android.adservices.topics.Topic;
+//import android.os.Bundle;
+//import android.widget.BaseAdapter;
+//import android.widget.ListAdapter;
+//import android.widget.ListView;
+//import android.widget.Toast;
+//
+//import com.example.langhexx.Controller.TopicAdapter;
+//import com.example.langhexx.Model.Topics;
+//import com.example.langhexx.R;
+//import java.util.ArrayList;
+//
+//import com.google.firebase.Firebase;
+//import com.google.firebase.database.DataSnapshot;
+//import com.google.firebase.database.DatabaseError;
+//import com.google.firebase.database.DatabaseReference ;
+//import com.google.firebase.database.FirebaseDatabase;
+//import com.google.firebase.database.ValueEventListener;
+//
+//public class ChooseTopicSpeakingActivity extends AppCompatActivity {
+//    private ListView lvTopics ;
+//    private ArrayList<Topics> topicsArrayList ;
+//    private TopicAdapter topicAdapter ;
+//    private DatabaseReference topicRef ;
+//    private String levelName ;
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.activity_choose_topic_speaking);
+//        //
+//        levelName = getIntent().getStringExtra("levelName") ;
+//        if (levelName != null){
+//            loadTopicsFromFirebase(levelName);
+//        }
+//        //
+//        addControls();
+//        if (levelName != null){
+//            loadTopicsFromFirebase(levelName);
+//        }
+//    }
+//
+//    private void addControls(){
+//        lvTopics = findViewById(R.id.lvTopics) ;
+//        topicsArrayList = new ArrayList<>() ;
+//        topicAdapter = new TopicAdapter(this,R.layout.list_speaking_topic, topicsArrayList) ;
+//        lvTopics.setAdapter((ListAdapter) topicAdapter);
+//    }
+//
+//    private void loadTopicsFromFirebase(String levelName){
+//        DatabaseReference topicRef = FirebaseDatabase.getInstance()
+//                .getReference("Lessons")
+//                .child("Levels")
+//                .child(levelName)
+//                .child("Speaking")
+//                .child("Topics");
+//
+//        topicRef.addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                topicsArrayList.clear();
+//                for (DataSnapshot topicSnap : snapshot.getChildren()) {
+//                    String topicTitle = topicSnap.getKey();
+//                    if (topicTitle != null) {
+//                        topicsArrayList.add(new Topics(topicTitle));
+//                    }
+//                }
+//
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Toast.makeText(ChooseTopicSpeakingActivity.this, "Lỗi: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//    }
+//}
 package com.example.langhexx.View;
 
 import androidx.annotation.NonNull;
@@ -5,15 +86,14 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log; // Thêm Log
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
-// Bỏ ListAdapter nếu không dùng ép kiểu trực tiếp
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.example.langhexx.Controller.TopicAdapter; // TopicAdapter đã được cập nhật
+import com.example.langhexx.Controller.TopicAdapter;
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
@@ -29,10 +109,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
-    private ImageView imgBack;
-    private static final String ACTIVITY_TAG = "ChooseTopicSpeaking"; // Thẻ log
-    private final String CURRENT_SKILL_NAME = "Speaking"; // <-- Định nghĩa tên kỹ năng
-
+    private ImageView imgBack ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,85 +117,65 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
         levelName = getIntent().getStringExtra("levelName");
 
-        if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
-            Log.e(ACTIVITY_TAG, "levelName is null or empty!");
-            finish();
-            return;
+        addControls();
+
+        if (levelName != null) {
+            loadTopicsFromFirebase(levelName);
         }
-        Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
-
-        addControls(); // Gọi sau khi đã có levelName
-
-        // loadTopicsFromFirebase nên được gọi sau khi adapter đã được khởi tạo
-        loadTopicsFromFirebase(levelName);
-
+        //
         addEvents();
     }
 
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
-        // Truyền levelName VÀ CURRENT_SKILL_NAME vào constructor của TopicAdapter
-        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName);
-        lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
-        imgBack = findViewById(R.id.imgBack);
+        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList);
+        lvTopics.setAdapter((ListAdapter) topicAdapter);
+        imgBack = findViewById(R.id.imgBack) ;
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        // Đường dẫn đã đúng cho Speaking topics
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME) // Sử dụng hằng số kỹ năng
+                .child("Speaking")
                 .child("Topics");
-
-        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
 
         topicRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 topicsArrayList.clear();
-                if (snapshot.exists()) {
-                    for (DataSnapshot topicSnap : snapshot.getChildren()) {
-                        String topicTitle = topicSnap.getKey();
-                        if (topicTitle != null) {
-                            topicsArrayList.add(new Topics(topicTitle));
-                        }
+                for (DataSnapshot topicSnap : snapshot.getChildren()) {
+                    String topicTitle = topicSnap.getKey();
+                    if (topicTitle != null) {
+                        topicsArrayList.add(new Topics(topicTitle));
                     }
-                    Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
-                } else {
-                    Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
-                    Toast.makeText(ChooseTopicSpeakingActivity.this, "Không có chủ đề " + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
                 }
-                topicAdapter.notifyDataSetChanged();
+                topicAdapter.notifyDataSetChanged(); // Đảm bảo cập nhật giao diện sau khi có dữ liệu
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicSpeakingActivity.this, "Lỗi tải chủ đề " + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
+                Toast.makeText(ChooseTopicSpeakingActivity.this, "Lỗi: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
-
-    private void addEvents() {
+    private void addEvents(){
         imgBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
-
+        //
         lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Topics selectedTopic = topicsArrayList.get(position);
-                // Điều hướng đến InternalSpeakingTopic (đã đúng)
+                Topics selectedTopic = topicsArrayList.get(position) ;
                 Intent intent = new Intent(ChooseTopicSpeakingActivity.this, InternalSpeakingTopic.class);
-                intent.putExtra("levelName", levelName);
-                intent.putExtra("topicTitle", selectedTopic.getTitle());
+                intent.putExtra("levelName" , levelName) ;
+                intent.putExtra("topicTitle" , selectedTopic.getTitle()) ;
                 startActivity(intent);
             }
         });
