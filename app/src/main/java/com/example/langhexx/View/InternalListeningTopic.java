@@ -1906,13 +1906,4 @@ public class InternalListeningTopic extends AppCompatActivity implements
         // Note: controller.onDestroy() will be called shortly after by the system.
     }
 
-    // --- Removed Methods (Now handled by Controller) ---
-    // initializeTextToSpeech, onInit, loadExerciseDataFromFirebase, parseQuestionSnapshot,
-    // synthesizeScriptToFile, setupMediaPlayer, onPrepared, onCompletion, releaseMediaPlayer,
-    // togglePlayPause, startSeekBarUpdate, stopSeekBarUpdate,
-    // checkAnswersAndShowConfirmationIfNeeded, showSubmissionConfirmationDialog, proceedWithSubmission,
-    // retryExercise, goToNextExercise, submitAnswers, loadAllExerciseTitlesFromFirebase,
-    // updateSubmitButtonStateAfterTitlesLoaded, resetAudioControlsUI, showLoadingIndicator,
-    // hideLoadingIndicator, hideLoadingIndicatorWithError
-    // Also removed corresponding member variables (tts, mediaPlayer, scriptToSpeak, audioFile, etc.)
 }
