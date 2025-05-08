@@ -2,21 +2,23 @@ package com.example.langhexx.View;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log; // Thêm Log
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
+// Bỏ ListAdapter nếu không dùng ép kiểu trực tiếp
 import android.widget.ListView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
+// Bỏ các import không dùng tới từ EdgeToEdge nếu bạn không triển khai nó ở đây
+// import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+// import androidx.core.graphics.Insets;
+// import androidx.core.view.ViewCompat;
+// import androidx.core.view.WindowInsetsCompat;
 
-import com.example.langhexx.Controller.TopicAdapter;
+import com.example.langhexx.Controller.TopicAdapter; // TopicAdapter đã được cập nhật
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
@@ -33,63 +35,86 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
     private TopicAdapter topicAdapter;
     private String levelName;
     private ImageView imgBack;
+    private static final String ACTIVITY_TAG = "ChooseTopicWriting"; // Thẻ log
+    private final String CURRENT_SKILL_NAME = "Writing"; // <-- Định nghĩa tên kỹ năng
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_topic_writing);
-        //
-        levelName = getIntent().getStringExtra("levelName");
-        addControls();
-        if (levelName != null) {
-            loadTopicsFromFirebase(levelName);
-        }
-        addEvents();
 
+        levelName = getIntent().getStringExtra("levelName");
+
+        if (levelName == null || levelName.isEmpty()) {
+            Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
+            Log.e(ACTIVITY_TAG, "levelName is null or empty!");
+            finish();
+            return;
+        }
+        Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
+
+        addControls(); // Gọi sau khi đã có levelName
+
+        // loadTopicsFromFirebase nên được gọi sau khi adapter đã được khởi tạo
+        loadTopicsFromFirebase(levelName);
+
+        addEvents();
     }
 
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
-        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList);
-        lvTopics.setAdapter((ListAdapter) topicAdapter);
+        // Truyền levelName VÀ CURRENT_SKILL_NAME vào constructor của TopicAdapter
+        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName);
+        lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
         imgBack = findViewById(R.id.imgBack);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
+        // Đường dẫn Firebase đã đúng cho Writing topics trong code bạn cung cấp
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child("Writing") // Thay "Listening" bằng "Writing"
+                .child(CURRENT_SKILL_NAME) // Sử dụng hằng số kỹ năng (đã là "Writing" trong code gốc)
                 .child("Topics");
+
+        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
 
         topicRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 topicsArrayList.clear();
-                for (DataSnapshot topicSnap : snapshot.getChildren()) {
-                    String topicTitle = topicSnap.getKey();
-                    if (topicTitle != null) {
-                        topicsArrayList.add(new Topics(topicTitle));
+                if (snapshot.exists()) {
+                    for (DataSnapshot topicSnap : snapshot.getChildren()) {
+                        String topicTitle = topicSnap.getKey();
+                        if (topicTitle != null) {
+                            topicsArrayList.add(new Topics(topicTitle));
+                        }
                     }
+                    Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
+                } else {
+                    Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
+                    Toast.makeText(ChooseTopicWritingActivity.this, "Không có chủ đề " + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
                 }
                 topicAdapter.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicWritingActivity.this, "Lỗi: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseTopicWritingActivity.this, "Lỗi tải chủ đề " + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
             }
         });
     }
 
     private void addEvents() {
-        if (imgBack != null) { // Kiểm tra null để tránh NullPointerException nếu ID không đúng
+        // Kiểm tra null cho imgBack đã có trong code bạn cung cấp, rất tốt!
+        if (imgBack != null) {
             imgBack.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    finish(); // Quay lại màn hình trước đó
+                    finish();
                 }
             });
         }
@@ -98,7 +123,8 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Topics selectedTopic = topicsArrayList.get(position);
-                Intent intent = new Intent(ChooseTopicWritingActivity.this, Writing_Topic_Exercise_Activity.class); // Tạo Activity cho bài tập Viết
+                // Điều hướng đến Writing_Topic_Exercise_Activity (đã đúng trong code bạn cung cấp)
+                Intent intent = new Intent(ChooseTopicWritingActivity.this, Writing_Topic_Exercise_Activity.class);
                 intent.putExtra("levelName", levelName);
                 intent.putExtra("topicTitle", selectedTopic.getTitle());
                 startActivity(intent);
