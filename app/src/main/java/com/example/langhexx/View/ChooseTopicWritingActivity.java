@@ -18,7 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 // import androidx.core.view.ViewCompat;
 // import androidx.core.view.WindowInsetsCompat;
 
-import com.example.langhexx.Controller.TopicAdapter; // TopicAdapter đã được cập nhật
+import com.example.langhexx.Controller.TopicAdapter; // Đảm bảo bạn đang dùng TopicAdapter đã cập nhật
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
@@ -64,19 +64,19 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
-        // Truyền levelName VÀ CURRENT_SKILL_NAME vào constructor của TopicAdapter
-        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName);
+        // TRUYỀN skillName "Writing" VÀO CONSTRUCTOR CỦA TopicAdapter
+        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
         imgBack = findViewById(R.id.imgBack);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        // Đường dẫn Firebase đã đúng cho Writing topics trong code bạn cung cấp
+        // Sử dụng CURRENT_SKILL_NAME để đảm bảo đường dẫn chính xác
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child("Writing") // Sử dụng hằng số kỹ năng (đã là "Writing" trong code gốc)
+                .child(CURRENT_SKILL_NAME) // Đảm bảo đây là "Writing"
                 .child("Topics");
 
         Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
