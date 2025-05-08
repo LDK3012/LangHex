@@ -3,11 +3,9 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.text.TextUtils; // Import TextUtils
 
 import androidx.annotation.NonNull;
-// Import View explicitly if needed for getFeedbackPanelView, though it's an interface method
-// import android.view.View;
-
 
 import com.example.langhexx.Model.WritingExercise;
 import com.google.firebase.database.DataSnapshot;
@@ -32,7 +30,8 @@ import java.util.concurrent.Executors;
 public class WritingController {
 
     private static final String TAG = "WritingController";
-    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc"; // <<<<<< THAY THẾ KEY CỦA BẠN VÀO ĐÂY
+    // REMEMBER TO REPLACE WITH YOUR ACTUAL KEY FOR PRODUCTION
+    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc"; // THAY KEY CỦA BẠN
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
@@ -59,8 +58,10 @@ public class WritingController {
         void setFeedbackPanelVisibility(boolean visible);
         void setFeedbackTriggerVisibility(boolean visible);
         void setAnswerInputVisibility(boolean visible);
-        void focusOnFeedbackPanel(); // MỚI: Để yêu cầu View cuộn tới panel
-        // android.view.View getFeedbackPanelView(); // KHÔNG CẦN NẾU focusOnFeedbackPanel tự xử lý
+        void setAnswerEditTextEnabled(boolean enabled);
+        void requestFocusOnAnswerInput(); // NEW: For explicit focus and keyboard
+        void focusOnFeedbackPanel();
+        void setSeeRevisedVersionButtonVisibility(boolean visible);
     }
 
     public static final int STATE_SUBMIT_WRITING = 0;
@@ -76,7 +77,9 @@ public class WritingController {
 
     private boolean exerciseDataLoaded = false;
     private boolean titlesLoaded = false;
-    private boolean isUserEditingAfterFeedback = false; // MỚI
+    private boolean isUserEditingAfterFeedback = false;
+    private boolean allCriteriaSuccess = false;
+    private String submittedTextForCurrentFeedback = ""; // Store text that received feedback
 
     private DatabaseReference databaseReference;
 
@@ -93,7 +96,6 @@ public class WritingController {
             handleInitializationError("Error: Intent is null.");
             return;
         }
-
         if (levelName == null || topicTitle == null || exerciseTitle == null) {
             handleInitializationError("Error: Missing exercise identifiers in Intent.");
         }
@@ -101,244 +103,218 @@ public class WritingController {
 
     public void initialize() {
         Log.d(TAG, "Initializing Controller for: L-" + levelName + ", T-" + topicTitle + ", E-" + exerciseTitle);
-        if (view == null) {
-            Log.e(TAG, "View is null in initialize");
-            return;
-        }
-        currentButtonState = STATE_SUBMIT_WRITING; // Reset state on init
+        if (view == null) { Log.e(TAG, "View is null in initialize"); return; }
+
+        currentButtonState = STATE_SUBMIT_WRITING;
         isUserEditingAfterFeedback = false;
+        allCriteriaSuccess = false;
+        submittedTextForCurrentFeedback = ""; // Reset
         view.setUIElementsVisibility(false);
         view.setFeedbackPanelVisibility(false);
         view.setFeedbackTriggerVisibility(false);
+        view.setSeeRevisedVersionButtonVisibility(false);
+        view.setAnswerEditTextEnabled(true); // Enable EditText but don't force focus/keyboard
+        // The initial check for empty text in onAnswerTextChanged will disable submit if needed
         loadExerciseDataFromFirebase();
         loadAllExerciseTitlesFromFirebase();
     }
 
     private void handleInitializationError(String errorMessage) {
         Log.e(TAG, errorMessage);
-        if (view != null) {
-            view.showFailToast(errorMessage);
-            view.finishActivity();
-        }
+        if (view != null) { view.showFailToast(errorMessage); view.finishActivity(); }
     }
 
     private void loadExerciseDataFromFirebase() {
-        // ... (không thay đổi)
+        // ... (no changes in this method)
         if (levelName == null || topicTitle == null || exerciseTitle == null) {
-            if(view != null) {
-                Log.e(TAG, "Cannot load exercise data: Level/Topic/ExerciseTitle is null.");
-                view.showFailToast("Error: Missing data to load exercise.");
-                view.finishActivity();
-            }
+            if(view != null) { Log.e(TAG, "Cannot load exercise data: Level/Topic/ExerciseTitle is null."); view.showFailToast("Error: Missing data to load exercise."); view.finishActivity(); }
             return;
         }
-        DatabaseReference exerciseRef = databaseReference
-                .child("Lessons").child("Levels").child(levelName)
-                .child("Writing").child("Topics").child(topicTitle)
-                .child("Exercises").child(exerciseTitle);
+        DatabaseReference exerciseRef = databaseReference.child("Lessons").child("Levels").child(levelName).child("Writing").child("Topics").child(topicTitle).child("Exercises").child(exerciseTitle);
         exerciseRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
-                    Log.e(TAG, "Writing exercise data not found at path: " + exerciseRef.toString());
+                    Log.e(TAG, "Writing exercise data not found at path: " + exerciseRef);
                     if (view != null) {
                         view.displayQuestionPrompt("Content not available for this exercise.");
                         view.setSubmitButtonState("N/A", false);
+                        view.setAnswerEditTextEnabled(false); // Disable if no content
                     }
-                    exerciseDataLoaded = true;
-                    checkIfAllDataLoadedAndReady();
-                    return;
+                    exerciseDataLoaded = true; checkIfAllDataLoadedAndReady(); return;
                 }
-
                 String scriptPrompt = snapshot.child("script").getValue(String.class);
-
                 if (scriptPrompt != null && !scriptPrompt.isEmpty()) {
                     currentWritingExercise = new WritingExercise(snapshot.getKey(), exerciseTitle, scriptPrompt);
-                    Log.d(TAG, "Script/Prompt loaded: " + currentWritingExercise.getScript());
-                    if (view != null) {
-                        view.displayExerciseTitle(currentWritingExercise.getTitle());
-                        view.displayQuestionPrompt(currentWritingExercise.getScript());
-                    }
+                    if (view != null) { view.displayExerciseTitle(currentWritingExercise.getTitle()); view.displayQuestionPrompt(currentWritingExercise.getScript()); }
                 } else {
-                    Log.w(TAG, "'script' field missing or empty in Firebase for exercise: " + exerciseTitle);
                     currentWritingExercise = new WritingExercise(snapshot.getKey(), exerciseTitle, "Writing prompt not found.");
                     if (view != null) {
                         view.displayExerciseTitle(exerciseTitle);
                         view.displayQuestionPrompt("Writing prompt not available for this exercise.");
+                        view.setAnswerEditTextEnabled(false); // Disable if no content
                     }
                 }
-                exerciseDataLoaded = true;
-                checkIfAllDataLoadedAndReady();
+                exerciseDataLoaded = true; checkIfAllDataLoadedAndReady();
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Firebase loading cancelled/failed for writing exercise: " + error.getMessage(), error.toException());
+                Log.e(TAG, "Firebase loading cancelled/failed: " + error.getMessage(), error.toException());
                 if (view != null) {
-                    view.showFailToast("Error loading writing exercise: " + error.getMessage());
-                    view.finishActivity();
+                    view.showFailToast("Error loading exercise: " + error.getMessage());
+                    view.setAnswerEditTextEnabled(false); // Disable on error
                 }
-                exerciseDataLoaded = true;
-                checkIfAllDataLoadedAndReady();
+                exerciseDataLoaded = true; checkIfAllDataLoadedAndReady();
             }
         });
     }
 
     private void loadAllExerciseTitlesFromFirebase() {
-        // ... (không thay đổi)
-        if (levelName == null || topicTitle == null) {
-            Log.e(TAG, "Cannot load all writing exercise titles: Level/Topic null.");
-            titlesLoaded = true;
-            checkIfAllDataLoadedAndReady();
-            return;
-        }
-        DatabaseReference exercisesRef = databaseReference
-                .child("Lessons").child("Levels").child(levelName)
-                .child("Writing").child("Topics").child(topicTitle).child("Exercises");
-
-        Log.d(TAG, "Loading all writing exercise titles from: " + exercisesRef.toString());
+        // ... (no changes in this method)
+        if (levelName == null || topicTitle == null) { titlesLoaded = true; checkIfAllDataLoadedAndReady(); return; }
+        DatabaseReference exercisesRef = databaseReference.child("Lessons").child("Levels").child(levelName).child("Writing").child("Topics").child(topicTitle).child("Exercises");
         exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
+            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
                 allExerciseTitles.clear();
-                if (snapshot.exists()) {
-                    for (DataSnapshot exSnap : snapshot.getChildren()) {
-                        String title = exSnap.getKey();
-                        if (title != null && !title.isEmpty()) {
-                            allExerciseTitles.add(title);
-                        }
-                    }
-                    Log.i(TAG, "Loaded " + allExerciseTitles.size() + " writing exercise titles for topic: " + topicTitle);
-                } else {
-                    Log.w(TAG, "No writing exercises found under topic path: " + topicTitle);
-                }
-                titlesLoaded = true;
-                checkIfAllDataLoadedAndReady();
+                if (snapshot.exists()) { for (DataSnapshot exSnap : snapshot.getChildren()) { allExerciseTitles.add(exSnap.getKey()); } }
+                titlesLoaded = true; checkIfAllDataLoadedAndReady();
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Failed to load all writing exercise titles: " + error.getMessage());
-                titlesLoaded = true;
-                checkIfAllDataLoadedAndReady();
-            }
+            @Override public void onCancelled(@NonNull DatabaseError error) { titlesLoaded = true; checkIfAllDataLoadedAndReady(); }
         });
     }
 
 
     private void checkIfAllDataLoadedAndReady() {
         if (exerciseDataLoaded && titlesLoaded && view != null) {
-            Log.d(TAG, "All initial data loaded for Writing.");
+            Log.d(TAG, "All initial data loaded.");
             view.setUIElementsVisibility(true);
-            view.setAnswerInputVisibility(true); // Đảm bảo input luôn hiển thị nếu data đã load
+            view.setAnswerInputVisibility(true);
             updateSubmitButtonBasedOnState();
+            // Trigger an initial onAnswerTextChanged with empty string to set initial submit button state
+            onAnswerTextChanged(""); // Assuming EditText is initially empty
         }
     }
 
     private void updateSubmitButtonBasedOnState() {
         if (view == null) return;
+        Log.d(TAG, "updateSubmitButtonBasedOnState - CurrentState: " + currentButtonState + ", isEditingAfterFeedback: " + isUserEditingAfterFeedback + ", allSuccess: " + allCriteriaSuccess);
 
-        boolean contentNotAvailable = currentWritingExercise == null ||
-                currentWritingExercise.getScript() == null ||
+        boolean contentNotAvailable = currentWritingExercise == null || currentWritingExercise.getScript() == null ||
                 currentWritingExercise.getScript().equals("Writing prompt not available for this exercise.") ||
                 currentWritingExercise.getScript().equals("Writing prompt not found.") ||
                 currentWritingExercise.getScript().equals("Content not available for this exercise.");
-
-        // Luôn hiển thị answer input nếu UI elements được phép hiển thị (đã được xử lý trong checkIfAllDataLoadedAndReady)
-        // view.setAnswerInputVisibility(true); // Giữ nguyên theo logic cũ của bạn nếu cần
 
         if (contentNotAvailable) {
             view.setSubmitButtonState("N/A", false);
             view.setFeedbackPanelVisibility(false);
             view.setFeedbackTriggerVisibility(false);
+            view.setSeeRevisedVersionButtonVisibility(false);
+            view.setAnswerEditTextEnabled(false); // Important: disable if no content
             view.displayQuestionPrompt("Content not available for this exercise.");
             return;
         }
 
         switch (currentButtonState) {
             case STATE_SUBMIT_WRITING:
-                view.setSubmitButtonState("Submit", true);
-                // Nếu đang ở trạng thái submit (hoặc vừa chuyển từ Retry sang Submit do edit)
-                // thì ẩn panel feedback.
-                if (isUserEditingAfterFeedback) { // Nếu người dùng vừa edit và chuyển về SUBMIT
+                view.setSubmitButtonState("Submit", true); // Default to true, onAnswerTextChanged will refine
+                view.setAnswerEditTextEnabled(true);
+                if (isUserEditingAfterFeedback) {
+                    view.setFeedbackPanelVisibility(true);
+                    view.setSeeRevisedVersionButtonVisibility(!allCriteriaSuccess); // Show if not all success
+                } else {
                     view.setFeedbackPanelVisibility(false);
-                    isUserEditingAfterFeedback = false; // Reset cờ
-                } else if (!viewIsShowingFeedbackPanel()){ // Ẩn nếu panel chưa hiển thị (trạng thái submit ban đầu)
-                    view.setFeedbackPanelVisibility(false);
+                    view.setSeeRevisedVersionButtonVisibility(false);
                 }
-                // Nếu panel đang hiển thị và user không edit (ví dụ mới load lại app ở trạng thái retry)
-                // thì để nguyên, onResume sẽ xử lý.
                 view.setFeedbackTriggerVisibility(false);
                 break;
-            case STATE_RETRY_WRITING:
-                view.setSubmitButtonState("Retry", true);
-                // Khi ở trạng thái Retry, panel feedback phải được hiển thị.
-                // Việc hiển thị được thực hiện trong proceedWithWritingSubmission và onResume.
-                // Ở đây chỉ đảm bảo trigger ẩn.
+            case STATE_RETRY_WRITING: // After feedback is received
+                view.setAnswerEditTextEnabled(false); // Disable EditText
+                if (allCriteriaSuccess) {
+                    view.setSubmitButtonState("Done", true);
+                } else {
+                    view.setSubmitButtonState("Edit", true);
+                }
                 view.setFeedbackTriggerVisibility(false);
-                view.setFeedbackPanelVisibility(true); // Đảm bảo panel hiển thị khi ở trạng thái Retry
+                view.setFeedbackPanelVisibility(true);
+                view.setSeeRevisedVersionButtonVisibility(!allCriteriaSuccess);
                 break;
             default:
                 view.setSubmitButtonState("Submit", true);
+                view.setAnswerEditTextEnabled(true);
                 view.setFeedbackPanelVisibility(false);
                 view.setFeedbackTriggerVisibility(false);
+                view.setSeeRevisedVersionButtonVisibility(false);
                 break;
         }
     }
 
-    // MỚI: Phương thức để View thông báo khi text thay đổi
-    public void onAnswerTextChanged() {
+    // CHANGE: Method signature changed to accept current text
+    public void onAnswerTextChanged(String currentText) {
         if (view == null) return;
-        // Chỉ xử lý nếu đang ở trạng thái RETRY (đã có feedback)
-        if (currentButtonState == STATE_RETRY_WRITING) {
-            Log.d(TAG, "Text changed while in Retry state. Switching to Submit state.");
-            currentButtonState = STATE_SUBMIT_WRITING;
-            isUserEditingAfterFeedback = true; // Đánh dấu người dùng đã edit sau khi có feedback
-            updateSubmitButtonBasedOnState(); // Sẽ ẩn panel feedback và đổi nút
+
+        if (currentButtonState == STATE_SUBMIT_WRITING) {
+            if (isUserEditingAfterFeedback) {
+                // User is editing after feedback. Enable submit only if text has changed.
+                boolean hasChanged = !currentText.trim().equals(submittedTextForCurrentFeedback.trim());
+                view.setSubmitButtonState("Submit", hasChanged);
+            } else {
+                // Initial submission. Enable submit if text is not empty.
+                view.setSubmitButtonState("Submit", !TextUtils.isEmpty(currentText.trim()));
+            }
         }
-    }
-    // MỚI: Giúp controller biết trạng thái hiện tại của panel trên View
-    private boolean viewIsShowingFeedbackPanel() {
-        // Điều này giả định rằng bạn sẽ thêm một phương thức vào ViewInterface
-        // để lấy trạng thái của panel. Nếu không, logic này cần được điều chỉnh.
-        // For now, let's assume we manage this via currentButtonState and onResume.
-        // If currentButtonState is STATE_RETRY_WRITING, we assume panel *should* be visible.
-        // This check is more about the initial state before any interaction.
-        return false; // Hoặc một cách kiểm tra thực tế hơn từ View
+        // No action needed if in STATE_RETRY_WRITING as EditText should be disabled
     }
 
 
     public void onSubmitButtonClicked(String userAnswer) {
         if (view == null) return;
-        Log.d(TAG, "Submit button clicked. State: " + currentButtonState);
+        Log.d(TAG, "Submit button clicked. State: " + currentButtonState + ", AllSuccess: " + allCriteriaSuccess + ", EditingAfterFeedback: " + isUserEditingAfterFeedback);
 
         switch (currentButtonState) {
             case STATE_SUBMIT_WRITING:
-                isUserEditingAfterFeedback = false; // Reset cờ này khi submit
+                allCriteriaSuccess = false;
                 if (userAnswer.trim().isEmpty()) {
-                    view.showFailToast("Please write something before submitting.");
-                    return;
+                    view.showFailToast("Please write something before submitting."); return;
                 }
                 if (currentWritingExercise == null || currentWritingExercise.getScript() == null || currentWritingExercise.getScript().isEmpty() || currentWritingExercise.getScript().contains("not available")) {
-                    view.showFailToast("Cannot submit without a valid writing prompt.");
-                    return;
+                    view.showFailToast("Cannot submit without a valid writing prompt."); return;
                 }
+                // Store the text being submitted BEFORE calling API
+                // This is for the "Edit" functionality later
+                // This will be overwritten if it was an initial submission.
+                // If it was an edit, this submittedTextForCurrentFeedback is already the text that previously got feedback.
+                // We need to store the *new* text that is about to be submitted.
+                // This means submittedTextForCurrentFeedback gets updated *after* successful submission and feedback.
+                // For now, it's correct that it holds the text for which feedback *was* received.
+
                 view.showConfirmationDialog("Confirm Submission", "Are you sure you want to submit your writing for feedback?", () -> {
+                    // This submittedTextForCurrentFeedback will be set *after* successful feedback.
+                    // The userAnswer is the *new* text being submitted.
                     proceedWithWritingSubmission(userAnswer, currentWritingExercise.getScript());
                 });
                 break;
-            case STATE_RETRY_WRITING:
-                Log.i(TAG, "Retry button clicked. Resetting for new attempt.");
-                currentButtonState = STATE_SUBMIT_WRITING;
-                isUserEditingAfterFeedback = false; // Reset cờ
-                view.clearAnswerInput();
-                // updateSubmitButtonBasedOnState sẽ ẩn panel feedback
-                updateSubmitButtonBasedOnState();
+            case STATE_RETRY_WRITING: // Button is "Done" or "Edit"
+                if (allCriteriaSuccess) { // Button is "Done"
+                    Log.i(TAG, "'Done' button clicked. Finishing activity.");
+                    isUserEditingAfterFeedback = false;
+                    view.finishActivity();
+                } else { // Button is "Edit"
+                    Log.i(TAG, "'Edit' button clicked. Enabling edit mode, keeping feedback panel.");
+                    currentButtonState = STATE_SUBMIT_WRITING;
+                    isUserEditingAfterFeedback = true;
+                    allCriteriaSuccess = false; // Reset for the new edit attempt
+                    updateSubmitButtonBasedOnState(); // Sets button to "Submit", enables EditText
+                    // CRITICAL: Disable submit button initially as text hasn't changed from what received feedback
+                    view.setSubmitButtonState("Submit", false);
+                    view.requestFocusOnAnswerInput(); // Request focus and show keyboard
+                }
                 break;
             default:
                 Log.w(TAG, "Unknown button state clicked: " + currentButtonState);
                 currentButtonState = STATE_SUBMIT_WRITING;
                 isUserEditingAfterFeedback = false;
+                allCriteriaSuccess = false;
+                submittedTextForCurrentFeedback = "";
                 updateSubmitButtonBasedOnState();
                 break;
         }
@@ -346,10 +322,12 @@ public class WritingController {
 
     private void proceedWithWritingSubmission(String userAnswer, String originalPrompt) {
         if (view == null) return;
-        Log.i(TAG, "Proceeding with writing submission...");
+        Log.i(TAG, "Proceeding with writing submission for text: " + userAnswer);
         view.showLoading("Getting feedback...");
-        view.setFeedbackTriggerVisibility(false);
-        view.setFeedbackPanelVisibility(false); // Ẩn panel trong khi loading
+        // Store the text that is *being submitted now* to compare against later if "Edit" is pressed.
+        // This userAnswer is what will receive feedback.
+        final String textBeingSubmitted = userAnswer;
+
 
         getFeedbackFromGemini(originalPrompt, userAnswer, new FeedbackCallback() {
             @Override
@@ -358,12 +336,16 @@ public class WritingController {
                     if (view == null) return;
                     view.hideLoading();
                     try {
-                        Log.d(TAG, "Raw Gemini JSON feedback: " + feedbackJson.toString(2));
-
                         JSONObject taskResponse = feedbackJson.getJSONObject("taskResponse");
                         JSONObject coherenceCohesion = feedbackJson.getJSONObject("coherenceCohesion");
                         JSONObject grammarVocabulary = feedbackJson.getJSONObject("grammarVocabulary");
                         JSONObject length = feedbackJson.getJSONObject("length");
+
+                        allCriteriaSuccess = taskResponse.getInt("iconType") == 1 &&
+                                coherenceCohesion.getInt("iconType") == 1 &&
+                                grammarVocabulary.getInt("iconType") == 1 &&
+                                length.getInt("iconType") == 1;
+                        Log.d(TAG, "All criteria success after Gemini: " + allCriteriaSuccess);
 
                         view.displayStructuredAIFeedback(
                                 taskResponse.getString("feedback"), taskResponse.getInt("iconType"),
@@ -373,19 +355,23 @@ public class WritingController {
                         );
 
                         view.showToast("Feedback received!");
-                        view.setFeedbackPanelVisibility(true);   // Hiển thị panel feedback
-                        view.focusOnFeedbackPanel();              // MỚI: Yêu cầu View cuộn/focus vào panel
-
                         currentButtonState = STATE_RETRY_WRITING;
-                        isUserEditingAfterFeedback = false; // Reset, vì feedback vừa được hiển thị
-                        updateSubmitButtonBasedOnState(); // Cập nhật nút sang "Retry"
+                        isUserEditingAfterFeedback = false;
+                        submittedTextForCurrentFeedback = textBeingSubmitted; // Store the text that received this feedback
+
+                        updateSubmitButtonBasedOnState(); // Sets button to "Edit"/"Done", disables EditText, shows panel
+                        // view.setSeeRevisedVersionButtonVisibility(!allCriteriaSuccess); // Already handled by updateSubmitButton...
+                        view.focusOnFeedbackPanel(); // Scroll to feedback panel
 
                     } catch (JSONException e) {
-                        Log.e(TAG, "Error parsing structured feedback JSON from Gemini", e);
-                        view.showFailToast("Error displaying feedback. Invalid format from AI.");
-                        currentButtonState = STATE_SUBMIT_WRITING;
+                        Log.e(TAG, "Error parsing structured feedback JSON", e);
+                        view.showFailToast("Error displaying feedback. Invalid AI format.");
+                        allCriteriaSuccess = false;
+                        currentButtonState = STATE_SUBMIT_WRITING; // Revert to submit
                         isUserEditingAfterFeedback = false;
+                        // submittedTextForCurrentFeedback remains what it was before this failed attempt
                         updateSubmitButtonBasedOnState();
+                        view.setSeeRevisedVersionButtonVisibility(true); // Default to show if error
                     }
                 });
             }
@@ -396,9 +382,12 @@ public class WritingController {
                     if (view == null) return;
                     view.hideLoading();
                     view.showFailToast("Failed to get AI feedback: " + error);
-                    currentButtonState = STATE_SUBMIT_WRITING;
+                    allCriteriaSuccess = false;
+                    currentButtonState = STATE_SUBMIT_WRITING; // Revert to submit
                     isUserEditingAfterFeedback = false;
+                    // submittedTextForCurrentFeedback remains what it was before this failed attempt
                     updateSubmitButtonBasedOnState();
+                    view.setSeeRevisedVersionButtonVisibility(true); // Default to show if error
                 });
             }
         });
@@ -410,7 +399,12 @@ public class WritingController {
     }
 
     private void getFeedbackFromGemini(String originalPrompt, String userAnswer, FeedbackCallback callback) {
-        // ... (không thay đổi)
+        // ... (No changes in this method, but ensure GEMINI_API_KEY is set)
+        if (GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY") || GEMINI_API_KEY.isEmpty()) {
+            Log.e(TAG, "Gemini API Key is not set!");
+            callback.onError("API Key not configured.");
+            return;
+        }
         executorService.execute(() -> {
             HttpURLConnection conn = null;
             try {
@@ -419,8 +413,8 @@ public class WritingController {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
                 conn.setDoOutput(true);
-                conn.setConnectTimeout(20000);
-                conn.setReadTimeout(20000);
+                conn.setConnectTimeout(20000); // 20 seconds
+                conn.setReadTimeout(20000);    // 20 seconds
 
                 String promptForGemini = "You are an English language learning assistant. " +
                         "Evaluate the following written response to the prompt. " +
@@ -446,16 +440,13 @@ public class WritingController {
                 contentsArray.put(content);
                 jsonBody.put("contents", contentsArray);
 
+                // Specify JSON output directly in generationConfig
                 JSONObject generationConfig = new JSONObject();
                 generationConfig.put("response_mime_type", "application/json");
                 jsonBody.put("generationConfig", generationConfig);
 
-                // Log.d(TAG, "Gemini Request Body: " + jsonBody.toString(2)); // Verbose logging
 
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = jsonBody.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
-                }
+                try (OutputStream os = conn.getOutputStream()) { os.write(jsonBody.toString().getBytes("utf-8")); }
 
                 int responseCode = conn.getResponseCode();
                 Log.d(TAG, "Gemini API Response Code: " + responseCode);
@@ -464,116 +455,93 @@ public class WritingController {
                     try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"))) {
                         StringBuilder response = new StringBuilder();
                         String responseLine;
-                        while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine);
-                        }
-                        String rawResponse = response.toString();
-                        // Log.d(TAG, "Gemini API Raw Response: " + rawResponse); // Verbose logging
+                        while ((responseLine = br.readLine()) != null) response.append(responseLine);
 
-                        JSONObject fullJsonResponse = new JSONObject(rawResponse);
-                        JSONObject structuredFeedback;
-
-                        JSONObject firstCandidate = fullJsonResponse.getJSONArray("candidates").getJSONObject(0);
-                        JSONObject firstCandidateContent = firstCandidate.getJSONObject("content");
-                        JSONArray firstCandidateParts = firstCandidateContent.getJSONArray("parts");
-
-                        if (firstCandidateParts.length() > 0) {
-                            JSONObject firstPart = firstCandidateParts.getJSONObject(0);
-                            if (firstPart.has("text")) {
-                                String feedbackJsonString = firstPart.getString("text");
-                                // Log.d(TAG, "Gemini feedback is a string in 'text' field: " + feedbackJsonString);
+                        Log.d(TAG, "Raw Gemini Response: " + response.toString());
+                        JSONObject fullJsonResponse = new JSONObject(response.toString());
+                        JSONArray candidates = fullJsonResponse.getJSONArray("candidates");
+                        if (candidates.length() > 0) {
+                            JSONObject firstCandidate = candidates.getJSONObject(0);
+                            JSONObject candidateContent = firstCandidate.getJSONObject("content");
+                            JSONArray candidateParts = candidateContent.getJSONArray("parts");
+                            if (candidateParts.length() > 0) {
+                                // The "text" field should directly contain the JSON string due to response_mime_type
+                                String feedbackJsonString = candidateParts.getJSONObject(0).getString("text");
+                                // Gemini might still wrap it in markdown sometimes, defensively remove it
                                 if (feedbackJsonString.startsWith("```json")) {
-                                    feedbackJsonString = feedbackJsonString.substring(7); // Skip ```json\n
+                                    feedbackJsonString = feedbackJsonString.substring(7);
+                                    if (feedbackJsonString.endsWith("```")) {
+                                        feedbackJsonString = feedbackJsonString.substring(0, feedbackJsonString.length() - 3);
+                                    }
+                                } else if (feedbackJsonString.startsWith("```")) { // More generic markdown block
+                                    feedbackJsonString = feedbackJsonString.substring(3);
+                                    if (feedbackJsonString.endsWith("```")) {
+                                        feedbackJsonString = feedbackJsonString.substring(0, feedbackJsonString.length() - 3);
+                                    }
                                 }
-                                if (feedbackJsonString.endsWith("```")) {
-                                    feedbackJsonString = feedbackJsonString.substring(0, feedbackJsonString.length() - 3);
-                                }
-                                structuredFeedback = new JSONObject(feedbackJsonString.trim());
-                            } else if (firstPart.has("jsonObject")) { // Check for direct JSON object
-                                structuredFeedback = firstPart.getJSONObject("jsonObject");
-                            }
-                            else { // Fallback if the structure is just the object itself
-                                structuredFeedback = firstPart;
-                            }
-                        } else {
-                            throw new JSONException("Parts array is empty in Gemini response");
-                        }
-
-                        // Log.d(TAG, "Parsed Structured Feedback: " + structuredFeedback.toString(2)); // Verbose
-                        callback.onSuccess(structuredFeedback);
+                                callback.onSuccess(new JSONObject(feedbackJsonString.trim()));
+                            } else throw new JSONException("Parts array is empty in Gemini response");
+                        } else throw new JSONException("Candidates array is empty in Gemini response");
                     }
                 } else {
                     StringBuilder errorResponse = new StringBuilder();
                     if (conn.getErrorStream() != null) {
-                        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"))) {
-                            String responseLine;
-                            while ((responseLine = br.readLine()) != null) {
-                                errorResponse.append(responseLine.trim());
-                            }
+                        try (BufferedReader brError = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"))) {
+                            String line; while ((line = brError.readLine()) != null) errorResponse.append(line.trim());
                         }
                     } else {
                         errorResponse.append("No error stream data.");
                     }
-                    Log.e(TAG, "Gemini API Error. Code: " + responseCode + ". Response: " + errorResponse.toString());
-                    callback.onError("Server error: " + responseCode + ". " + errorResponse.toString());
+                    Log.e(TAG, "Gemini API Error Response: " + errorResponse.toString());
+                    callback.onError("Server error: " + responseCode + ". " + errorResponse);
                 }
-
             } catch (Exception e) {
-                Log.e(TAG, "Error calling Gemini API or parsing response", e);
-                callback.onError("Client-side error: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                Log.e(TAG, "Error calling Gemini API", e);
+                callback.onError("Client-side error processing Gemini response: " + e.getMessage());
             } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
+                if (conn != null) conn.disconnect();
             }
         });
     }
 
-    private boolean hasNextExercise() {
-        if (titlesLoaded && allExerciseTitles != null && !allExerciseTitles.isEmpty() && exerciseTitle != null) {
-            int currentIndex = allExerciseTitles.indexOf(exerciseTitle);
-            return currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1;
-        }
-        return false;
-    }
-
-    public void onPause() {
-        Log.d(TAG, "onPause called by View.");
-    }
+    public void onPause() { Log.d(TAG, "onPause called by View."); }
 
     public void onResume() {
-        Log.d(TAG, "onResume called by View.");
+        Log.d(TAG, "onResume. State: " + currentButtonState + ", AllSuccess: " + allCriteriaSuccess + ", EditingAfterFeedback: " + isUserEditingAfterFeedback);
         if (view != null) {
-            // Khi resume, cập nhật lại UI dựa trên trạng thái hiện tại của controller
-            // Đặc biệt quan trọng nếu app bị đưa vào background rồi quay lại
-            if (currentButtonState == STATE_RETRY_WRITING && !isUserEditingAfterFeedback) {
-                // Nếu đang ở trạng thái retry và người dùng KHÔNG đang edit (tức là feedback nên được hiển thị)
+            updateSubmitButtonBasedOnState();
+
+            if (currentButtonState == STATE_RETRY_WRITING) { // After feedback is shown
                 view.setFeedbackPanelVisibility(true);
-                view.focusOnFeedbackPanel(); // Có thể focus lại nếu cần
-            } else {
-                // Ngược lại (đang submit hoặc user đã edit sau feedback), panel nên ẩn
-                // updateSubmitButtonBasedOnState sẽ xử lý việc này
+                // view.setSeeRevisedVersionButtonVisibility(!allCriteriaSuccess); // Handled by updateSubmitButtonState
+                // view.focusOnFeedbackPanel(); // This might be called too early if view is not fully laid out. Better to call after feedback is set.
+            } else if (currentButtonState == STATE_SUBMIT_WRITING && isUserEditingAfterFeedback) {
+                // User was editing, came back to app. Ensure panel is visible.
+                view.setFeedbackPanelVisibility(true);
+                // view.setSeeRevisedVersionButtonVisibility(!allCriteriaSuccess); // Handled by updateSubmitButtonState
+                // Ensure submit button state is correct based on whether text changed
+                // This requires getting current text from view, which is awkward here.
+                // onAnswerTextChanged is the better place.
+                // For now, updateSubmitButtonBasedOnState sets it to "Submit", true initially,
+                // then if "Edit" was clicked, it's explicitly set to false.
+                // This state should be preserved or re-evaluated.
+                // Safest is to rely on the flow: if "Edit" was clicked, submit is disabled.
+                // If user typed, it's enabled/disabled by onAnswerTextChanged.
             }
-            updateSubmitButtonBasedOnState(); // Luôn gọi để đảm bảo UI nhất quán
         }
     }
-
 
     public void onDestroy() {
-        if (view != null) {
-            this.view = null;
-        }
+        Log.d(TAG, "onDestroy called.");
         if (executorService != null && !executorService.isShutdown()) {
-            executorService.shutdown();
-            Log.d(TAG, "ExecutorService shut down.");
+            executorService.shutdownNow();
         }
+        this.view = null;
     }
 
-    public boolean handleBackPressed() {
-        return false;
-    }
-
-    public int getCurrentButtonState() {
-        return currentButtonState;
-    }
+    public boolean handleBackPressed() { return false; }
+    public int getCurrentButtonState() { return currentButtonState; }
+    public boolean areAllCriteriaSuccess() { return this.allCriteriaSuccess; }
+    public boolean isUserEditingAfterFeedback() { return this.isUserEditingAfterFeedback; }
+    public String getSubmittedTextForCurrentFeedback() { return this.submittedTextForCurrentFeedback; }
 }

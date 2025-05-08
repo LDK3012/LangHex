@@ -23,6 +23,7 @@
             android:exported="false" />
         <activity
             android:name=".View.InternalWritingTopic"
+            android:windowSoftInputMode="stateHidden"
             android:exported="false" />
         <activity
             android:name=".View.Reading_Topic_Exercise_Activity"
