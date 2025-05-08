@@ -16,14 +16,13 @@
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
         <activity
-<<<<<<< HEAD
             android:name=".View.Writing_Topic_Exercise_Activity"
             android:exported="false" />
         <activity
             android:name=".View.ChooseTopicWritingActivity"
-=======
+            android:exported="false" />
+        <activity
             android:name=".View.InternalWritingTopic"
->>>>>>> 4a0d0305a0ccb6de599065a87953f8257766f4a7
             android:exported="false" />
         <activity
             android:name=".View.Reading_Topic_Exercise_Activity"
@@ -79,10 +78,10 @@
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
         <activity
-            android:name=".View.LoginActivity"
+            android:name=".View.StartActivity"
             android:exported="false" />
         <activity
-            android:name=".View.StartActivity"
+            android:name=".View.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

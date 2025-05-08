@@ -386,7 +386,6 @@ public class ProfileFragment extends Fragment {
         txtFeedback = view.findViewById(R.id.txtFeedback);
         txtName = view.findViewById(R.id.txtName);
         txtEmail = view.findViewById(R.id.txtMail);
-        txtLanguage = view.findViewById(R.id.txtLanguage);
         avatarImg = view.findViewById(R.id.profileImg);
         txtLogout = view.findViewById(R.id.txtLogout) ;
     }

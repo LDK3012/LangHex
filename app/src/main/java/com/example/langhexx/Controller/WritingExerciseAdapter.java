@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.langhexx.R;
+import com.example.langhexx.View.InternalWritingTopic;
 //import com.example.langhexx.View.InternalWritingTopic; // Đổi sang Activity đích cho Writing
 
 import java.util.List;
@@ -46,11 +47,11 @@ public class WritingExerciseAdapter extends RecyclerView.Adapter<WritingExercise
         holder.tvExerciseItemTitle.setText(numberedExerciseTitle);
 
         holder.itemView.setOnClickListener(v -> {
-//            Intent intent = new Intent(context, InternalWritingTopic.class); // Chuyển đến InternalWritingTopic
-//            intent.putExtra("LEVEL_NAME", levelName);
-//            intent.putExtra("TOPIC_TITLE", topicTitle);
-//            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle); // Gửi tên bài tập gốc
-//            context.startActivity(intent);
+            Intent intent = new Intent(context, InternalWritingTopic.class); // Chuyển đến InternalWritingTopic
+            intent.putExtra("LEVEL_NAME", levelName);
+            intent.putExtra("TOPIC_TITLE", topicTitle);
+            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle); // Gửi tên bài tập gốc
+            context.startActivity(intent);
         });
     }
 

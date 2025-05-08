@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/feedback_panel_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/feedback_panel_background"
+    android:visibility="gone">
+
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <ImageView
+            android:id="@+id/icon_task_response"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            app:srcCompat="@drawable/success" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/taskResponseTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Task Response"
+                android:textStyle="bold"
+                android:textColor="@color/feedback_title_color"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/text_feedback_task_response"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Feedback on task response..."
+                android:textColor="@color/feedback_text_color"
+                android:textSize="14sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <ImageView
+            android:id="@+id/icon_coherence_cohesion"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            app:srcCompat="@drawable/warning_icon" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/coherenceTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Coherence &amp; Cohesion"
+                android:textStyle="bold"
+                android:textColor="@color/feedback_title_color"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/text_feedback_coherence_cohesion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Feedback on coherence..."
+                android:textColor="@color/feedback_text_color"
+                android:textSize="14sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <ImageView
+            android:id="@+id/icon_grammar_vocabulary"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            app:srcCompat="@drawable/warning_icon" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/grammarTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Grammar &amp; Vocabulary"
+                android:textStyle="bold"
+                android:textColor="@color/feedback_title_color"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/text_feedback_grammar_vocabulary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Feedback on grammar..."
+                android:textColor="@color/feedback_text_color"
+                android:textSize="14sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/icon_length"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            app:srcCompat="@drawable/success" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/lengthTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Length"
+                android:textStyle="bold"
+                android:textColor="@color/feedback_title_color"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/text_feedback_length"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Feedback on length..."
+                android:textColor="@color/feedback_text_color"
+                android:textSize="14sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_see_revised_version"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="See revised version"
+        android:backgroundTint="@color/button_see_revised_background_color"
+        android:textColor="@color/button_see_revised_text_color"
+        />
+
+</LinearLayout>

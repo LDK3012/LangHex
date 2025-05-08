@@ -1,7 +1,9 @@
 package com.example.langhexx.View;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -92,15 +94,15 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
             });
         }
 
-//        lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//            @Override
-//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                Topics selectedTopic = topicsArrayList.get(position);
-//                Intent intent = new Intent(ChooseTopicWritingActivity.this, Writing_Topic_Exercise_Activity.class); // Tạo Activity cho bài tập Viết
-//                intent.putExtra("levelName", levelName);
-//                intent.putExtra("topicTitle", selectedTopic.getTitle());
-//                startActivity(intent);
-//            }
-//        });
+        lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Topics selectedTopic = topicsArrayList.get(position);
+                Intent intent = new Intent(ChooseTopicWritingActivity.this, Writing_Topic_Exercise_Activity.class); // Tạo Activity cho bài tập Viết
+                intent.putExtra("levelName", levelName);
+                intent.putExtra("topicTitle", selectedTopic.getTitle());
+                startActivity(intent);
+            }
+        });
     }
 }

@@ -31,6 +31,7 @@ public class LearningTypeActivity extends AppCompatActivity {
         cardListening = findViewById(R.id.cardListening);
         cardSpeaking = findViewById(R.id.cardSpeaking);
         cardReading = findViewById(R.id.cardReading) ;
+        cardWriting= findViewById(R.id.cardWriting);
     }
 
     private void addEvents() {

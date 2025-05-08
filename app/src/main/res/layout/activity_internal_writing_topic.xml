@@ -1,6 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_scroll_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -43,15 +45,14 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="right"
                 android:layout_weight="1"
-                >
-            </Space>
+                />
 
         </LinearLayout>
 
         <LinearLayout
-            android:layout_marginTop="20dp"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginTop="20dp"
             android:orientation="vertical">
 
             <TextView
@@ -59,7 +60,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Script here :"
-                android:textSize="20dp" />
+                android:textSize="16dp" />
 
             <EditText
                 android:id="@+id/answer_edittext"
@@ -73,6 +74,22 @@
                 android:minHeight="150dp"
                 android:padding="12dp" />
 
+            <TextView
+                android:text="Review"
+                android:textSize="16dp"
+                android:textStyle="bold"
+                android:id="@+id/feedback_trigger_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                 />
+            <include
+                android:id="@+id/included_feedback_panel_internal"
+                layout="@layout/layout_feedback_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp" />
+
             <Button
                 android:id="@+id/submit_button"
                 android:layout_width="122dp"
@@ -80,9 +97,7 @@
                 android:layout_gravity="right"
                 android:layout_marginTop="16dp"
                 android:backgroundTint="#F41818"
-
                 android:text="Submit" />
         </LinearLayout>
-
     </LinearLayout>
 </ScrollView>
