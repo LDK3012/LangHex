@@ -328,6 +328,7 @@ import com.bumptech.glide.signature.ObjectKey;
 import com.example.langhexx.Controller.AuthController; // Import AuthController
 import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
+import com.google.firebase.BuildConfig;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserInfo;
@@ -341,14 +342,22 @@ import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+
 public class ProfileFragment extends Fragment {
     private static final String TAG = "ProfileFragment";
-    TextView txtProfileDetail, txtFeedback, txtName, txtEmail, txtLanguage;
+    TextView txtProfileDetail, txtFeedback, txtName, txtEmail, txtLanguage,txtVersion;
     private ImageView avatarImg ;
     private TextView txtLogout ;
     private FirebaseAuth mAuth;
     private UsernamePasswordSessionManager sessionManager;
     private AuthController authController; // *** THÊM BIẾN AUTHCONTROLLER ***
+
 
     // Constants for Microsoft Graph API
     private static final String MS_GRAPH_PREFS = "MSGraphPrefs";
@@ -366,11 +375,51 @@ public class ProfileFragment extends Fragment {
         // Sử dụng requireContext() để đảm bảo Context không null sau khi Fragment được attach
         sessionManager = new UsernamePasswordSessionManager(requireContext());
 
+
         addControls(view);
         loadUserProfileInfo();
+        displayCombinedVersionInfo();
         addEvents();
         return view;
     }
+        // hàm update phiên bản
+        private void displayCombinedVersionInfo() {
+            String versionText = "Không thể lấy thông tin phiên bản";
+            try {
+                // Cách 1: Lấy thông tin từ BuildConfig (chỉ có versionName mặc định)
+                PackageManager pm = requireContext().getPackageManager();
+                PackageInfo pi = pm.getPackageInfo(requireContext().getPackageName(), 0);
+                String versionName = pi.versionName;
+
+                // Cách 2: Lấy ngày cài đặt đầu tiên
+                long firstInstallTime = pi.firstInstallTime;
+                SimpleDateFormat sdf = new SimpleDateFormat("M/yyyy", Locale.getDefault());
+                String installDate = sdf.format(new Date(firstInstallTime));
+
+                // Cách 3: Lấy thông tin cập nhật (nếu đã lưu bằng SharedPreferences)
+                SharedPreferences prefs = requireContext().getSharedPreferences("version_info", Context.MODE_PRIVATE);
+                String lastUpdateVersion = prefs.getString("current_version", null);
+                String lastUpdateDate = prefs.getString("last_update_date", null);
+
+                StringBuilder sb = new StringBuilder("Phiên bản ");
+                sb.append(versionName);
+
+                if (lastUpdateVersion != null && lastUpdateDate != null) {
+                    sb.append(" (Cập nhật: ").append(lastUpdateVersion).append(" - ").append(lastUpdateDate).append(")");
+                } else {
+                    sb.append(" - ").append(installDate).append(" ");
+                }
+                versionText = sb.toString();
+
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+                // Xử lý lỗi nếu không tìm thấy thông tin gói
+            } finally {
+                // Hiển thị thông tin lên TextView
+                txtVersion.setText(versionText);
+            }
+        }
+
 
     @Override
     public void onDestroyView() {
@@ -388,6 +437,7 @@ public class ProfileFragment extends Fragment {
         txtEmail = view.findViewById(R.id.txtMail);
         avatarImg = view.findViewById(R.id.profileImg);
         txtLogout = view.findViewById(R.id.txtLogout) ;
+        txtVersion = view.findViewById(R.id.txtVersion); //update phiên bản
     }
 
     public void addEvents() {
@@ -438,6 +488,7 @@ public class ProfileFragment extends Fragment {
                 Toast.makeText(getContext(), "Lỗi: Không thể lấy context để đăng xuất.", Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     // --- Các phương thức loadUserProfileInfo, extractNameFromDisplayName, fetchMicrosoftProfilePhoto, getMsGraphToken, clearMsGraphToken giữ nguyên ---
@@ -680,6 +731,5 @@ public class ProfileFragment extends Fragment {
             }
         });
     }
-
 
 }
