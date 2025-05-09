@@ -2,12 +2,20 @@ package com.example.langhexx.View;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color; // Thêm import Color
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler; // Thêm Handler
+import android.os.Looper;  // Thêm Looper
 import android.text.Editable;
+import android.text.Spannable; // Thêm Spannable
+import android.text.SpannableStringBuilder; // Thêm SpannableStringBuilder
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan; // Thêm ForegroundColorSpan
+import android.text.style.UnderlineSpan;     // Thêm UnderlineSpan
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
@@ -24,7 +32,11 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 
 import com.example.langhexx.Controller.WritingController;
+import com.example.langhexx.Model.ErrorDetail; // Thêm import ErrorDetail
 import com.example.langhexx.R;
+
+import java.util.ArrayList; // Thêm ArrayList
+import java.util.List;      // Thêm List
 
 public class InternalWritingTopic extends AppCompatActivity implements WritingController.ViewInterface {
 
@@ -50,6 +62,15 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
     private WritingController controller;
 
+    // Lưu trữ các span lỗi hiện tại để có thể xóa
+    private List<Object> currentErrorSpans = new ArrayList<>();
+
+    // Debounce cho TextWatcher
+    private Handler textChangeHandler = new Handler(Looper.getMainLooper());
+    private Runnable textChangeRunnable;
+    private final long TEXT_CHANGE_DEBOUNCE_MS = 1000; // Thời gian chờ trước khi gọi controller (1 giây)
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,6 +93,7 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         feedbackTriggerButton = findViewById(R.id.feedback_trigger_button);
 
         includedFeedbackPanel = findViewById(R.id.included_feedback_panel_internal);
+        // ... (gán các view con của includedFeedbackPanel như cũ) ...
         iconTaskResponse = includedFeedbackPanel.findViewById(R.id.icon_task_response);
         iconCoherenceCohesion = includedFeedbackPanel.findViewById(R.id.icon_coherence_cohesion);
         iconGrammarVocabulary = includedFeedbackPanel.findViewById(R.id.icon_grammar_vocabulary);
@@ -88,6 +110,13 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         textFeedbackLength = includedFeedbackPanel.findViewById(R.id.text_feedback_length);
         btnSeeRevisedVersion = includedFeedbackPanel.findViewById(R.id.btn_see_revised_version);
 
+
+        TextView reviewTextView = findViewById(R.id.feedback_trigger_button);
+        if (reviewTextView != null) { // Đảm bảo reviewTextView không null
+            reviewTextView.setPaintFlags(reviewTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        }
+
+
         if (includedFeedbackPanel != null) includedFeedbackPanel.setVisibility(View.GONE);
         if (feedbackTriggerButton != null) feedbackTriggerButton.setVisibility(View.GONE);
         if (btnSeeRevisedVersion != null) btnSeeRevisedVersion.setVisibility(View.GONE);
@@ -99,16 +128,20 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
         if (submitButton != null) submitButton.setOnClickListener(v -> {
             String userAnswer = answerEditText.getText().toString().trim();
+            // Hủy bỏ debounce khi submit
+            if (textChangeRunnable != null) {
+                textChangeHandler.removeCallbacks(textChangeRunnable);
+            }
             controller.onSubmitButtonClicked(userAnswer);
         });
 
         if (feedbackTriggerButton != null) feedbackTriggerButton.setOnClickListener(v -> {
             if (includedFeedbackPanel != null) {
                 if (includedFeedbackPanel.getVisibility() == View.VISIBLE) {
-                    // includedFeedbackPanel.setVisibility(View.GONE); // Action for hiding if already visible (if any)
+                    // includedFeedbackPanel.setVisibility(View.GONE);
                 } else {
                     includedFeedbackPanel.setVisibility(View.VISIBLE);
-                    focusOnFeedbackPanel(); // Scroll to it when manually triggered
+                    focusOnFeedbackPanel();
                 }
             }
         });
@@ -119,16 +152,27 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
         if (answerEditText != null) answerEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) {
-                if (controller != null && answerEditText.isEnabled()) {
-                    // Pass the current text to the controller
-                    controller.onAnswerTextChanged(s.toString());
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Hủy bỏ callback cũ mỗi khi text thay đổi
+                if (textChangeRunnable != null) {
+                    textChangeHandler.removeCallbacks(textChangeRunnable);
                 }
+            }
+            @Override public void afterTextChanged(Editable s) {
+                final String currentText = s.toString();
+                // Đặt callback mới
+                textChangeRunnable = () -> {
+                    if (controller != null && answerEditText.isEnabled()) {
+                        // Gọi onAnswerTextChanged của controller, nơi sẽ xử lý cả logic nút submit và inline analysis
+                        controller.onAnswerTextChanged(currentText);
+                    }
+                };
+                textChangeHandler.postDelayed(textChangeRunnable, TEXT_CHANGE_DEBOUNCE_MS);
             }
         });
     }
 
+    // ... (dpToPx, displayStructuredAIFeedback, updateFeedbackItemUI, ... giữ nguyên) ...
     private int dpToPx(int dp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
@@ -275,21 +319,16 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         runOnUiThread(() -> {
             if (includedFeedbackPanel != null && includedFeedbackPanel.getVisibility() == View.VISIBLE) {
                 includedFeedbackPanel.post(() -> {
-                    // CHANGE: Uncommented and ensured scrolling
                     if (mainScrollView != null) {
                         Rect panelRect = new Rect();
                         includedFeedbackPanel.getHitRect(panelRect);
-                        // Scroll to the top of the feedback panel
                         mainScrollView.smoothScrollTo(0, includedFeedbackPanel.getTop());
                         Log.d(TAG, "Scrolled to feedback panel at Y: " + includedFeedbackPanel.getTop());
                     } else {
-                        // Fallback if no scroll view, though less likely for this layout
                         Rect rect = new Rect(0, 0, includedFeedbackPanel.getWidth(), includedFeedbackPanel.getHeight());
                         includedFeedbackPanel.requestRectangleOnScreen(rect, false);
                         Log.d(TAG, "Requested rectangle on screen for feedback panel.");
                     }
-                    // No need to request focus on the panel itself, just scroll to it
-                    // includedFeedbackPanel.requestFocus();
                 });
             }
         });
@@ -297,12 +336,18 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
     @Override
     public void setFeedbackTriggerVisibility(boolean visible) {
-        runOnUiThread(() -> { if (feedbackTriggerButton != null) feedbackTriggerButton.setVisibility(visible ? View.VISIBLE : View.GONE); });
+        runOnUiThread(() -> {
+            if (feedbackTriggerButton != null) {
+                Log.d(TAG, "Setting feedback trigger visibility to: " + visible);
+                feedbackTriggerButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+            }
+        });
     }
+
 
     @Override
     public void setAnswerInputVisibility(boolean visible) {
-        runOnUiThread(() -> { if (answerEditText != null) answerEditText.setVisibility(View.VISIBLE); }); // Should be View.VISIBLE
+        runOnUiThread(() -> { if (answerEditText != null) answerEditText.setVisibility(View.VISIBLE); });
     }
 
     @Override
@@ -310,10 +355,9 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         runOnUiThread(() -> {
             if (answerEditText != null) {
                 answerEditText.setEnabled(enabled);
-                // CHANGE: Removed automatic focus and keyboard showing from here
-                if (!enabled) { // Only hide keyboard if disabling
+                if (!enabled) {
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if (imm != null && getCurrentFocus() == answerEditText) { // check current focus
+                    if (imm != null && getCurrentFocus() == answerEditText) {
                         imm.hideSoftInputFromWindow(answerEditText.getWindowToken(), 0);
                     }
                 }
@@ -322,7 +366,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         });
     }
 
-    // NEW METHOD: To explicitly request focus and show keyboard
     @Override
     public void requestFocusOnAnswerInput() {
         runOnUiThread(() -> {
@@ -341,11 +384,11 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
     @Override
     public void setUIElementsVisibility(boolean visible) {
         runOnUiThread(() -> {
-            int visibilitySetting = visible ? View.VISIBLE : View.INVISIBLE; // Use INVISIBLE if you want to preserve space
-            if (titleTextView != null) titleTextView.setVisibility(View.VISIBLE); // Title usually always visible
+            int visibilitySetting = visible ? View.VISIBLE : View.INVISIBLE;
+            if (titleTextView != null) titleTextView.setVisibility(View.VISIBLE);
             if (questionTextView != null) questionTextView.setVisibility(visibilitySetting);
             if (submitButton != null) submitButton.setVisibility(visibilitySetting);
-            if (answerEditText != null) answerEditText.setVisibility(View.VISIBLE); // EditText usually always visible unless content not available
+            if (answerEditText != null) answerEditText.setVisibility(View.VISIBLE);
 
             if (!visible) {
                 if (includedFeedbackPanel != null) includedFeedbackPanel.setVisibility(View.GONE);
@@ -353,7 +396,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
                 if (btnSeeRevisedVersion != null) btnSeeRevisedVersion.setVisibility(View.GONE);
             }
 
-            // Handle "Content not available" specifically
             if (questionTextView != null && visible) {
                 CharSequence currentText = questionTextView.getText();
                 boolean isContentNotAvailable = currentText == null ||
@@ -365,15 +407,10 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
                     questionTextView.setText("Content not available for this exercise.");
                     if (submitButton != null) {
                         submitButton.setEnabled(false);
-                        submitButton.setAlpha(0.5f); // Visually indicate disabled
+                        submitButton.setAlpha(0.5f);
                     }
                     if(answerEditText != null) {
-                        answerEditText.setEnabled(false); // Disable input if no prompt
-                    }
-                } else {
-                    if (answerEditText != null) {
-                        // Re-enable if content becomes available (e.g. retry logic)
-                        // This is handled by controller's updateSubmitButtonBasedOnState mostly
+                        answerEditText.setEnabled(false);
                     }
                 }
             }
@@ -390,10 +427,65 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         });
     }
 
+    // --- Triển khai các phương thức mới cho inline error highlighting ---
+    @Override
+    public void clearInlineErrorHighlighting() {
+        runOnUiThread(() -> {
+            if (answerEditText == null) return;
+            Editable editable = answerEditText.getText();
+            if (editable == null) return;
+
+            // Xóa các span đã thêm trước đó
+            for (Object span : currentErrorSpans) {
+                editable.removeSpan(span);
+            }
+            currentErrorSpans.clear();
+            Log.d(TAG, "Cleared inline error highlights.");
+        });
+    }
+
+    @Override
+    public void applyInlineErrorHighlighting(List<ErrorDetail> errors) {
+        runOnUiThread(() -> {
+            if (answerEditText == null || errors == null) return;
+            Editable editable = answerEditText.getText();
+            if (editable == null) return;
+
+            // Xóa lỗi cũ trước khi áp dụng lỗi mới (đã được gọi từ controller, nhưng để chắc chắn)
+            clearInlineErrorHighlighting();
+
+            Log.d(TAG, "Applying " + errors.size() + " inline error highlights.");
+            for (ErrorDetail error : errors) {
+                if (error.startIndex < error.endIndex && error.endIndex <= editable.length()) {
+                    ForegroundColorSpan colorSpan = new ForegroundColorSpan(Color.RED);
+                    UnderlineSpan underlineSpan = new UnderlineSpan();
+
+                    editable.setSpan(colorSpan, error.startIndex, error.endIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    editable.setSpan(underlineSpan, error.startIndex, error.endIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                    currentErrorSpans.add(colorSpan);
+                    currentErrorSpans.add(underlineSpan);
+                    Log.d(TAG, "Applied highlight: " + error.errorText + " from " + error.startIndex + " to " + error.endIndex);
+
+                } else {
+                    Log.w(TAG, "Invalid error indices: " + error.errorText +
+                            " [" + error.startIndex + "," + error.endIndex + "] for text length " + editable.length());
+                }
+            }
+            // Quan trọng: Không gọi answerEditText.setText(editable) ở đây trừ khi
+            // bạn muốn reset toàn bộ trạng thái của EditText (ví dụ: cursor, selection).
+            // Việc thay đổi trực tiếp `editable` thường là đủ để UI cập nhật.
+        });
+    }
+
+
     @Override
     protected void onPause() {
         super.onPause();
         Log.d(TAG, "onPause");
+        if (textChangeRunnable != null) { // Hủy debounce khi pause
+            textChangeHandler.removeCallbacks(textChangeRunnable);
+        }
         if (controller != null) controller.onPause();
         if (loadingDialog != null && loadingDialog.isShowing()) loadingDialog.dismiss();
     }
@@ -410,9 +502,8 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
             controller.onResume();
         }
         if (mainScrollView != null) {
-            // Sử dụng post để đảm bảo lệnh cuộn được thực thi sau khi layout đã hoàn tất
             mainScrollView.post(() -> {
-                mainScrollView.fullScroll(View.FOCUS_UP); // Cuộn lên đầu cùng
+                mainScrollView.fullScroll(View.FOCUS_UP);
                 Log.d(TAG, "ScrollView forced to top in onResume");
             });
         }
@@ -422,6 +513,9 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+        if (textChangeRunnable != null) { // Hủy debounce khi destroy
+            textChangeHandler.removeCallbacks(textChangeRunnable);
+        }
         if (loadingDialog != null && loadingDialog.isShowing()) loadingDialog.dismiss();
         loadingDialog = null;
         if (controller != null) {
@@ -433,42 +527,39 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
     @Override
     public void onBackPressed() {
         if (controller != null && controller.handleBackPressed()) {
-            return; // Controller handled back press
+            return;
         }
 
         boolean hasUnsavedText = answerEditText != null && answerEditText.isEnabled() && !answerEditText.getText().toString().trim().isEmpty();
         boolean isInFeedbackState = controller != null && controller.getCurrentButtonState() == WritingController.STATE_RETRY_WRITING;
         boolean isAllCriteriaSuccess = controller != null && controller.areAllCriteriaSuccess();
-        // If user is editing after feedback (button is "Submit" but panel is visible)
         boolean isEditingAfterFeedback = controller != null && controller.isUserEditingAfterFeedback();
-
 
         String message = "";
         boolean shouldShowDialog = false;
 
-        if (isInFeedbackState) { // Currently showing feedback (button is "Edit" or "Done")
+        if (isInFeedbackState) {
             shouldShowDialog = true;
-            if (isAllCriteriaSuccess) { // Button is "Done"
+            if (isAllCriteriaSuccess) {
                 message = "Are you sure you want to go back?";
-            } else { // Button is "Edit"
-                message = "Your feedback will be dismissed. Are you sure you want to go back?";
+            } else {
+                message = "Your feedback progress will be dismissed. Are you sure you want to go back?";
             }
-        } else if (isEditingAfterFeedback && hasUnsavedText) { // Editing after feedback, "Submit" button shown, panel visible
+        } else if (isEditingAfterFeedback && hasUnsavedText) {
             String currentText = answerEditText.getText().toString().trim();
             String previousText = controller.getSubmittedTextForCurrentFeedback().trim();
-            if (!currentText.equals(previousText)) { // Only ask if text actually changed
+            if (!currentText.equals(previousText)) {
                 shouldShowDialog = true;
                 message = "Your changes will be lost. Are you sure you want to exit?";
-            } else { // No changes made after clicking "Edit"
-                super.onBackPressed(); // Allow normal back press
+            } else {
+                super.onBackPressed();
                 return;
             }
         }
-        else if (hasUnsavedText) { // Initial writing state, text entered
+        else if (hasUnsavedText) {
             shouldShowDialog = true;
             message = "Your current writing will be lost. Are you sure you want to exit?";
         }
-
 
         if (shouldShowDialog) {
             new AlertDialog.Builder(this)

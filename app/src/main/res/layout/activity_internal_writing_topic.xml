@@ -75,6 +75,7 @@
                 android:padding="12dp" />
 
             <TextView
+                android:textColor="@color/Red"
                 android:text="Review"
                 android:textSize="16dp"
                 android:textStyle="bold"
