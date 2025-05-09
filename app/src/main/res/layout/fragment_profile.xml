@@ -69,7 +69,6 @@
                         android:layout_marginBottom="20dp"
                         android:textColor="#471919"
                         android:textStyle="bold"
-
                         >
 
 
@@ -91,16 +90,6 @@
                         android:focusable="true"/>
 
                     <TextView
-                        android:id="@+id/txtAppInfo" android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/cardview_center_item"
-                        android:padding="16dp"
-                        android:text="Thông tin ứng dụng"
-                        android:textColor="@android:color/black"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true"/>
-                    <TextView
                         android:id="@+id/txtFeedback"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -111,7 +100,17 @@
                         android:textStyle="bold"
                         android:clickable="true"
                         android:focusable="true"/>
-
+                    <TextView
+                        android:id="@+id/txtVersion"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/cardview_upper_item"
+                        android:padding="16dp"
+                        android:text="Đang tải thông tin phiên bản..."
+                        android:textColor="@android:color/black"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"/>
 
                     <TextView
                         android:id="@+id/txtLogout" android:layout_width="match_parent"

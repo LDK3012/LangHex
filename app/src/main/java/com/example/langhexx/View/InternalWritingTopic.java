@@ -169,11 +169,9 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         Log.d(TAG, "addControls");
 
         mainScrollView = findViewById(R.id.main_scroll_view);
-
-        backButton = findViewById(R.id.btnBack);
-
         titleTextView = findViewById(R.id.tvScreenTitle);
-
+        backButton = findViewById(R.id.back_button);
+        titleTextView = findViewById(R.id.title_textview);
         questionTextView = findViewById(R.id.question_textview);
 
         answerEditText = findViewById(R.id.answer_edittext);
