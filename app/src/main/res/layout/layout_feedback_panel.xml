@@ -159,14 +159,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btn_see_revised_version"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="See revised version"
-        android:backgroundTint="@color/button_see_revised_background_color"
-        android:textColor="@color/button_see_revised_text_color"
-        />
+
 
 </LinearLayout>
