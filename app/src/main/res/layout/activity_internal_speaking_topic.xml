@@ -1,37 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/layout_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".View.InternalSpeakingTopic">
 
     <LinearLayout
+        android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="70dp"
-        android:layout_gravity="center"
-        android:gravity="center"
         android:background="#FF2626"
-        android:padding="10dp"
+        android:gravity="center"
         android:orientation="horizontal"
+        android:padding="10dp"
         android:weightSum="12">
 
         <ImageView
             android:id="@+id/imgBackward"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/backward"
-            android:tint="@color/white" />
-
+            android:src="@drawable/backward" android:tint="@color/white"
+            android:padding="8dp"/>
         <TextView
             android:id="@+id/tvScreenTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
             android:layout_weight="10"
-            android:layout_margin="5dp"
             android:gravity="center"
             android:text="xxxxxxxxx"
             android:textColor="#FFFFFF"
@@ -41,49 +38,37 @@
         <ImageView
             android:id="@+id/imgHome"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:backgroundTint="@color/white"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
             android:layout_weight="1"
-            android:background="@drawable/icon_home" />
-    </LinearLayout>
+            android:src="@drawable/icon_home"
+            android:tint="@color/white"    android:padding="8dp"/> </LinearLayout>
 
-    <!-- ScrollView chứa nội dung custom -->
     <ScrollView
         android:id="@+id/scrollViewContent"
-        android:layout_below="@+id/header"
-        android:layout_above="@+id/micArea"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
-
-        <LinearLayout
-            android:id="@+id/questionContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-             />
-
-        </LinearLayout>
+        android:layout_height="0dp"          android:layout_weight="1"            android:fillViewport="true">         <LinearLayout
+        android:id="@+id/questionContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+    </LinearLayout>
     </ScrollView>
 
-    <!-- Mic -->
     <LinearLayout
         android:id="@+id/micArea"
-        android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
         android:layout_height="90dp"
         android:background="#F32F2F"
         android:gravity="center">
-
         <ImageButton
             android:id="@+id/btnSpeakingMicro"
-            android:layout_width="48dp"
-            android:layout_height="65dp"
-            android:src="@drawable/microphone"
-            android:tint="@color/white"
+            android:layout_width="40dp"
+            android:layout_height="60dp"
             android:background="@android:color/transparent"
-            />
+            android:src="@drawable/microphone"
+            android:scaleType="fitCenter" android:tint="@color/white" />
     </LinearLayout>
 
-</RelativeLayout>
+</LinearLayout>

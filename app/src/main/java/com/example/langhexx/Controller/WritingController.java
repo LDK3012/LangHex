@@ -584,7 +584,8 @@ public class WritingController {
         DatabaseReference userAnswersRef = databaseReference
                 .child("Users")
                 .child("MicrosoftUsers") // <--- ADDED THIS NODE
-                .child(userId)          // This should be the Microsoft Graph ID
+                .child(userId)
+                .child("Progress")
                 .child("WritingAnswers")
                 .child(exerciseId);
         UserWritingAnswer userAnswer = new UserWritingAnswer(
@@ -611,6 +612,7 @@ public class WritingController {
                 .child("Users")
                 .child("MicrosoftUsers")
                 .child(userId)
+                .child("Progress")
                 .child("WritingAnswers")
                 .child(exerciseId);
 
