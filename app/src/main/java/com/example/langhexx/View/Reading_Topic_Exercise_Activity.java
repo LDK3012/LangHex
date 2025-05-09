@@ -54,8 +54,8 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
 
     private void addControls() {
         // *** Ensure these IDs exist in activity_reading_topic_exercise.xml ***
-        btnClose = findViewById(R.id.btnClose);
-        tvTitle = findViewById(R.id.tvTitle);
+        btnClose = findViewById(R.id.imgBackward);
+        tvTitle = findViewById(R.id.tvScreenTitle);
         rvExercises = findViewById(R.id.rvExercises);
 
         tvTitle.setText(topicTitle); // Set topic title

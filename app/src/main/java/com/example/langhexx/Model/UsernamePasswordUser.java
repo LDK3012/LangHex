@@ -3,7 +3,7 @@ package com.example.langhexx.Model;
 import java.util.HashMap;
 import java.util.Map;
 
-public class User {
+public class UsernamePasswordUser {
     private String username;
     private String password;
 
@@ -12,7 +12,7 @@ public class User {
         sampleAccounts.put("2174801030046", "123456");
         sampleAccounts.put("2174801030067", "987654");
     }
-    public User(String username, String password) {
+    public UsernamePasswordUser(String username, String password) {
         this.username = username;
         this.password = password;
     }

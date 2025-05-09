@@ -50,7 +50,7 @@
     <!-- ScrollView chứa nội dung custom -->
     <ScrollView
         android:id="@+id/scrollViewContent"
-        android:layout_below="@id/header"
+        android:layout_below="@+id/header"
         android:layout_above="@+id/micArea"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

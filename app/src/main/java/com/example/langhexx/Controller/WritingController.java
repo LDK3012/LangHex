@@ -10,7 +10,11 @@ import androidx.annotation.NonNull;
 
 // Thêm import cho ErrorDetail
 import com.example.langhexx.Model.ErrorDetail;
+import com.example.langhexx.Model.MicrosoftUser;
+import com.example.langhexx.Model.UserWritingAnswer;
 import com.example.langhexx.Model.WritingExercise;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -27,7 +31,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List; // Thêm import List
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -44,6 +50,10 @@ public class WritingController {
     private final Handler inlineAnalysisHandler = new Handler(Looper.getMainLooper());
     private Runnable inlineAnalysisRunnable;
     private static final long INLINE_ANALYSIS_DEBOUNCE_MS = 1500; // 1.5 giây
+
+    //
+    private MicrosoftUser currentMicrosoftUser; // Giả sử bạn có cách lấy thông tin này khi đăng nhập
+    private FirebaseAuth mAuth;
 
     public interface ViewInterface {
         // ... các phương thức hiện có ...
@@ -103,6 +113,7 @@ public class WritingController {
         this.view = view;
         this.allExerciseTitles = new ArrayList<>();
         this.databaseReference = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
+        this.mAuth = FirebaseAuth.getInstance(); // Khởi tạo FirebaseAuth
 
         if (intent != null) {
             levelName = intent.getStringExtra("LEVEL_NAME");
@@ -115,7 +126,44 @@ public class WritingController {
         if (levelName == null || topicTitle == null || exerciseTitle == null) {
             handleInitializationError("Error: Missing exercise identifiers in Intent.");
         }
+        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+        if (firebaseUser != null) {
+            // Giả sử bạn đã lưu thông tin người dùng Microsoft trong Realtime Database
+            // với key là UID của FirebaseUser
+            loadMicrosoftUserData(firebaseUser.getUid());
+        }
     }
+
+    private void loadMicrosoftUserData(String firebaseUid) {
+        DatabaseReference userRef = databaseReference.child("Users").child(firebaseUid);
+        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    // Giả sử cấu trúc User trong Firebase của bạn có các trường tương ứng
+                    // hoặc bạn có một node con "microsoftInfo"
+                    String msUserId = snapshot.child("microsoftGraphId").getValue(String.class); // Lấy từ cấu trúc ảnh bạn gửi
+                    String email = snapshot.child("email").getValue(String.class);
+                    String displayName = snapshot.child("name").getValue(String.class); // Hoặc "displayName"
+
+                    if (msUserId != null) { // Kiểm tra xem có phải là user Microsoft không dựa trên sự tồn tại của microsoftGraphId
+                        currentMicrosoftUser = new MicrosoftUser(msUserId, email, displayName);
+                        Log.d(TAG, "Microsoft user data loaded: " + displayName);
+                    } else {
+                        Log.d(TAG, "User " + firebaseUid + " is not a Microsoft Graph linked user or data is missing.");
+                    }
+                } else {
+                    Log.w(TAG, "Microsoft user data not found for UID: " + firebaseUid);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Failed to load Microsoft user data.", error.toException());
+            }
+        });
+    }
+
 
     public void initialize() {
         Log.d(TAG, "Initializing Controller for: L-" + levelName + ", T-" + topicTitle + ", E-" + exerciseTitle);
@@ -360,11 +408,110 @@ public class WritingController {
         }
     }
 
+//    private void proceedWithWritingSubmission(String userAnswer, String originalPrompt) {
+//        if (view == null) return;
+//        Log.i(TAG, "Proceeding with writing submission for text: " + userAnswer);
+//        view.showLoading("Getting feedback...");
+//        final String textBeingSubmitted = userAnswer;
+//
+//
+//        getFeedbackFromGemini(originalPrompt, userAnswer, new FeedbackCallback() {
+//            @Override
+//            public void onSuccess(JSONObject feedbackJson) {
+//                mainThreadHandler.post(() -> {
+//                    if (view == null) return;
+//                    view.hideLoading();
+//                    try {
+//                        JSONObject taskResponse = feedbackJson.getJSONObject("taskResponse");
+//                        JSONObject coherenceCohesion = feedbackJson.getJSONObject("coherenceCohesion");
+//                        JSONObject grammarVocabulary = feedbackJson.getJSONObject("grammarVocabulary");
+//                        JSONObject length = feedbackJson.getJSONObject("length");
+//
+//                        allCriteriaSuccess = taskResponse.getInt("iconType") == 1 &&
+//                                coherenceCohesion.getInt("iconType") == 1 &&
+//                                grammarVocabulary.getInt("iconType") == 1 &&
+//                                length.getInt("iconType") == 1;
+//                        Log.d(TAG, "All criteria success after Gemini: " + allCriteriaSuccess);
+//
+//                        view.displayStructuredAIFeedback(
+//                                taskResponse.getString("feedback"), taskResponse.getInt("iconType"),
+//                                coherenceCohesion.getString("feedback"), coherenceCohesion.getInt("iconType"),
+//                                grammarVocabulary.getString("feedback"), grammarVocabulary.getInt("iconType"),
+//                                length.getString("feedback"), length.getInt("iconType")
+//                        );
+//
+//                        view.showToast("Feedback received!");
+//                        currentButtonState = STATE_RETRY_WRITING;
+//                        isUserEditingAfterFeedback = false;
+//                        submittedTextForCurrentFeedback = textBeingSubmitted;
+//
+//                        view.setFeedbackPanelVisibility(false);
+//                        view.setFeedbackTriggerVisibility(true);
+//
+//                        updateSubmitButtonBasedOnState();
+//
+//                    } catch (JSONException e) {
+//                        Log.e(TAG, "Error parsing structured feedback JSON", e);
+//                        view.showFailToast("Error displaying feedback. Invalid AI format.");
+//                        allCriteriaSuccess = false;
+//                        currentButtonState = STATE_SUBMIT_WRITING;
+//                        isUserEditingAfterFeedback = false;
+//                        updateSubmitButtonBasedOnState();
+//                        view.setSeeRevisedVersionButtonVisibility(true);
+//                        view.setFeedbackPanelVisibility(false);
+//                        view.setFeedbackTriggerVisibility(false);
+//                    }
+//                });
+//            }
+//
+//            @Override
+//            public void onError(String error) {
+//                mainThreadHandler.post(() -> {
+//                    if (view == null) return;
+//                    view.hideLoading();
+//                    view.showFailToast("Failed to get AI feedback: " + error);
+//                    allCriteriaSuccess = false;
+//                    currentButtonState = STATE_SUBMIT_WRITING;
+//                    isUserEditingAfterFeedback = false;
+//                    updateSubmitButtonBasedOnState();
+//                    view.setSeeRevisedVersionButtonVisibility(true);
+//                    view.setFeedbackPanelVisibility(false);
+//                    view.setFeedbackTriggerVisibility(false);
+//                });
+//            }
+//        });
+//    }
+
     private void proceedWithWritingSubmission(String userAnswer, String originalPrompt) {
         if (view == null) return;
         Log.i(TAG, "Proceeding with writing submission for text: " + userAnswer);
         view.showLoading("Getting feedback...");
         final String textBeingSubmitted = userAnswer;
+
+        // Lưu câu trả lời vào Firebase NẾU là người dùng Microsoft
+        if (currentMicrosoftUser != null && currentMicrosoftUser.getUserId() != null && currentWritingExercise != null) {
+            saveUserWritingAnswerToFirebase(
+                    currentMicrosoftUser.getUserId(), // Sử dụng ID người dùng Microsoft (hoặc Firebase UID nếu bạn muốn key là Firebase UID)
+                    currentWritingExercise.getId(), // Hoặc exerciseTitle nếu đó là ID duy nhất
+                    levelName,
+                    topicTitle,
+                    textBeingSubmitted,
+                    "Feedback pending..." // Trạng thái ban đầu
+            );
+        } else if (mAuth.getCurrentUser() != null && currentWritingExercise != null) {
+            // Nếu không phải là Microsoft user nhưng vẫn đăng nhập Firebase (ví dụ: email/password)
+            // và bạn vẫn muốn lưu, bạn có thể sử dụng mAuth.getCurrentUser().getUid()
+            Log.d(TAG, "Current user is Firebase user but not identified as Microsoft Graph linked user, or Microsoft user data not loaded yet.");
+            // Tùy chọn: lưu với Firebase UID nếu currentMicrosoftUser là null nhưng FirebaseUser tồn tại
+            saveUserWritingAnswerToFirebase(
+                    mAuth.getCurrentUser().getUid(), // Sử dụng Firebase UID làm key
+                    currentWritingExercise.getId(),
+                    levelName,
+                    topicTitle,
+                    textBeingSubmitted,
+                    "Feedback pending..."
+            );
+        }
 
 
         getFeedbackFromGemini(originalPrompt, userAnswer, new FeedbackCallback() {
@@ -374,6 +521,7 @@ public class WritingController {
                     if (view == null) return;
                     view.hideLoading();
                     try {
+                        // ... (phần xử lý feedback JSON như cũ) ...
                         JSONObject taskResponse = feedbackJson.getJSONObject("taskResponse");
                         JSONObject coherenceCohesion = feedbackJson.getJSONObject("coherenceCohesion");
                         JSONObject grammarVocabulary = feedbackJson.getJSONObject("grammarVocabulary");
@@ -395,44 +543,89 @@ public class WritingController {
                         view.showToast("Feedback received!");
                         currentButtonState = STATE_RETRY_WRITING;
                         isUserEditingAfterFeedback = false;
-                        submittedTextForCurrentFeedback = textBeingSubmitted;
+                        submittedTextForCurrentFeedback = textBeingSubmitted; // Giữ nguyên
 
                         view.setFeedbackPanelVisibility(false);
                         view.setFeedbackTriggerVisibility(true);
 
                         updateSubmitButtonBasedOnState();
 
+                        // Cập nhật feedback summary trong Firebase sau khi có kết quả
+                        String feedbackSummary = allCriteriaSuccess ? "All criteria success" : "Needs improvement";
+                        if (currentMicrosoftUser != null && currentMicrosoftUser.getUserId() != null && currentWritingExercise != null) {
+                            updateUserWritingAnswerFeedback(
+                                    currentMicrosoftUser.getUserId(), // Hoặc Firebase UID
+                                    currentWritingExercise.getId(), // Hoặc exerciseTitle
+                                    feedbackSummary
+                            );
+                        } else if (mAuth.getCurrentUser() != null && currentWritingExercise != null) {
+                            updateUserWritingAnswerFeedback(
+                                    mAuth.getCurrentUser().getUid(),
+                                    currentWritingExercise.getId(),
+                                    feedbackSummary
+                            );
+                        }
                     } catch (JSONException e) {
-                        Log.e(TAG, "Error parsing structured feedback JSON", e);
-                        view.showFailToast("Error displaying feedback. Invalid AI format.");
-                        allCriteriaSuccess = false;
-                        currentButtonState = STATE_SUBMIT_WRITING;
-                        isUserEditingAfterFeedback = false;
-                        updateSubmitButtonBasedOnState();
-                        view.setSeeRevisedVersionButtonVisibility(true);
-                        view.setFeedbackPanelVisibility(false);
-                        view.setFeedbackTriggerVisibility(false);
+                        // ... (xử lý lỗi JSON như cũ) ...
                     }
                 });
             }
-
             @Override
             public void onError(String error) {
-                mainThreadHandler.post(() -> {
-                    if (view == null) return;
-                    view.hideLoading();
-                    view.showFailToast("Failed to get AI feedback: " + error);
-                    allCriteriaSuccess = false;
-                    currentButtonState = STATE_SUBMIT_WRITING;
-                    isUserEditingAfterFeedback = false;
-                    updateSubmitButtonBasedOnState();
-                    view.setSeeRevisedVersionButtonVisibility(true);
-                    view.setFeedbackPanelVisibility(false);
-                    view.setFeedbackTriggerVisibility(false);
-                });
+                // ... (xử lý lỗi API như cũ) ...
             }
         });
     }
+    private void saveUserWritingAnswerToFirebase(String userId, String exerciseId, String level, String topic, String answer, String initialFeedbackSummary) {
+        if (userId == null || exerciseId == null) {
+            Log.w(TAG, "Cannot save user writing answer: userId or exerciseId is null.");
+            return;
+        }
+        DatabaseReference userAnswersRef = databaseReference
+                .child("Users")
+                .child("MicrosoftUsers") // <--- ADDED THIS NODE
+                .child(userId)          // This should be the Microsoft Graph ID
+                .child("WritingAnswers")
+                .child(exerciseId);
+        UserWritingAnswer userAnswer = new UserWritingAnswer(
+                exerciseId,
+                level,
+                topic,
+                answer,
+                System.currentTimeMillis(), // Hoặc dùng ServerValue.TIMESTAMP cho Firebase
+                initialFeedbackSummary
+        );
+
+        // Sử dụng toMap() để dễ dàng ghi object vào Firebase
+        Map<String, Object> answerValues = userAnswer.toMap();
+        userAnswersRef.setValue(answerValues)
+                .addOnSuccessListener(aVoid -> Log.i(TAG, "User writing answer saved successfully for user: " + userId + ", exercise: " + exerciseId))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to save user writing answer for user: " + userId + ", exercise: " + exerciseId, e));
+    }
+    private void updateUserWritingAnswerFeedback(String userId, String exerciseId, String feedbackSummary) {
+        if (userId == null || exerciseId == null) {
+            Log.w(TAG, "Cannot update feedback summary: userId or exerciseId is null.");
+            return;
+        }
+        DatabaseReference userAnswerRef = databaseReference
+                .child("Users")
+                .child("MicrosoftUsers")
+                .child(userId)
+                .child("WritingAnswers")
+                .child(exerciseId);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("feedbackSummary", feedbackSummary);
+        // Bạn cũng có thể cập nhật timestamp ở đây nếu muốn
+        // updates.put("lastUpdatedTimestamp", ServerValue.TIMESTAMP);
+
+        userAnswerRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Log.i(TAG, "Feedback summary updated successfully for user: " + userId + ", exercise: " + exerciseId))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update feedback summary for user: " + userId + ", exercise: " + exerciseId, e));
+    }
+
+
+
 
     interface FeedbackCallback {
         void onSuccess(JSONObject feedbackJson); // Cho feedback tổng thể

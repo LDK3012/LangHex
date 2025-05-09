@@ -53,8 +53,8 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
     }
 
     private void addControls() {
-        btnClose = findViewById(R.id.btnClose);
-        tvTitle = findViewById(R.id.tvTitle);
+        btnClose = findViewById(R.id.btnBack);
+        tvTitle = findViewById(R.id.tvScreenTitle);
         if (topicTitle != null) {
             tvTitle.setText(topicTitle);
         }

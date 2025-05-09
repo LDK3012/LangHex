@@ -65,7 +65,7 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
         // TRUYỀN skillName "Reading" VÀO CONSTRUCTOR CỦA TopicAdapter
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
-        imgBack = findViewById(R.id.imgBack); // Đảm bảo ID này tồn tại trong layout
+        imgBack = findViewById(R.id.imgBackward); // Đảm bảo ID này tồn tại trong layout
     }
 
     private void loadTopicsFromFirebase(String levelName) {

@@ -1,22 +1,15 @@
 package com.example.langhexx.View;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.langhexx.Controller.AuthController;
 import com.example.langhexx.Model.CustomToast;
-import com.example.langhexx.Model.User;
 import com.example.langhexx.R;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity implements AuthController.AuthCallback{
     private Button btnLogin, btnMicrosoft;

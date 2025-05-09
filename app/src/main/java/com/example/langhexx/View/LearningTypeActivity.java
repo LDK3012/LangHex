@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -12,7 +13,7 @@ import com.example.langhexx.R;
 
 public class LearningTypeActivity extends AppCompatActivity {
 
-    private ImageButton btnBack;
+    private ImageView btnBack;
     private CardView cardListening, cardSpeaking , cardReading, cardWriting;
     private String levelName ;
     @Override
@@ -27,7 +28,7 @@ public class LearningTypeActivity extends AppCompatActivity {
     }
 
     private void addControls() {
-        btnBack = findViewById(R.id.btnBack);
+        btnBack = findViewById(R.id.imgBackward);
         cardListening = findViewById(R.id.cardListening);
         cardSpeaking = findViewById(R.id.cardSpeaking);
         cardReading = findViewById(R.id.cardReading) ;

@@ -49,8 +49,8 @@ public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
     }
 
     private void addControls() {
-        btnClose = findViewById(R.id.btnClose);
-        tvTitle = findViewById(R.id.tvTitle);
+        btnClose = findViewById(R.id.imgBackward);
+        tvTitle = findViewById(R.id.tvScreenTitle);
         tvTitle.setText(topicTitle);
         rvExercises = findViewById(R.id.rvExercises);
         rvExercises.setLayoutManager(new LinearLayoutManager(this));

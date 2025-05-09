@@ -177,9 +177,9 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         questionContainer = findViewById(R.id.questionContainer);
         inflater = LayoutInflater.from(this);
         btnMicro = findViewById(R.id.btnSpeakingMicro);
-        btnClose = findViewById(R.id.btnClose);
+        btnClose = findViewById(R.id.imgBackward);
         scrollViewContent = findViewById(R.id.scrollViewContent);
-        tvTitle = findViewById(R.id.tvTitle) ;
+        tvTitle = findViewById(R.id.tvScreenTitle) ;
         //
 
     }
