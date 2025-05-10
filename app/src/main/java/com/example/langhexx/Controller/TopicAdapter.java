@@ -1,18 +1,28 @@
 package com.example.langhexx.Controller;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable; // Thêm import này
-import android.graphics.drawable.GradientDrawable; // Thêm import này
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.FrameLayout; // Thêm import này
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.Toast; // Có thể cần Toast ở đây để báo lỗi nếu context không đúng
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+
+import com.example.langhexx.Model.Topics;
+import com.example.langhexx.R;
+// Import trực tiếp Activity nếu bạn muốn cast tới nó
+import com.example.langhexx.View.ChooseTopicSpeakingActivity;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -20,45 +30,43 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import com.example.langhexx.Model.Topics;
-import com.example.langhexx.R;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
 public class TopicAdapter extends BaseAdapter {
-    private Context context;
+    private Context context; // Context này sẽ được dùng để cast
     private int layoutId;
     private List<Topics> topicList;
     private String levelName;
-    private String skillName;
+    private String currentSkillNameAdapter;
     private DatabaseReference firebaseRootRef;
-    private Set<String> clickedTopicTitles;
+
+    private Set<String> highlightedTopicTitles;
+    // KHÔNG CÒN itemInteractionListener
 
     private static final String TAG = "TopicAdapter";
 
     public TopicAdapter(Context context, int layoutId, List<Topics> topicList, String levelName, String skillName) {
-        this.context = context;
+        this.context = context; // Lưu context
         this.layoutId = layoutId;
         this.topicList = topicList;
         this.levelName = levelName;
-        this.skillName = skillName;
+        this.currentSkillNameAdapter = skillName;
         this.firebaseRootRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
-        this.clickedTopicTitles = clickedTopicTitles != null ? clickedTopicTitles : new HashSet<>();
-        //this.clickedTopicTitles = new HashSet<>();
+        this.highlightedTopicTitles = new HashSet<>();
     }
 
-    public TopicAdapter(Context context, int layoutId, List<Topics> topicList, String levelName, String skillName, Set<String> clickedTopicTitles) {
-        this.context = context;
-        this.layoutId = layoutId;
-        this.topicList = topicList;
-        this.levelName = levelName;
-        this.skillName = skillName;
-        this.firebaseRootRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
-        this.clickedTopicTitles = clickedTopicTitles != null ? clickedTopicTitles : new HashSet<>();
+    public void setHighlightedTopicTitles(@Nullable Set<String> titles) {
+        if (titles != null) {
+            this.highlightedTopicTitles = titles;
+        } else {
+            this.highlightedTopicTitles = new HashSet<>();
+        }
     }
+
+    // KHÔNG CÒN setTopicItemInteractionListener
 
     @Override
     public int getCount() {
@@ -78,7 +86,8 @@ public class TopicAdapter extends BaseAdapter {
     static class ViewHolder {
         TextView txtTopicTitle;
         TextView tvTopicTracker;
-        FrameLayout speakingCardViewContainer; // Đã thay đổi
+        FrameLayout speakingCardViewContainer;
+        ImageView imgTopicOptions;
     }
 
     @Override
@@ -89,95 +98,117 @@ public class TopicAdapter extends BaseAdapter {
             LayoutInflater inflater = LayoutInflater.from(context);
             view = inflater.inflate(layoutId, viewGroup, false);
             holder = new ViewHolder();
+            // ... (khởi tạo holder views như cũ)
             holder.txtTopicTitle = view.findViewById(R.id.tvTopicName);
             holder.tvTopicTracker = view.findViewById(R.id.tvTopicTracker);
-            // ID này phải khớp với ID của FrameLayout trong XML của bạn
-            holder.speakingCardViewContainer = view.findViewById(R.id.speakingCardView); // Đã thay đổi
+            holder.speakingCardViewContainer = view.findViewById(R.id.speakingCardView);
+            holder.imgTopicOptions = view.findViewById(R.id.imgTopicOptions);
             view.setTag(holder);
         } else {
             holder = (ViewHolder) view.getTag();
         }
 
-        Topics topic = topicList.get(i);
+        final Topics topic = topicList.get(i);
         holder.txtTopicTitle.setText(topic.getTitle());
 
-        // Kiểm tra xem topic này đã được click chưa
-        if (clickedTopicTitles != null && clickedTopicTitles.contains(topic.getTitle())) {
-            // Thay đổi màu nền của FrameLayout thành màu đỏ, cố gắng giữ góc bo tròn
+        boolean isSpeakingSkillCurrently = "Speaking".equalsIgnoreCase(currentSkillNameAdapter);
+        boolean isTopicHighlighted = highlightedTopicTitles != null && highlightedTopicTitles.contains(topic.getTitle());
+
+        // ... (logic tô màu nền giữ nguyên)
+        if (isTopicHighlighted) {
             Drawable background = holder.speakingCardViewContainer.getBackground();
             if (background != null) {
-                // Quan trọng: gọi mutate() để đảm bảo bạn thay đổi một bản sao của drawable,
-                // không ảnh hưởng đến các view khác có thể đang dùng chung drawable này.
                 Drawable mutatedBackground = background.mutate();
                 if (mutatedBackground instanceof GradientDrawable) {
                     ((GradientDrawable) mutatedBackground).setColor(ContextCompat.getColor(context, R.color.topic_clicked_background));
                 } else {
-                    // Nếu không phải GradientDrawable, hoặc để đơn giản, bạn có thể chỉ đặt màu nền
-                    // (sẽ làm mất góc bo tròn nếu chúng đến từ drawable gốc).
-                    // Hoặc bạn có thể tạo một GradientDrawable mới màu đỏ với góc bo tròn ở đây.
                     holder.speakingCardViewContainer.setBackgroundColor(ContextCompat.getColor(context, R.color.topic_clicked_background));
                 }
             } else {
-                // Nếu không có background nào, chỉ đặt màu (sẽ không có góc bo tròn)
                 holder.speakingCardViewContainer.setBackgroundColor(ContextCompat.getColor(context, R.color.topic_clicked_background));
             }
         } else {
-            // Đặt lại màu nền mặc định (từ custom_card_background.xml, thường là màu trắng với góc bo tròn)
-            // Cách tốt nhất để đảm bảo cả hình dạng và màu sắc được khôi phục là đặt lại drawable gốc.
             holder.speakingCardViewContainer.setBackground(ContextCompat.getDrawable(context, R.drawable.custom_card_background));
         }
 
 
-        if ("Speaking".equalsIgnoreCase(skillName)) {
-            if (holder.tvTopicTracker != null) {
+        if (holder.tvTopicTracker != null) {
+            if (isSpeakingSkillCurrently) {
                 holder.tvTopicTracker.setVisibility(View.GONE);
-            }
-        } else {
-            if (holder.tvTopicTracker != null) {
+            } else {
                 holder.tvTopicTracker.setVisibility(View.VISIBLE);
                 holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%s", "..."));
+                loadExerciseCount(holder, topic.getTitle(), currentSkillNameAdapter);
+            }
+        }
 
-                DatabaseReference exercisesRef = firebaseRootRef
-                        .child("Lessons")
-                        .child("Levels")
-                        .child(levelName)
-                        .child(skillName)
-                        .child("Topics")
-                        .child(topic.getTitle())
-                        .child("Exercises");
-
-                final ViewHolder currentHolder = holder;
-                final String currentTopicTitle = topic.getTitle();
-                final String currentSkillForListener = skillName;
-
-                exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        long exerciseCount = 0;
-                        if (dataSnapshot.exists()) {
-                            exerciseCount = dataSnapshot.getChildrenCount();
-                        }
-
-                        if (currentHolder.txtTopicTitle.getText().toString().equals(currentTopicTitle) &&
-                                currentHolder.tvTopicTracker != null &&
-                                !"Speaking".equalsIgnoreCase(currentSkillForListener) ) {
-                            currentHolder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%d", exerciseCount));
-                        }
-                        Log.d(TAG, "Kỹ năng: " + currentSkillForListener + ", Chủ đề: " + currentTopicTitle + ", Số bài tập: " + exerciseCount);
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-                        Log.e(TAG, "Lỗi khi tải số lượng bài tập cho [" + currentSkillForListener + "] " + currentTopicTitle + ": " + databaseError.getMessage());
-                        if (currentHolder.txtTopicTitle.getText().toString().equals(currentTopicTitle) &&
-                                currentHolder.tvTopicTracker != null &&
-                                !"Speaking".equalsIgnoreCase(currentSkillForListener)) {
-                            currentHolder.tvTopicTracker.setText("Done: 0/N/A");
-                        }
-                    }
-                });
+        if (holder.imgTopicOptions != null) {
+            // Menu 3 chấm CHỈ hiển thị cho Speaking VÀ context là ChooseTopicSpeakingActivity VÀ topic đó đã được click/highlight
+            if (isSpeakingSkillCurrently && (context instanceof ChooseTopicSpeakingActivity) && isTopicHighlighted) {
+                holder.imgTopicOptions.setVisibility(View.VISIBLE);
+                holder.imgTopicOptions.setOnClickListener(v -> showPopupMenu(v, topic.getTitle()));
+            } else {
+                holder.imgTopicOptions.setVisibility(View.GONE);
+                holder.imgTopicOptions.setOnClickListener(null);
             }
         }
         return view;
+    }
+
+    private void loadExerciseCount(final ViewHolder holder, final String topicTitle, final String skillNameForFirebase) {
+        // ... (giữ nguyên hàm này)
+        DatabaseReference exercisesRef = firebaseRootRef
+                .child("Lessons")
+                .child("Levels")
+                .child(levelName)
+                .child(skillNameForFirebase)
+                .child("Topics")
+                .child(topicTitle)
+                .child("Exercises");
+
+        exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                long exerciseCount = 0;
+                if (dataSnapshot.exists()) {
+                    exerciseCount = dataSnapshot.getChildrenCount();
+                }
+                if (holder.txtTopicTitle.getText().toString().equals(topicTitle) &&
+                        holder.tvTopicTracker.getVisibility() == View.VISIBLE) {
+                    holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%d", exerciseCount));
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Error loading exercise count for [" + skillNameForFirebase + "] " + topicTitle + ": " + databaseError.getMessage());
+                if (holder.txtTopicTitle.getText().toString().equals(topicTitle) &&
+                        holder.tvTopicTracker.getVisibility() == View.VISIBLE) {
+                    holder.tvTopicTracker.setText("Done: 0/N/A");
+                }
+            }
+        });
+    }
+
+    private void showPopupMenu(View anchorView, final String topicTitle) {
+        // Kiểm tra xem context có phải là instance của ChooseTopicSpeakingActivity không
+        if (!(context instanceof ChooseTopicSpeakingActivity)) {
+            Log.e(TAG, "Context không phải là instance của ChooseTopicSpeakingActivity, không thể hiển thị menu xóa lịch sử.");
+            // Hoặc Toast.makeText(context, "Không thể thực hiện hành động này.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        PopupMenu popup = new PopupMenu(context, anchorView);
+        popup.getMenuInflater().inflate(R.menu.topic_options_menu, popup.getMenu());
+
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_delete_history) {
+                // Cast context và gọi phương thức public
+                ((ChooseTopicSpeakingActivity) context).removeClickedTopicHistory(topicTitle);
+                return true;
+            }
+            return false;
+        });
+        popup.show();
     }
 }

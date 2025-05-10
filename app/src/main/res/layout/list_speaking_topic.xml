@@ -4,43 +4,53 @@
     android:id="@+id/speakingCardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="20dp"
+    android:layout_marginStart="20dp"
+    android:layout_marginTop="20dp"
+    android:layout_marginEnd="20dp"
+    android:layout_marginBottom="10dp"
     android:background="@drawable/custom_card_background"
-    android:elevation="4dp"
-    >
+    android:elevation="4dp">
 
-<LinearLayout
-android:layout_width="match_parent"
-android:layout_height="wrap_content"
-android:orientation="horizontal"
-android:layout_gravity="center"
-    android:layout_margin="10dp"
-    android:gravity="center">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center_vertical"
+        android:padding="10dp"
+        android:gravity="center_vertical">
 
-<ImageView
-android:id="@+id/imgIcon"
-android:layout_width="51dp"
-android:layout_height="41dp"
-android:src="@drawable/ic_topic" />
+        <ImageView
+            android:id="@+id/imgIcon"
+            android:layout_width="51dp"
+            android:layout_height="41dp"
+            android:src="@drawable/ic_topic"
+            android:contentDescription="Topic Icon"/>
 
-<TextView
-android:id="@+id/tvTopicName"
-android:layout_width="0dp"
-android:layout_height="wrap_content"
-android:layout_marginStart="16dp"
-android:layout_weight="1"
-android:text="Daily Routines"
-android:textSize="16sp"
-android:textColor="#000000" />
+        <TextView
+            android:id="@+id/tvTopicName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:text="Daily Routines"
+            android:textSize="16sp"
+            android:textColor="#000000" />
 
-<TextView
-android:id="@+id/tvTopicTracker"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:layout_marginTop="8dp"
-android:text="Done: 0/0"
-android:textSize="14sp"
-android:textColor="#555555" />
-    </LinearLayout>
-
-    </FrameLayout>
+        <TextView
+            android:id="@+id/tvTopicTracker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="Done: 0/0"
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:visibility="visible"/> <ImageView
+        android:id="@+id/imgTopicOptions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_more_vert"
+        android:padding="8dp"
+        android:contentDescription="Topic Options"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:visibility="gone"/> </LinearLayout>
+</FrameLayout>
