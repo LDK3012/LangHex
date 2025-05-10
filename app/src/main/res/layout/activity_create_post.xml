@@ -7,7 +7,9 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/white"
+    android:layout_gravity="center"
     tools:context=".View.CreatePostActivity">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="70dp"
@@ -21,11 +23,11 @@
         <ImageView
             android:id="@+id/imgBackward"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_weight="1"
-            android:background="@drawable/backward"
-            app:tint="@color/white" />
+            android:tint="@color/white"
+            app:srcCompat="@drawable/backward" />
 
         <TextView
             android:id="@+id/tvScreenTitle"
@@ -39,84 +41,100 @@
             android:textSize="20dp"
             android:textStyle="bold" />
 
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:layout_marginTop="50dp"
-        android:gravity="center_vertical">
-
         <ImageView
-            android:id="@+id/imgUserAvatar"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            app:srcCompat="@drawable/avatar" />
-        <TextView
+            android:id="@+id/imgHome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="30dp"
-            android:textStyle="bold"
-            android:textSize="25sp"
-            android:textColor="@color/black"
-            android:text="Nguyễn Văn A">
-
-        </TextView>
+            android:tint="@color/white"
+            android:layout_weight="1"
+            app:srcCompat="@drawable/icon_home" />
     </LinearLayout>
-    <EditText
-        android:id="@+id/edtComment"
-        android:layout_width="360dp"
-        android:layout_height="50dp"
-        android:layout_marginLeft="10dp"
-        android:layout_marginTop="30dp"
-        android:layout_gravity="center_horizontal"
-        android:background="@drawable/custom_edt_postandcomment"
-        android:hint="Tiêu đề"
-        android:padding="12dp"
-        android:textColorHint="#AAAAAA" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="20dp"
+        android:layout_gravity="center"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <ImageView
+                android:id="@+id/imgUserAvatar"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                app:srcCompat="@drawable/avatar" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="30dp"
+                android:text="Nguyễn Văn A"
+                android:textColor="@color/black"
+                android:textSize="25sp"
+                android:textStyle="bold">
+
+            </TextView>
+        </LinearLayout>
 
         <EditText
             android:id="@+id/edtComment"
-            android:layout_width="360dp"
-            android:layout_height="300dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginTop="30dp"
-            android:gravity="top"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
             android:layout_gravity="center_horizontal"
+            android:layout_marginTop="30dp"
+            android:background="@drawable/custom_edt_postandcomment"
+            android:hint="Tiêu đề"
+            android:padding="12dp"
+            android:textColorHint="#AAAAAA" />
+
+        <EditText
+            android:id="@+id/edtComment"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"
+            android:gravity="top"
             android:background="@drawable/custom_edt_postandcomment"
             android:hint="Bạn đang nghĩ gì?"
             android:padding="12dp"
             android:textColorHint="#AAAAAA" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp">
+
+            <ImageButton
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="30dp"
+                android:background="@android:drawable/ic_menu_gallery"
+                android:backgroundTint="@color/black">
+            </ImageButton>
+
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp">
-                <ImageButton
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginLeft="30dp"
-                    android:background="@android:drawable/ic_menu_gallery"
-                    android:backgroundTint="@color/black">
-                </ImageButton>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="5dp"
-                    android:layout_gravity="center_vertical"
-                    android:textSize="18sp"
-                    android:text="Tải lên ảnh">
-                </TextView>
-            </LinearLayout>
+                android:layout_gravity="center_vertical"
+                android:layout_marginLeft="5dp"
+                android:text="Tải lên ảnh"
+                android:textSize="18sp"></TextView>
+        </LinearLayout>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="45dp"
-        android:layout_marginTop="15dp"
-        android:layout_marginLeft="290dp"
-        android:text="Đăng bài"
-        android:backgroundTint="#FF6C6C">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#FF6C6C"
+            android:layout_gravity="right"
+            android:text="Đăng bài">
 
-    </Button>
+        </Button>
+    </LinearLayout>
+
 </LinearLayout>

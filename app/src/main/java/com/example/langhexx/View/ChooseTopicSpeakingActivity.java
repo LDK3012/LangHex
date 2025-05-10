@@ -32,21 +32,14 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
-<<<<<<< HEAD
     private ImageView imgBack, imgHome;
     private static final String ACTIVITY_TAG = "ChooseTopicSpeaking"; // Thẻ log
     private final String CURRENT_SKILL_NAME = "Speaking"; // <-- Định nghĩa tên kỹ năng
-=======
-    private ImageView imgBack;
-    private static final String ACTIVITY_TAG = "ChooseTopicSpeaking";
-    private final String CURRENT_SKILL_NAME = "Speaking";
-
     // SharedPreferences
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "TopicPrefs"; // Tên file SharedPreferences
     private String clickedTopicsKey; // Key để lưu các topic đã click, phụ thuộc vào level và skill
     private Set<String> clickedTopicTitles; // Set để lưu các title đã click
->>>>>>> 387ae4af51beb3cb1f93239be7a99cadae7ed111
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
