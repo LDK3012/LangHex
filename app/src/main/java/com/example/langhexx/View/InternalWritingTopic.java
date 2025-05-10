@@ -1007,99 +1007,69 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
 
     @Override
-
     public void onBackPressed() {
-
+        // Kiểm tra xem controller có xử lý sự kiện back không
         if (controller != null && controller.handleBackPressed()) {
-
-            return;
-
+            return; // Nếu controller đã xử lý, không làm gì thêm
         }
 
-
-
+        // Xác định các trạng thái hiện tại
         boolean hasUnsavedText = answerEditText != null && answerEditText.isEnabled() && !answerEditText.getText().toString().trim().isEmpty();
-
         boolean isInFeedbackState = controller != null && controller.getCurrentButtonState() == WritingController.STATE_RETRY_WRITING;
-
         boolean isAllCriteriaSuccess = controller != null && controller.areAllCriteriaSuccess();
-
         boolean isEditingAfterFeedback = controller != null && controller.isUserEditingAfterFeedback();
 
+        String message = ""; // Tin nhắn sẽ hiển thị trong dialog
+        boolean shouldShowDialog = false; // Cờ xác định có nên hiển thị dialog không
 
-
-        String message = "";
-
-        boolean shouldShowDialog = false;
-
-
-
+        // Logic xử lý khi người dùng nhấn nút back
         if (isInFeedbackState) {
-
-            shouldShowDialog = true;
-
+            // Nếu đang ở trạng thái nhận phản hồi
             if (isAllCriteriaSuccess) {
-
-                message = "Are you sure you want to go back?";
-
-            } else {
-
-                message = "Your feedback progress will be dismissed. Are you sure you want to go back?";
-
-            }
-
-        } else if (isEditingAfterFeedback && hasUnsavedText) {
-
-            String currentText = answerEditText.getText().toString().trim();
-
-            String previousText = controller.getSubmittedTextForCurrentFeedback().trim();
-
-            if (!currentText.equals(previousText)) {
-
+                // Nếu tất cả tiêu chí đã thành công, hỏi người dùng có chắc chắn muốn quay lại không
                 shouldShowDialog = true;
-
-                message = "Your changes will be lost. Are you sure you want to exit?";
-
+                message = "Are you sure you want to go back?";
             } else {
-
-                super.onBackPressed();
-
-                return;
-
+                // --- THAY ĐỔI ĐÃ ÁP DỤNG ---
+                // Nếu không phải tất cả tiêu chí đều thành công (trường hợp "Your feedback progress will be dismissed...")
+                // thì bỏ qua dialog và thực hiện hành động quay lại ngay lập tức.
+                super.onBackPressed(); // Gọi hành động quay lại của lớp cha
+                return; // Thoát khỏi phương thức sớm
             }
-
-        }
-
-        else if (hasUnsavedText) {
-
+        } else if (isEditingAfterFeedback && hasUnsavedText) {
+            // Nếu người dùng đang chỉnh sửa sau khi nhận phản hồi và có văn bản chưa lưu
+            String currentText = answerEditText.getText().toString().trim();
+            String previousText = controller.getSubmittedTextForCurrentFeedback().trim();
+            if (!currentText.equals(previousText)) {
+                // Nếu văn bản hiện tại khác với văn bản đã gửi trước đó, cảnh báo mất thay đổi
+                shouldShowDialog = true;
+                message = "Your changes will be lost. Are you sure you want to exit?";
+            } else {
+                // Nếu không có thay đổi, thực hiện hành động quay lại
+                super.onBackPressed();
+                return;
+            }
+        } else if (hasUnsavedText) {
+            // Nếu có văn bản chưa lưu (không phải trong trạng thái feedback hay chỉnh sửa sau feedback)
+            // cảnh báo mất bài viết hiện tại
             shouldShowDialog = true;
-
             message = "Your current writing will be lost. Are you sure you want to exit?";
-
         }
 
-
-
+        // Nếu cờ shouldShowDialog là true, hiển thị AlertDialog
         if (shouldShowDialog) {
-
             new AlertDialog.Builder(this)
-
-                    .setTitle("Exit Exercise")
-
-                    .setMessage(message)
-
-                    .setPositiveButton("Exit", (dialog, which) -> super.onBackPressed())
-
-                    .setNegativeButton("Stay", null)
-
-                    .show();
-
+                    .setTitle("Exit Exercise") // Tiêu đề của dialog
+                    .setMessage(message) // Nội dung tin nhắn
+                    .setPositiveButton("Exit", (dialog, which) -> super.onBackPressed()) // Nút đồng ý thoát
+                    .setNegativeButton("Stay", null) // Nút hủy, không làm gì cả
+                    .show(); // Hiển thị dialog
         } else {
-
+            // Nếu không cần hiển thị dialog (ví dụ, nếu đã return sớm ở trên,
+            // hoặc không có điều kiện nào kích hoạt dialog),
+            // thì thực hiện hành động quay lại mặc định.
             super.onBackPressed();
-
         }
-
     }
 
 }
