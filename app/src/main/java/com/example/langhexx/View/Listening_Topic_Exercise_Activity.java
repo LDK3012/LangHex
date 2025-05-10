@@ -5,11 +5,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,9 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
-
     private static final String TAG = "ListeningExerciseActivity";
-    private ImageView btnClose;
+    private ImageView imgClose, imgHome;
     private TextView tvTitle;
     private RecyclerView rvExercises;
     private ListeningExerciseAdapter exerciseAdapter;
@@ -39,17 +38,15 @@ public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_listening_topic_exercise);
-
         levelName = getIntent().getStringExtra("levelName");
         topicTitle = getIntent().getStringExtra("topicTitle");
-
         addControls();
         loadExercisesFromFirebase(levelName, topicTitle);
         addEvents();
     }
 
     private void addControls() {
-        btnClose = findViewById(R.id.imgBackward);
+        imgClose = findViewById(R.id.imgBackward);
         tvTitle = findViewById(R.id.tvScreenTitle);
         tvTitle.setText(topicTitle);
         rvExercises = findViewById(R.id.rvExercises);
@@ -57,6 +54,7 @@ public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
         exerciseTitlesList = new ArrayList<>();
         exerciseAdapter = new ListeningExerciseAdapter(this, exerciseTitlesList, levelName, topicTitle);
         rvExercises.setAdapter(exerciseAdapter);
+        imgHome = findViewById(R.id.imgHome);
     }
 
     private void loadExercisesFromFirebase(String levelName, String topicTitle) {
@@ -93,9 +91,18 @@ public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
     }
 
     private void addEvents() {
-        btnClose.setOnClickListener(new View.OnClickListener() {
+        imgClose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                finish();
+            }
+        });
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(Listening_Topic_Exercise_Activity.this, MainActivity.class);
+                startActivity(intent);
                 finish();
             }
         });

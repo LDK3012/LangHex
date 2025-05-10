@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -28,7 +29,7 @@ import java.util.List;
 public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
 
     private static final String TAG = "ReadingExerciseActivity"; // Renamed TAG
-    private ImageView btnClose;
+    private ImageView imgClose, imgHome;
     private TextView tvTitle;
     private RecyclerView rvExercises;
     private ReadingExerciseAdapter exerciseAdapter; // Use ReadingExerciseAdapter
@@ -54,10 +55,10 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
 
     private void addControls() {
         // *** Ensure these IDs exist in activity_reading_topic_exercise.xml ***
-        btnClose = findViewById(R.id.imgBackward);
+        imgClose = findViewById(R.id.imgBackward);
         tvTitle = findViewById(R.id.tvScreenTitle);
         rvExercises = findViewById(R.id.rvExercises);
-
+        imgHome = findViewById(R.id.imgHome);
         tvTitle.setText(topicTitle); // Set topic title
         rvExercises.setLayoutManager(new LinearLayoutManager(this));
         exerciseTitlesList = new ArrayList<>();
@@ -100,9 +101,18 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
     }
 
     private void addEvents() {
-        btnClose.setOnClickListener(new View.OnClickListener() {
+        imgClose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                finish();
+            }
+        });
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(Reading_Topic_Exercise_Activity.this, MainActivity.class);
+                startActivity(intent);
                 finish();
             }
         });

@@ -31,15 +31,15 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
-    private ImageView imgBack;
-    private static final String ACTIVITY_TAG = "ChooseTopicSpeaking";
-    private final String CURRENT_SKILL_NAME = "Speaking";
-
+    private ImageView imgBack, imgHome;
+    private static final String ACTIVITY_TAG = "ChooseTopicSpeaking"; // Thẻ log
+    private final String CURRENT_SKILL_NAME = "Speaking"; // <-- Định nghĩa tên kỹ năng
     // SharedPreferences
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "TopicPrefs";
     private String clickedTopicsKey;
     private Set<String> clickedTopicTitles; // Sẽ là một bản sao có thể chỉnh sửa
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +104,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME, clickedTopicTitles);
         lvTopics.setAdapter(topicAdapter);
         imgBack = findViewById(R.id.imgBackward);
+        imgHome = findViewById(R.id.imgHome);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
@@ -152,6 +153,15 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
                 }
             });
         }
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(ChooseTopicSpeakingActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
 
         lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

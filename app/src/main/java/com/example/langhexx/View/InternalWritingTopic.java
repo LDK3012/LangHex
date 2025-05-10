@@ -4,8 +4,6 @@ import android.content.Context;
 
 import android.content.Intent;
 
-import android.graphics.Color; // Thêm import Color
-
 import android.graphics.Paint;
 
 import android.graphics.Rect;
@@ -22,15 +20,7 @@ import android.os.Looper;  // Thêm Looper
 
 import android.text.Editable;
 
-import android.text.Spannable; // Thêm Spannable
-
-import android.text.SpannableStringBuilder; // Thêm SpannableStringBuilder
-
 import android.text.TextWatcher;
-
-import android.text.style.ForegroundColorSpan; // Thêm ForegroundColorSpan
-
-import android.text.style.UnderlineSpan;     // Thêm UnderlineSpan
 
 import android.util.Log;
 
@@ -86,7 +76,7 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
     // --- UI Elements ---
 
-    private ImageView backButton;
+    private ImageView imgClose, imgHome;
 
     private TextView titleTextView;
 
@@ -165,77 +155,36 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
 
     private void addControls() {
-
         Log.d(TAG, "addControls");
-
         mainScrollView = findViewById(R.id.main_scroll_view);
         titleTextView = findViewById(R.id.tvScreenTitle);
-        backButton = findViewById(R.id.back_button);
+        imgClose = findViewById(R.id.back_button);
         titleTextView = findViewById(R.id.title_textview);
         questionTextView = findViewById(R.id.question_textview);
-
         answerEditText = findViewById(R.id.answer_edittext);
-
         submitButton = findViewById(R.id.submit_button);
-
         feedbackTriggerButton = findViewById(R.id.feedback_trigger_button);
-
-
-
+        imgHome = findViewById(R.id.imgHome);
         includedFeedbackPanel = findViewById(R.id.included_feedback_panel_internal);
-
         // ... (gán các view con của includedFeedbackPanel như cũ) ...
-
         iconTaskResponse = includedFeedbackPanel.findViewById(R.id.icon_task_response);
-
         iconCoherenceCohesion = includedFeedbackPanel.findViewById(R.id.icon_coherence_cohesion);
-
         iconGrammarVocabulary = includedFeedbackPanel.findViewById(R.id.icon_grammar_vocabulary);
-
         iconLength = includedFeedbackPanel.findViewById(R.id.icon_length);
-
-
-
         taskResponseTitleTextView = includedFeedbackPanel.findViewById(R.id.taskResponseTxt);
-
         coherenceTitleTextView = includedFeedbackPanel.findViewById(R.id.coherenceTxt);
-
         grammarTitleTextView = includedFeedbackPanel.findViewById(R.id.grammarTxt);
-
         lengthTitleTextView = includedFeedbackPanel.findViewById(R.id.lengthTxt);
-
-
-
         textFeedbackTaskResponse = includedFeedbackPanel.findViewById(R.id.text_feedback_task_response);
-
         textFeedbackCoherenceCohesion = includedFeedbackPanel.findViewById(R.id.text_feedback_coherence_cohesion);
-
         textFeedbackGrammarVocabulary = includedFeedbackPanel.findViewById(R.id.text_feedback_grammar_vocabulary);
-
         textFeedbackLength = includedFeedbackPanel.findViewById(R.id.text_feedback_length);
-
-
-
-
-
-
-
         TextView reviewTextView = findViewById(R.id.feedback_trigger_button);
-
         if (reviewTextView != null) { // Đảm bảo reviewTextView không null
-
             reviewTextView.setPaintFlags(reviewTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-
         }
-
-
-
-
-
         if (includedFeedbackPanel != null) includedFeedbackPanel.setVisibility(View.GONE);
-
         if (feedbackTriggerButton != null) feedbackTriggerButton.setVisibility(View.GONE);
-
         if (btnSeeRevisedVersion != null) btnSeeRevisedVersion.setVisibility(View.GONE);
 
     }
@@ -243,111 +192,70 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
 
     private void addEvents() {
-
         Log.d(TAG, "addEvents");
-
-        if (backButton != null) backButton.setOnClickListener(v -> onBackPressed());
-
-
-
+        if (imgClose != null) imgClose.setOnClickListener(v -> onBackPressed());
         if (submitButton != null) submitButton.setOnClickListener(v -> {
-
             String userAnswer = answerEditText.getText().toString().trim();
-
             // Hủy bỏ debounce khi submit
-
             if (textChangeRunnable != null) {
-
                 textChangeHandler.removeCallbacks(textChangeRunnable);
 
             }
-
             controller.onSubmitButtonClicked(userAnswer);
-
         });
-
-
 
         if (feedbackTriggerButton != null) feedbackTriggerButton.setOnClickListener(v -> {
-
             if (includedFeedbackPanel != null) {
-
                 if (includedFeedbackPanel.getVisibility() == View.VISIBLE) {
-
                     // includedFeedbackPanel.setVisibility(View.GONE);
-
                 } else {
-
                     includedFeedbackPanel.setVisibility(View.VISIBLE);
-
                     focusOnFeedbackPanel();
-
                 }
-
             }
-
         });
 
-
-
         if (btnSeeRevisedVersion != null) btnSeeRevisedVersion.setOnClickListener(v -> {
-
             Toast.makeText(this, "See revised version - To be implemented", Toast.LENGTH_SHORT).show();
-
         });
 
 
 
         if (answerEditText != null) answerEditText.addTextChangedListener(new TextWatcher() {
-
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-
                 // Hủy bỏ callback cũ mỗi khi text thay đổi
-
                 if (textChangeRunnable != null) {
-
                     textChangeHandler.removeCallbacks(textChangeRunnable);
-
                 }
-
             }
 
             @Override public void afterTextChanged(Editable s) {
-
                 final String currentText = s.toString();
-
                 // Đặt callback mới
-
                 textChangeRunnable = () -> {
-
                     if (controller != null && answerEditText.isEnabled()) {
-
                         // Gọi onAnswerTextChanged của controller, nơi sẽ xử lý cả logic nút submit và inline analysis
-
                         controller.onAnswerTextChanged(currentText);
-
                     }
-
                 };
-
                 textChangeHandler.postDelayed(textChangeRunnable, TEXT_CHANGE_DEBOUNCE_MS);
-
             }
-
         });
 
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(InternalWritingTopic.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
     }
 
-
-
     // ... (dpToPx, displayStructuredAIFeedback, updateFeedbackItemUI, ... giữ nguyên) ...
-
     private int dpToPx(int dp) {
-
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
-
     }
 
 

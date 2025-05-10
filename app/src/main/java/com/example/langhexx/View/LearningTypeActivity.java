@@ -3,7 +3,6 @@ package com.example.langhexx.View;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,7 +12,7 @@ import com.example.langhexx.R;
 
 public class LearningTypeActivity extends AppCompatActivity {
 
-    private ImageView btnBack;
+    private ImageView imgClose, imgHome;
     private CardView cardListening, cardSpeaking , cardReading, cardWriting;
     private String levelName ;
     @Override
@@ -28,17 +27,26 @@ public class LearningTypeActivity extends AppCompatActivity {
     }
 
     private void addControls() {
-        btnBack = findViewById(R.id.imgBackward);
+        imgClose = findViewById(R.id.imgBackward);
         cardListening = findViewById(R.id.cardListening);
         cardSpeaking = findViewById(R.id.cardSpeaking);
         cardReading = findViewById(R.id.cardReading) ;
         cardWriting= findViewById(R.id.cardWriting);
+        imgHome = findViewById(R.id.imgHome);
     }
 
     private void addEvents() {
-        btnBack.setOnClickListener(new View.OnClickListener() {
+        imgClose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                finish();
+            }
+        });
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(LearningTypeActivity.this, MainActivity.class);
+                startActivity(intent);
                 finish();
             }
         });

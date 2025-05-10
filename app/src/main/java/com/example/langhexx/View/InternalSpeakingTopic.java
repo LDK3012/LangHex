@@ -72,7 +72,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     private LinearLayout questionContainer;
     private LayoutInflater inflater;
     private ImageButton btnMicro;
-    private ImageView btnClose;
+    private ImageView imgClose, imgHome;
     private ScrollView scrollViewContent;
     private TextToSpeech textToSpeech;
     private SoundPool soundPool;
@@ -177,9 +177,10 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         questionContainer = findViewById(R.id.questionContainer);
         inflater = LayoutInflater.from(this);
         btnMicro = findViewById(R.id.btnSpeakingMicro);
-        btnClose = findViewById(R.id.imgBackward);
+        imgClose = findViewById(R.id.imgBackward);
         scrollViewContent = findViewById(R.id.scrollViewContent);
         tvTitle = findViewById(R.id.tvScreenTitle) ;
+        imgHome = findViewById(R.id.imgHome);
         //
 
     }
@@ -250,8 +251,16 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     // --- Event Forwarding to Controller ---
 
     private void addEvent() {
-        btnClose.setOnClickListener(v -> controller.onCloseButtonClicked());
+        imgClose.setOnClickListener(v -> controller.onCloseButtonClicked());
         btnMicro.setOnClickListener(v -> controller.onMicButtonClicked());
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(InternalSpeakingTopic.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
         // Listener cho speaker/warning sẽ được set trong updateUiForNewQuestion
     }
 
