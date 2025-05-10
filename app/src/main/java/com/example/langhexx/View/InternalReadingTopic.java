@@ -646,18 +646,6 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
             }
         });
 
-        imgHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(InternalReadingTopic.this, MainActivity.class);
-                // Sử dụng hằng số TARGET_FRAGMENT_EXTRA làm key
-                // và hằng số ACTION_NAVIGATE_TO_HOME mới làm value
-                intent.putExtra(MainActivity.TARGET_FRAGMENT_EXTRA, MainActivity.ACTION_NAVIGATE_TO_HOME);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                finish(); // Đóng Activity hiện tại
-            }
-        });
     }
 
     // --- Implementation of ReadingController.ViewInterface ---
