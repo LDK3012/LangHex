@@ -46,7 +46,8 @@ public class TopicAdapter extends BaseAdapter {
         this.levelName = levelName;
         this.skillName = skillName;
         this.firebaseRootRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
-        this.clickedTopicTitles = new HashSet<>();
+        this.clickedTopicTitles = clickedTopicTitles != null ? clickedTopicTitles : new HashSet<>();
+        //this.clickedTopicTitles = new HashSet<>();
     }
 
     public TopicAdapter(Context context, int layoutId, List<Topics> topicList, String levelName, String skillName, Set<String> clickedTopicTitles) {
