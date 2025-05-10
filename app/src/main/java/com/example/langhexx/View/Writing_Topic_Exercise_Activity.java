@@ -28,7 +28,7 @@ import java.util.List;
 
 public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
     private static final String TAG = "WritingExerciseActivity"; // Đổi TAG
-    private ImageView btnClose;
+    private ImageView imgClose;
     private TextView tvTitle;
     private RecyclerView rvExercises;
     private WritingExerciseAdapter exerciseAdapter; // Đổi kiểu Adapter
@@ -53,7 +53,7 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
     }
 
     private void addControls() {
-        btnClose = findViewById(R.id.btnBack);
+        imgClose = findViewById(R.id.imgBackward);
         tvTitle = findViewById(R.id.tvScreenTitle);
         if (topicTitle != null) {
             tvTitle.setText(topicTitle);
@@ -102,13 +102,12 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
         });
     }
     private void addEvents() {
-        if (btnClose != null) {
-            btnClose.setOnClickListener(new View.OnClickListener() {
+            imgClose.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     finish(); // Đóng Activity hiện tại
                 }
             });
-        }
+
     }
 }

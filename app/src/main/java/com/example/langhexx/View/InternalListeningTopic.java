@@ -1485,6 +1485,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -1516,6 +1517,8 @@ public class InternalListeningTopic extends AppCompatActivity implements
         SeekBar.OnSeekBarChangeListener { // Keep for seekbar interaction delegation
 
     private static final String TAG = "InternalListenTopicVIEW"; // Changed TAG for clarity
+
+    private ImageView imgClose;
 
     // --- UI Elements ---
     private ImageButton btnPlayAudio;
@@ -1558,6 +1561,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
         btnSubmit = findViewById(R.id.btnSubmit);
         progressBarAudioLoading = findViewById(R.id.progressBarAudioLoading);
         tvScreenTitle = findViewById(R.id.tvScreenTitle); // Make sure ID is correct in layout
+        imgClose = findViewById(R.id.imgBackward);
 
         // Initial UI state set by controller via resetAudioControls() and setUIElementsVisibility(false)
     }
@@ -1588,6 +1592,13 @@ public class InternalListeningTopic extends AppCompatActivity implements
         if (seekBarAudio != null) {
             seekBarAudio.setOnSeekBarChangeListener(this); // Keep 'this' as listener initially
         }
+
+        imgClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+            }
+        });
     }
 
     // --- Implementation of ListeningController.ViewInterface ---

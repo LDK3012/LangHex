@@ -106,6 +106,5 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
                 finish();
             }
         });
-        // Click handling is done within the adapter now
     }
 }

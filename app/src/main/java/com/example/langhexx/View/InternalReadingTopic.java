@@ -551,6 +551,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -573,6 +574,8 @@ import java.util.Map;
 public class InternalReadingTopic extends AppCompatActivity implements ReadingController.ViewInterface { // Implement View Interface
 
     private static final String TAG = "InternalReadTopicVIEW"; // Changed TAG for clarity
+
+    private ImageView imgClose, imgHome;
 
     // --- UI Elements ---
     private ListView lvQuestions;
@@ -613,6 +616,8 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         tvExerciseDisplayTitle = findViewById(R.id.txtTitle);
         tvPassageDisplay = findViewById(R.id.txtParagraph);
         instructionText = findViewById(R.id.textView16); // Find instruction text
+        imgClose = findViewById(R.id.imgBackward);
+        imgHome = findViewById(R.id.imgHome);
 
         // Initial state (hidden until Controller provides data)
         setUIElementsVisibility(false);
@@ -633,6 +638,25 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
                 controller.onSubmitButtonClicked();
             });
         }
+
+        imgClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+            }
+        });
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(InternalReadingTopic.this, MainActivity.class);
+                // Sử dụng hằng số từ MainActivity
+                intent.putExtra(MainActivity.TARGET_FRAGMENT_EXTRA, "HOME_FRAGMENT"); // "HOME_FRAGMENT" là giá trị của TAG_HOME
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
+        });
     }
 
     // --- Implementation of ReadingController.ViewInterface ---

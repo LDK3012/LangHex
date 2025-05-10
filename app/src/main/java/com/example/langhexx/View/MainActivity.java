@@ -1,68 +1,3 @@
-//package com.example.langhexx.View;
-//
-//import androidx.annotation.NonNull;
-//import androidx.appcompat.app.AppCompatActivity;
-//import androidx.fragment.app.Fragment;
-//import androidx.fragment.app.FragmentManager;
-//import androidx.fragment.app.FragmentTransaction;
-//
-//import android.os.Bundle;
-//import android.view.MenuItem;
-//
-//import com.example.langhexx.R;
-//import com.google.android.material.bottomnavigation.BottomNavigationView;
-//import com.google.android.material.navigation.NavigationBarView;
-//
-//public class MainActivity extends AppCompatActivity {
-//    BottomNavigationView bottomNavigationView;
-//
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//        bottomNavigationView = findViewById(R.id.btnNav);
-//        addEvents();
-//        loadFragment();
-//    }
-//
-//    public void addEvents(){
-//        bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
-//            @Override
-//            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-//                Fragment selectedFragment = null;
-//                if (item.getItemId() == R.id.item_btt_nav_home){
-//                    selectedFragment = new HomeFragment();
-//                } else if (item.getItemId() == R.id.item_btt_nav_chat) {
-//                    selectedFragment = new ChatFragment();
-//                } else if (item.getItemId() == R.id.item_btt_nav_arena) {
-//                    selectedFragment = new ArenaFragment();
-//                } else if (item.getItemId() == R.id.item_btt_nav_profile) {
-//                    selectedFragment = new ProfileFragment();
-//                }
-//                if (selectedFragment != null) {
-//                    getSupportFragmentManager().beginTransaction().replace(R.id.mainFrame, selectedFragment).commit();
-//                    return true;
-//                }
-//                return false;
-//            }
-//        });
-//    }
-//
-//    private void loadFragment(){
-//        FragmentManager fragmentManager = getSupportFragmentManager();
-//        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-//        Fragment fragment1 = new HomeFragment();
-//        fragmentTransaction.add(R.id.mainFrame,fragment1);
-//        fragmentTransaction.commit();
-//
-//    }
-//
-//    public void onBackPressed(){
-//        super.onBackPressed();
-//        moveTaskToBack(true);
-//    }
-//}
-
 package com.example.langhexx.View;
 
 import androidx.annotation.NonNull;
@@ -71,36 +6,44 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.content.Intent; // Quan trọng
 import android.os.Bundle;
+import android.util.Log; // Giữ lại Log để debug nếu cần
 import android.view.MenuItem;
-import android.view.View;
+import android.view.View; // Cần cho setVisibility
 
 import com.example.langhexx.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 
-public class MainActivity extends AppCompatActivity implements ChatFragment.KeyboardVisibilityListener{
+public class MainActivity extends AppCompatActivity { // Bỏ KeyboardVisibilityListener nếu không dùng chung ở đây
+
+    private static final String TAG = "MainActivity"; // Thêm TAG cho MainActivity
 
     BottomNavigationView bottomNavigationView;
     FragmentManager fragmentManager;
 
-    // Declare fragments as member variables
+    // Khai báo các Fragment
     HomeFragment homeFragment;
     ChatFragment chatFragment;
     ArenaFragment arenaFragment;
     ProfileFragment profileFragment;
-    Fragment activeFragment; // To keep track of the currently visible fragment
+    Fragment activeFragment; // Theo dõi Fragment đang hiển thị
 
-    // Tags for restoring fragments on configuration change or process death
+    // TAGs để khôi phục Fragment
     private static final String TAG_HOME = "HOME_FRAGMENT";
     private static final String TAG_CHAT = "CHAT_FRAGMENT";
     private static final String TAG_ARENA = "ARENA_FRAGMENT";
     private static final String TAG_PROFILE = "PROFILE_FRAGMENT";
 
+    // Key cho extra trong Intent để điều hướng
+    public static final String TARGET_FRAGMENT_EXTRA = "TARGET_FRAGMENT"; // Public để Activity khác có thể dùng
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d(TAG, "onCreate called");
 
         bottomNavigationView = findViewById(R.id.btnNav);
         fragmentManager = getSupportFragmentManager();
@@ -108,100 +51,94 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
         initializeFragments(savedInstanceState);
         setupBottomNavigation();
 
-        // Set the initial selected item in the BottomNavigationView
-        // This ensures the visual state matches the actual fragment shown
-        if (activeFragment == homeFragment) {
-            bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_home);
-        } else if (activeFragment == chatFragment) {
-            bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_chat);
-        } else if (activeFragment == arenaFragment) {
-            bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_arena);
-        } else if (activeFragment == profileFragment) {
-            bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_profile);
-        }
+        // Xử lý Intent khi Activity được tạo mới (ví dụ từ InternalReadingTopic)
+        processNavigationIntent(getIntent());
+
+        // Cập nhật lựa chọn trên BottomNavigationView dựa trên activeFragment
+        updateBottomNavSelection();
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "onNewIntent called");
+        setIntent(intent); // Cập nhật Intent hiện tại của Activity
+        // Xử lý Intent khi Activity đã chạy và nhận được Intent mới
+        processNavigationIntent(intent);
+        updateBottomNavSelection();
+    }
 
-    public void onKeyboardVisibilityChanged(boolean isVisible) {
-        if (bottomNavigationView != null) {
-            // Chỉ ẩn/hiện nếu Fragment hiện tại là ChatFragment (tùy chọn, nếu cần)
-            Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.mainFrame); // Thay ID container
-            if (currentFragment instanceof ChatFragment) {
-                if (isVisible) {
-                    // Ẩn BottomNavigationView (có thể thêm animation)
-                    bottomNavigationView.setVisibility(View.GONE);
-                } else {
-                    // Hiện BottomNavigationView (có thể thêm animation)
-                    bottomNavigationView.setVisibility(View.VISIBLE);
+    private void processNavigationIntent(Intent intent) {
+        if (intent != null && intent.hasExtra(TARGET_FRAGMENT_EXTRA)) {
+            String targetFragmentTag = intent.getStringExtra(TARGET_FRAGMENT_EXTRA);
+            Log.d(TAG, "processNavigationIntent: Target fragment tag: " + targetFragmentTag);
+
+            if (TAG_HOME.equals(targetFragmentTag)) {
+                if (homeFragment != null && activeFragment != homeFragment) {
+                    Log.d(TAG, "Switching to HomeFragment from intent.");
+                    fragmentManager.beginTransaction().hide(activeFragment).show(homeFragment).commit();
+                    activeFragment = homeFragment;
                 }
-            } else {
-                // Đảm bảo BottomNav luôn hiển thị nếu không phải ChatFragment
-                bottomNavigationView.setVisibility(View.VISIBLE);
             }
+            // Thêm else if cho các fragment khác nếu cần điều hướng tương tự
+            // ví dụ: else if (TAG_CHAT.equals(targetFragmentTag)) { ... }
+
+            // Xóa extra để không xử lý lại khi xoay màn hình hoặc Activity resume
+            intent.removeExtra(TARGET_FRAGMENT_EXTRA);
         }
     }
 
     private void initializeFragments(Bundle savedInstanceState) {
         if (savedInstanceState == null) {
-            // First time creation: create new instances
+            Log.d(TAG, "Initializing new fragments.");
             homeFragment = new HomeFragment();
             chatFragment = new ChatFragment();
             arenaFragment = new ArenaFragment();
             profileFragment = new ProfileFragment();
 
-            // Add all fragments to the manager, hide all except the default (Home)
-            // Use tags to be able to find them later
             fragmentManager.beginTransaction()
                     .add(R.id.mainFrame, profileFragment, TAG_PROFILE).hide(profileFragment)
                     .add(R.id.mainFrame, arenaFragment, TAG_ARENA).hide(arenaFragment)
                     .add(R.id.mainFrame, chatFragment, TAG_CHAT).hide(chatFragment)
-                    .add(R.id.mainFrame, homeFragment, TAG_HOME) // Add and show Home last
+                    .add(R.id.mainFrame, homeFragment, TAG_HOME) // HomeFragment được show mặc định
                     .commit();
-            activeFragment = homeFragment; // Home is active initially
-
+            activeFragment = homeFragment;
         } else {
-            // Activity is being recreated: retrieve existing fragments by tag
+            Log.d(TAG, "Restoring existing fragments by tag.");
             homeFragment = (HomeFragment) fragmentManager.findFragmentByTag(TAG_HOME);
             chatFragment = (ChatFragment) fragmentManager.findFragmentByTag(TAG_CHAT);
             arenaFragment = (ArenaFragment) fragmentManager.findFragmentByTag(TAG_ARENA);
             profileFragment = (ProfileFragment) fragmentManager.findFragmentByTag(TAG_PROFILE);
 
-            // Find the fragment that was active before recreation
-            // FragmentManager usually restores the visibility state (show/hide)
-            if (homeFragment != null && !homeFragment.isHidden()) {
-                activeFragment = homeFragment;
-            } else if (chatFragment != null && !chatFragment.isHidden()) {
-                activeFragment = chatFragment;
-            } else if (arenaFragment != null && !arenaFragment.isHidden()) {
-                activeFragment = arenaFragment;
-            } else if (profileFragment != null && !profileFragment.isHidden()) {
-                activeFragment = profileFragment;
-            } else {
-                // Fallback: If no fragment is found as visible (shouldn't normally happen),
-                // default to homeFragment if it exists. Ensure it's shown.
-                if (homeFragment != null) {
+            // Xác định fragment nào đang active
+            // FragmentManager thường tự khôi phục trạng thái show/hide
+            if (homeFragment != null && !homeFragment.isHidden()) activeFragment = homeFragment;
+            else if (chatFragment != null && !chatFragment.isHidden()) activeFragment = chatFragment;
+            else if (arenaFragment != null && !arenaFragment.isHidden()) activeFragment = arenaFragment;
+            else if (profileFragment != null && !profileFragment.isHidden()) activeFragment = profileFragment;
+            else { // Fallback nếu không có fragment nào isHidden() == false
+                if (homeFragment != null) { // Mặc định về home nếu có thể
                     activeFragment = homeFragment;
-                    fragmentManager.beginTransaction().show(activeFragment).commit();
+                    if (activeFragment.isHidden()) { // Đảm bảo nó được hiển thị
+                        fragmentManager.beginTransaction().show(activeFragment).commit();
+                    }
                 }
-                // Handle the case where even homeFragment is null if necessary
             }
         }
-        // Ensure we always have a reference to an active fragment if possible
+        // Đảm bảo luôn có activeFragment nếu homeFragment tồn tại
         if (activeFragment == null && homeFragment != null) {
-            activeFragment = homeFragment; // Default fallback after recreation
+            activeFragment = homeFragment;
         }
+        Log.d(TAG, "Active fragment after initialization: " + (activeFragment != null ? activeFragment.getClass().getSimpleName() : "null"));
     }
 
-
-    // Renamed from addEvents for clarity
     private void setupBottomNavigation() {
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 Fragment selectedFragment = null;
-                int itemId = item.getItemId(); // Use local variable for readability
+                int itemId = item.getItemId();
 
-                // Get the reference to the target fragment based on the menu item ID
                 if (itemId == R.id.item_btt_nav_home) {
                     selectedFragment = homeFragment;
                 } else if (itemId == R.id.item_btt_nav_chat) {
@@ -212,37 +149,63 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
                     selectedFragment = profileFragment;
                 }
 
-                // Check if the selected fragment is valid and different from the current active one
                 if (selectedFragment != null && selectedFragment != activeFragment) {
-                    // Perform the transaction: hide the current active fragment, show the selected one
+                    Log.d(TAG, "BottomNav: Switching from " + (activeFragment != null ? activeFragment.getClass().getSimpleName() : "null") + " to " + selectedFragment.getClass().getSimpleName());
                     FragmentTransaction transaction = fragmentManager.beginTransaction();
                     if (activeFragment != null) {
                         transaction.hide(activeFragment);
                     }
                     transaction.show(selectedFragment);
-                    transaction.commit(); // Commit the transaction
-
-                    activeFragment = selectedFragment; // Update the active fragment reference
-                    return true; // Indicate the selection was handled
+                    transaction.commit();
+                    activeFragment = selectedFragment;
+                    return true;
                 }
-                // If the selected fragment is the same as the active one, or null, do nothing
-                // Return false prevents the item from being shown as selected (if default behavior is desired)
-                // Return true allows reselection visually without fragment transaction
-                return selectedFragment != null; // Return true if a valid fragment was targeted
+                // Nếu fragment được chọn là fragment đang active, không làm gì (hoặc có thể scroll to top)
+                // Trả về true để item được chọn trực quan, ngay cả khi không có thay đổi fragment
+                return selectedFragment != null;
             }
         });
     }
 
-    // No need for the old loadFragment() method
-    // private void loadFragment(){ ... } // REMOVED
+    private void updateBottomNavSelection() {
+        Log.d(TAG, "updateBottomNavSelection called. Current activeFragment: " + (activeFragment != null ? activeFragment.getClass().getSimpleName() : "null"));
+        if (activeFragment == null) return; // Không làm gì nếu activeFragment là null
 
+        if (activeFragment == homeFragment) {
+            if (bottomNavigationView.getSelectedItemId() != R.id.item_btt_nav_home) {
+                bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_home);
+                Log.d(TAG, "BottomNav selection updated to: Home");
+            }
+        } else if (activeFragment == chatFragment) {
+            if (bottomNavigationView.getSelectedItemId() != R.id.item_btt_nav_chat) {
+                bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_chat);
+                Log.d(TAG, "BottomNav selection updated to: Chat");
+            }
+        } else if (activeFragment == arenaFragment) {
+            if (bottomNavigationView.getSelectedItemId() != R.id.item_btt_nav_arena) {
+                bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_arena);
+                Log.d(TAG, "BottomNav selection updated to: Arena");
+            }
+        } else if (activeFragment == profileFragment) {
+            if (bottomNavigationView.getSelectedItemId() != R.id.item_btt_nav_profile) {
+                bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_profile);
+                Log.d(TAG, "BottomNav selection updated to: Profile");
+            }
+        }
+    }
+
+    // Giữ lại hàm onBackPressed gốc của bạn hoặc đơn giản hóa
     @Override
     public void onBackPressed() {
-        // Current behavior: Move the task to the background instead of finishing the activity.
-        // Call super first is generally good practice, though order might not matter here.
-        super.onBackPressed();
-        moveTaskToBack(true);
-        // If you wanted the default behavior (finish activity), you would just call:
-        // super.onBackPressed();
+        // super.onBackPressed(); // Mặc định sẽ finish Activity nếu không có gì trong backstack
+        moveTaskToBack(true); // Giữ ứng dụng chạy nền
+        Log.d(TAG, "onBackPressed: Moving task to back.");
     }
+
+    // Nếu ChatFragment cần ẩn/hiện BottomNavigationView, bạn có thể thêm lại hàm này
+    // public void setBottomNavigationVisibility(boolean visible) {
+    //    if (bottomNavigationView != null) {
+    //        bottomNavigationView.setVisibility(visible ? View.VISIBLE : View.GONE);
+    //    }
+    // }
 }
