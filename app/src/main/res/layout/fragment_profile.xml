@@ -2,7 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" android:orientation="vertical">
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -27,13 +29,13 @@
                 android:layout_height="wrap_content"
                 android:text="Tên người dùng" android:textStyle="bold"
                 android:textColor="@color/white"
-                android:textSize="16sp"/>
+                android:textSize="13dp"/>
             <TextView
                 android:id="@+id/txtMail"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:text="email@example.com" android:textColor="@color/white"
-                android:textSize="14sp"/>
+                android:textSize="14dp"/>
         </LinearLayout>
     </LinearLayout>
 
@@ -46,20 +48,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingLeft="30dp" android:paddingRight="30dp"
+            android:paddingLeft="30dp"
+            android:paddingRight="30dp"
+            android:layout_marginTop="30dp"
             android:paddingBottom="30dp">
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:backgroundTint="@android:color/transparent"
                 app:cardElevation="0dp"
                 app:cardCornerRadius="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@android:color/white"
-                    android:layout_marginTop="30dp"
+                    android:backgroundTint="@android:color/transparent"
                     android:orientation="vertical">
 
                     <TextView
@@ -85,6 +89,7 @@
                         android:padding="16dp"
                         android:text="Thông tin tài khoản"
                         android:textColor="@android:color/black"
+                        android:textSize="12dp"
                         android:textStyle="bold"
                         android:clickable="true"
                         android:focusable="true"/>
@@ -95,17 +100,20 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/cardview_center_item"
                         android:padding="16dp"
+                        android:textSize="12dp"
                         android:text="Gửi phản hồi"
                         android:textColor="@android:color/black"
                         android:textStyle="bold"
                         android:clickable="true"
                         android:focusable="true"/>
+
                     <TextView
                         android:id="@+id/txtVersion"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/cardview_upper_item"
+                        android:background="@drawable/cardview_center_item"
                         android:padding="16dp"
+                        android:textSize="12dp"
                         android:text="Đang tải thông tin phiên bản..."
                         android:textColor="@android:color/black"
                         android:textStyle="bold"
@@ -118,6 +126,7 @@
                         android:background="@drawable/cardview_downward_item" android:padding="16dp"
                         android:text="Đăng xuất"
                         android:textColor="#FF0000" android:textStyle="bold"
+                        android:textSize="12dp"
                         android:clickable="true"
                         android:focusable="true"/>
                 </LinearLayout>

@@ -646,6 +646,15 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
             }
         });
 
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(InternalReadingTopic.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
+
     }
 
     // --- Implementation of ReadingController.ViewInterface ---
