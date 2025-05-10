@@ -8,32 +8,29 @@
     tools:context=".View.Reading_Topic_Exercise_Activity">
 
     <LinearLayout
+        android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="70dp"
-        android:layout_gravity="center"
-        android:gravity="center"
         android:background="#FF2626"
-        android:padding="10dp"
+        android:gravity="center"
         android:orientation="horizontal"
+        android:padding="10dp"
         android:weightSum="12">
 
         <ImageView
             android:id="@+id/imgBackward"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tint="@color/white"
-            android:background="@drawable/backward" />
-
+            android:src="@drawable/backward" android:tint="@color/white"
+            android:padding="8dp"/>
         <TextView
             android:id="@+id/tvScreenTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
             android:layout_weight="10"
             android:gravity="center"
-            android:text="Listening"
+            android:text="xxxxxxxxx"
             android:textColor="#FFFFFF"
             android:textSize="20dp"
             android:textStyle="bold" />
@@ -41,11 +38,11 @@
         <ImageView
             android:id="@+id/imgHome"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:backgroundTint="@color/white"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
             android:layout_weight="1"
-            android:background="@drawable/icon_home" />
-    </LinearLayout>
+            android:src="@drawable/icon_home"
+            android:tint="@color/white"    android:padding="8dp"/> </LinearLayout>
 
 
     <androidx.recyclerview.widget.RecyclerView
