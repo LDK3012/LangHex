@@ -41,16 +41,9 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private static final String ACTIVITY_TAG = "ChooseTopicSpeakingActivity";
     private final String CURRENT_SKILL_NAME = "Speaking";
     private SharedPreferences sharedPreferences;
-<<<<<<< HEAD
     private static final String PREFS_NAME = "TopicPrefs"; // Tên file SharedPreferences
     private String clickedTopicsKey; // Key để lưu các topic đã click, phụ thuộc vào level và skill
-    private Set<String> clickedTopicTitles; // Set để lưu các title đã click
-=======
-    private static final String PREFS_NAME = "TopicPrefs";
-    private String clickedTopicsKey;
     private Set<String> clickedTopicTitlesForSpeaking;
-
->>>>>>> 0cd5d77ab017f151bf4eb13bd1cc53799fec5728
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
