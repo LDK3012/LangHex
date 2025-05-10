@@ -24,11 +24,13 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 
 public class ChooseTopicListeningActivity extends AppCompatActivity {
+
+
     private ListView lvTopics;
     private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
-    private ImageView imgBack;
+    private ImageView imgBack, imgHome;
     private static final String ACTIVITY_TAG = "ChooseTopicListening"; // Thẻ log cho Activity
     private final String CURRENT_SKILL_NAME = "Listening"; // Định nghĩa kỹ năng cho Activity này
 
@@ -63,6 +65,7 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
         imgBack = findViewById(R.id.imgBackward);
+        imgHome = findViewById(R.id.imgHome);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
@@ -107,6 +110,15 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
         imgBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                finish();
+            }
+        });
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(ChooseTopicListeningActivity.this, MainActivity.class);
+                startActivity(intent);
                 finish();
             }
         });

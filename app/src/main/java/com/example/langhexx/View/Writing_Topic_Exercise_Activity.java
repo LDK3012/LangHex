@@ -1,5 +1,6 @@
 package com.example.langhexx.View;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
@@ -28,7 +29,7 @@ import java.util.List;
 
 public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
     private static final String TAG = "WritingExerciseActivity"; // Đổi TAG
-    private ImageView imgClose;
+    private ImageView imgClose, imgHome;
     private TextView tvTitle;
     private RecyclerView rvExercises;
     private WritingExerciseAdapter exerciseAdapter; // Đổi kiểu Adapter
@@ -58,7 +59,7 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
         if (topicTitle != null) {
             tvTitle.setText(topicTitle);
         }
-
+        imgHome = findViewById(R.id.imgHome);
         rvExercises = findViewById(R.id.rvExercises);
         rvExercises.setLayoutManager(new LinearLayoutManager(this));
         exerciseTitlesList = new ArrayList<>();
@@ -102,12 +103,20 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
         });
     }
     private void addEvents() {
-            imgClose.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
+        imgClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
                     finish(); // Đóng Activity hiện tại
                 }
-            });
+        });
 
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(Writing_Topic_Exercise_Activity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
     }
 }

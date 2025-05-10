@@ -1518,7 +1518,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     private static final String TAG = "InternalListenTopicVIEW"; // Changed TAG for clarity
 
-    private ImageView imgClose;
+    private ImageView imgClose, imgHome;
 
     // --- UI Elements ---
     private ImageButton btnPlayAudio;
@@ -1562,6 +1562,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
         progressBarAudioLoading = findViewById(R.id.progressBarAudioLoading);
         tvScreenTitle = findViewById(R.id.tvScreenTitle); // Make sure ID is correct in layout
         imgClose = findViewById(R.id.imgBackward);
+        imgHome = findViewById(R.id.imgHome);
 
         // Initial UI state set by controller via resetAudioControls() and setUIElementsVisibility(false)
     }
@@ -1596,6 +1597,15 @@ public class InternalListeningTopic extends AppCompatActivity implements
         imgClose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                finish();
+            }
+        });
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(InternalListeningTopic.this, MainActivity.class);
+                startActivity(intent);
                 finish();
             }
         });

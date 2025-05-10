@@ -29,7 +29,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
-    private ImageView imgBack;
+    private ImageView imgBack, imgHome;
     private static final String ACTIVITY_TAG = "ChooseTopicSpeaking"; // Thẻ log
     private final String CURRENT_SKILL_NAME = "Speaking"; // <-- Định nghĩa tên kỹ năng
 
@@ -63,6 +63,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
         imgBack = findViewById(R.id.imgBackward);
+        imgHome = findViewById(R.id.imgHome);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
@@ -112,6 +113,15 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
                 }
             });
         }
+
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(ChooseTopicSpeakingActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
 
         lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

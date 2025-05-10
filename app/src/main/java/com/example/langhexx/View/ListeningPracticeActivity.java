@@ -17,7 +17,7 @@ import com.google.android.material.textfield.TextInputEditText;
 
 public class ListeningPracticeActivity extends AppCompatActivity {
 
-    private ImageButton btnBack;
+    private ImageButton imgClose, imgHome;
     private MaterialButton continueButton;
     private TextView tvStartVideo;
     private TextInputEditText userInput;
@@ -34,23 +34,32 @@ public class ListeningPracticeActivity extends AppCompatActivity {
     }
 
     private void addControls() {
-        btnBack = findViewById(R.id.btnBack);
+        imgClose = findViewById(R.id.btnBack);
         continueButton = findViewById(R.id.btnContinue);
         tvStartVideo = findViewById(R.id.tvStartVideo);
         userInput = findViewById(R.id.userInputAnswer);
         videoView = findViewById(R.id.videoView);
         toggleHintButton = findViewById(R.id.btnToggleHint);
         subtitleMask = findViewById(R.id.subtitleMask);
+        imgHome = findViewById(R.id.imgHome);
     }
 
     private void addEvents() {
-        btnBack.setOnClickListener(v -> finish());
+        imgClose.setOnClickListener(v -> finish());
         continueButton.setOnClickListener(v -> {
             String input = userInput.getText().toString().trim();
             if (input.equalsIgnoreCase("This podcast is for people who")) {
                 showCongratsDialog();
             } else {
                 showErrorDialog();
+            }
+        });
+        imgHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(ListeningPracticeActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
             }
         });
         tvStartVideo.setOnClickListener(v -> {
