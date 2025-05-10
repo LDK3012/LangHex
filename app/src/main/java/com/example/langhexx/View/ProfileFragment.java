@@ -302,7 +302,6 @@
 
 package com.example.langhexx.View;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -312,7 +311,6 @@ import android.os.Bundle;
 import androidx.annotation.NonNull; // Thêm import này
 import androidx.annotation.Nullable; // Thêm import này
 import androidx.fragment.app.Fragment;
-import androidx.appcompat.widget.AppCompatButton; // Sử dụng AppCompatButton cho nhất quán với XML
 
 import android.text.TextUtils;
 import android.util.Log;
@@ -328,7 +326,6 @@ import com.bumptech.glide.signature.ObjectKey;
 import com.example.langhexx.Controller.AuthController; // Import AuthController
 import com.example.langhexx.Model.UsernamePasswordSessionManager;
 import com.example.langhexx.R;
-import com.google.firebase.BuildConfig;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserInfo;
@@ -351,7 +348,7 @@ import android.content.pm.PackageManager;
 
 public class ProfileFragment extends Fragment {
     private static final String TAG = "ProfileFragment";
-    TextView txtProfileDetail, txtFeedback, txtName, txtEmail, txtLanguage,txtVersion;
+    TextView txtProfileDetail, txtForum, txtName, txtEmail, txtLanguage,txtVersion;
     private ImageView avatarImg ;
     private TextView txtLogout ;
     private FirebaseAuth mAuth;
@@ -432,7 +429,7 @@ public class ProfileFragment extends Fragment {
 
     public void addControls(View view) {
         txtProfileDetail = view.findViewById(R.id.txtInfo);
-        txtFeedback = view.findViewById(R.id.txtFeedback);
+        txtForum = view.findViewById(R.id.txtForum);
         txtName = view.findViewById(R.id.txtName);
         txtEmail = view.findViewById(R.id.txtMail);
         avatarImg = view.findViewById(R.id.profileImg);
@@ -447,8 +444,8 @@ public class ProfileFragment extends Fragment {
             startActivity(intent);
         });
 
-        txtFeedback.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), FeedbackActivity.class);
+        txtForum.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), ForumActivity.class);
             startActivity(intent);
         });
 

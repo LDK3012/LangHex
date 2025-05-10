@@ -1,25 +1,28 @@
 package com.example.langhexx.View;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.example.langhexx.R;
 
+public class CreatePostActivity extends AppCompatActivity {
 
-public class FeedbackActivity extends AppCompatActivity  {
+    ImageView imgBackward;
 
-
-    Button btnBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // After attachBaseContext is called, setContentView will use the correct locale
-        setContentView(R.layout.activity_feedback);
+        setContentView(R.layout.activity_create_post);
         addControls();
         addEvents();
     }
@@ -27,11 +30,11 @@ public class FeedbackActivity extends AppCompatActivity  {
     public void addControls(){
         // Now, getString(R.id.btnBack) and other resource lookups
         // within this Activity should use the correct language.
-        btnBack = findViewById(R.id.btnBack);
+        imgBackward = findViewById(R.id.imgBackward);
     }
 
     public void addEvents(){
-        btnBack.setOnClickListener(new View.OnClickListener() {
+        imgBackward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 finish(); // Or navigate back as needed
