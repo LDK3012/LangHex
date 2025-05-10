@@ -56,6 +56,10 @@ public class ForumActivity extends AppCompatActivity  {
                 startActivity(intent);
             }
         });
+        lvRecentPosts.setOnItemClickListener((parent, view, position, id) -> {
+            Intent intent = new Intent(ForumActivity.this, ForumPostActivity.class);
+            startActivity(intent);
+        });
     }
     private void setUpListView(){
         postList = new ArrayList<>();

@@ -1,0 +1,52 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/white"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Viết bình luận của bạn"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        android:layout_marginBottom="16dp"/>
+    <EditText
+        android:id="@+id/edtPost"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:background="@drawable/custom_edt_postandcomment"
+        android:gravity="top"
+        android:hint="Bạn đang nghĩ gì?"
+        android:padding="12dp"
+        android:editable="false"
+        android:textColorHint="#AAAAAA" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:gravity="end">
+            <Button
+                android:id="@+id/btnClose"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
+                android:layout_marginRight="20dp"
+                android:text="Đóng"
+                android:backgroundTint="#FF6C6C">
+            </Button>
+            <Button
+                android:id="@+id/btnSend"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
+                android:text="Gửi"
+                android:backgroundTint="@color/Red">
+            </Button>
+
+         </LinearLayout>
+
+</LinearLayout>
