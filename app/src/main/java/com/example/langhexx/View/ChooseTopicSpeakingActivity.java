@@ -4,16 +4,17 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.content.SharedPreferences; // Thêm SharedPreferences
+import android.graphics.Color; // Sẽ dùng để thay đổi màu nền nếu cần (hoặc dùng drawable)
 import android.os.Bundle;
-import android.util.Log; // Thêm Log
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
-// Bỏ ListAdapter nếu không dùng ép kiểu trực tiếp
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.example.langhexx.Controller.TopicAdapter; // Đảm bảo bạn đang dùng TopicAdapter đã cập nhật
+import com.example.langhexx.Controller.TopicAdapter;
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
@@ -23,15 +24,29 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashSet; // Thêm HashSet
+import java.util.Set; // Thêm Set
 
 public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private ListView lvTopics;
     private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
+<<<<<<< HEAD
     private ImageView imgBack, imgHome;
     private static final String ACTIVITY_TAG = "ChooseTopicSpeaking"; // Thẻ log
     private final String CURRENT_SKILL_NAME = "Speaking"; // <-- Định nghĩa tên kỹ năng
+=======
+    private ImageView imgBack;
+    private static final String ACTIVITY_TAG = "ChooseTopicSpeaking";
+    private final String CURRENT_SKILL_NAME = "Speaking";
+
+    // SharedPreferences
+    private SharedPreferences sharedPreferences;
+    private static final String PREFS_NAME = "TopicPrefs"; // Tên file SharedPreferences
+    private String clickedTopicsKey; // Key để lưu các topic đã click, phụ thuộc vào level và skill
+    private Set<String> clickedTopicTitles; // Set để lưu các title đã click
+>>>>>>> 387ae4af51beb3cb1f93239be7a99cadae7ed111
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,31 +63,47 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         }
         Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
 
-        addControls(); // Gọi sau khi đã có levelName
+        // Khởi tạo SharedPreferences và key
+        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        clickedTopicsKey = levelName + "_" + CURRENT_SKILL_NAME + "_clickedTopics"; // Tạo key duy nhất
+        loadClickedTopics(); // Tải các topic đã click từ SharedPreferences
 
-        // loadTopicsFromFirebase nên được gọi sau khi adapter đã được khởi tạo
+        addControls(); // Gọi sau khi đã có levelName và đã tải clickedTopicTitles
+
         loadTopicsFromFirebase(levelName);
-
         addEvents();
+    }
+
+    private void loadClickedTopics() {
+        // Lấy Set các topic đã click, nếu không có thì tạo mới HashSet rỗng
+        clickedTopicTitles = sharedPreferences.getStringSet(clickedTopicsKey, new HashSet<>());
+        Log.d(ACTIVITY_TAG, "Đã tải " + clickedTopicTitles.size() + " chủ đề đã click từ SharedPreferences cho key: " + clickedTopicsKey);
+    }
+
+    private void saveClickedTopic(String topicTitle) {
+        clickedTopicTitles.add(topicTitle);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putStringSet(clickedTopicsKey, clickedTopicTitles);
+        editor.apply(); // Sử dụng apply() để lưu bất đồng bộ
+        Log.d(ACTIVITY_TAG, "Đã lưu chủ đề '" + topicTitle + "' vào SharedPreferences. Tổng số: " + clickedTopicTitles.size());
     }
 
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
-        // TRUYỀN skillName "Speaking" VÀO CONSTRUCTOR CỦA TopicAdapter
-        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
-        lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
+        // TRUYỀN skillName "Speaking", levelName VÀ clickedTopicTitles VÀO CONSTRUCTOR CỦA TopicAdapter
+        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME, clickedTopicTitles);
+        lvTopics.setAdapter(topicAdapter);
         imgBack = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        // Sử dụng CURRENT_SKILL_NAME để đảm bảo đường dẫn chính xác
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME) // Đảm bảo đây là "Speaking"
+                .child(CURRENT_SKILL_NAME)
                 .child("Topics");
 
         Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
@@ -93,7 +124,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
                     Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
                     Toast.makeText(ChooseTopicSpeakingActivity.this, "Không có chủ đề " + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
                 }
-                topicAdapter.notifyDataSetChanged(); // Đảm bảo cập nhật giao diện sau khi có dữ liệu
+                topicAdapter.notifyDataSetChanged();
             }
 
             @Override
@@ -105,7 +136,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     }
 
     private void addEvents() {
-        if (imgBack != null) { // Kiểm tra null cho imgBack
+        if (imgBack != null) {
             imgBack.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -127,10 +158,12 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Topics selectedTopic = topicsArrayList.get(position);
-                // Điều hướng đến InternalSpeakingTopic (đã đúng trong code bạn cung cấp)
+                String topicTitle = selectedTopic.getTitle();
+                saveClickedTopic(topicTitle);
+                topicAdapter.notifyDataSetChanged();
                 Intent intent = new Intent(ChooseTopicSpeakingActivity.this, InternalSpeakingTopic.class);
                 intent.putExtra("levelName", levelName);
-                intent.putExtra("topicTitle", selectedTopic.getTitle());
+                intent.putExtra("topicTitle", topicTitle);
                 startActivity(intent);
             }
         });
