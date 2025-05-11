@@ -1,7 +1,8 @@
-package com.example.langhexx.Model;
-import android.content.Context;
+package com.example.langhexx.Model; // Thay đổi thành package của bạn
 
-import java.util.List ;
+import android.content.Context;
+import java.util.List;
+
 public interface SpeakingContract {
 
     interface Model {
@@ -11,34 +12,43 @@ public interface SpeakingContract {
         int getCurrentQuestionIndex();
         int getQuestionCount();
         void advanceQuestionIndex();
-        void cleanup(); // Để hủy các request nếu cần
+        void cleanup();
     }
 
     interface View {
         void displayQuestion(String question);
         void displayUserAnswer(String userAnswer, boolean isCorrect);
-        void displayEvaluationFeedback(String feedbackVi, String suggestionEn); // Chỉ hiển thị phần feedback
-        void showFeedbackDialog(String message); // Hiển thị dialog chi tiết
+        void displayEvaluationFeedback(String feedbackVi, String suggestionEn);
+        void showFeedbackDialog(String message);
         void showCompletionMessage();
-        void showError(String message); // Hiển thị lỗi chung
+        void showError(String message);
         void showToast(String message);
         void showCustomToast(boolean success, String message);
         void setMicButtonEnabled(boolean enabled);
         void playSound(boolean isCorrect);
         void speakText(String text, String utteranceId);
-        void showWarningIcon(boolean show, String feedbackMessage); // Kết hợp hiển thị và lưu message
-        void hideResponseElements(); // Ẩn các thành phần của câu trả lời cũ khi hiển thị câu hỏi mới
-        void updateUiForNewQuestion(String question); // Cập nhật view mới cho câu hỏi
-        void scrollDown(); // Cuộn xuống
-        Context getContext(); // Controller có thể cần Context từ View
+        void showWarningIcon(boolean show, String feedbackMessage);
+        void hideResponseElements();
+        void updateUiForNewQuestion(String question);
+        void scrollDown();
+        Context getContext();
         void requestAudioPermission();
-        void startSpeechRecognitionIntent();
-        void finishActivity(); // Để đóng activity
+        void finishActivity();
+
+        // --- Phương thức cho SpeechRecognizer nội bộ ---
+        void startListening();
+        void stopListening();
+        void indicateListeningState(boolean isListening);
+
+        // --- Phương thức mới cho Dialog Xác Nhận Giọng Nói ---
+        void showSpeechConfirmationDialog(String partialText);
+        void updateSpeechConfirmationDialog(String newPartialText);
+        void dismissSpeechConfirmationDialog();
     }
 
     interface Controller {
-        void viewDidLoad(); // Được gọi khi View (Activity) được tạo
-        void loadData(); // Yêu cầu tải dữ liệu ban đầu
+        void viewDidLoad();
+        void loadData();
         void onMicButtonClicked();
         void onCloseButtonClicked();
         void onQuestionSpeakerClicked(String question);
@@ -47,10 +57,9 @@ public interface SpeakingContract {
         void onSpeechResult(String spokenText);
         void onSpeechError(String errorReason);
         void onPermissionResult(boolean granted);
-        void onDestroy(); // Được gọi khi View bị hủy
+        void onDestroy();
     }
 
-    // Listener interfaces for Model -> Controller communication
     interface QuestionListener {
         void onQuestionsLoaded(List<String> questions);
         void onQuestionLoadError(String error);
@@ -60,5 +69,4 @@ public interface SpeakingContract {
         void onEvaluationSuccess(String userAnswer, boolean isCorrect, String feedbackVi, String suggestionEn);
         void onEvaluationError(String userAnswer, String errorType);
     }
-
 }

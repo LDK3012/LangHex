@@ -1,71 +1,73 @@
-//MVC
-package com.example.langhexx.View; // Thay đổi thành package của bạn
+package com.example.langhexx.View; // Thay thế bằng package thực tế của bạn
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-// import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.ScrollView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
-// Import contract and controller
-import com.example.langhexx.Controller.SpeakingController; // Import controller
-import com.example.langhexx.Model.SpeakingContract;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.signature.ObjectKey;
+import com.example.langhexx.Controller.SpeakingController;
 import com.example.langhexx.Model.CustomToast;
-import com.example.langhexx.R; // Thay đổi thành R
-//
-import android.content.SharedPreferences; // Thêm import
-import com.google.firebase.auth.FirebaseAuth; // Thêm import
-import com.google.firebase.auth.FirebaseUser; // Thêm import
-import com.google.firebase.auth.UserInfo;      // Thêm import
-import com.bumptech.glide.Glide;             // Đảm bảo đã import Glide
-import com.bumptech.glide.signature.ObjectKey; // Thêm import cho signature
-import com.example.langhexx.Model.UsernamePasswordSessionManager; // Thêm import
-import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.util.TextUtils;
+import com.example.langhexx.Model.SpeakingContract;
+import com.example.langhexx.Model.UsernamePasswordSessionManager;
+import com.example.langhexx.R; // Thay thế bằng R file của bạn
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserInfo;
 
-import java.io.BufferedInputStream;           // Thêm import
-import java.io.ByteArrayOutputStream;         // Thêm import
-import java.io.IOException;                   // Thêm import
-import java.io.InputStream;                   // Thêm import
-import java.net.HttpURLConnection;            // Thêm import
-import java.net.URL;                          // Thêm import
-import java.util.concurrent.ExecutorService;    // Thêm import
-import java.util.concurrent.Executors;      // Thêm import
+// AZURE Speech SDK Imports
+import com.microsoft.cognitiveservices.speech.SpeechConfig;
+import com.microsoft.cognitiveservices.speech.SpeechRecognizer;
+import com.microsoft.cognitiveservices.speech.ResultReason;
+// import com.microsoft.cognitiveservices.speech.SpeechRecognitionResult; // Không dùng trực tiếp ở đây nữa
+import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
 
-import java.util.ArrayList;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+// import java.util.concurrent.Future; // For Azure async operations, not explicitly used here anymore for get()
 
-public class InternalSpeakingTopic extends AppCompatActivity implements SpeakingContract.View { // Chỉ implement View
+public class InternalSpeakingTopic extends AppCompatActivity implements SpeakingContract.View {
 
-    private static final String TAG = "InternalSpeakingTopicView"; // Đổi TAG để phân biệt
-    private static final int REQUEST_CODE_SPEECH_INPUT = 100;
+    private static final String TAG = "InternalSpeakingTopicView";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
 
     // --- UI Elements ---
@@ -79,9 +81,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     private int correctSoundId;
     private int incorrectSoundId;
     private boolean soundsLoaded = false;
-    private Handler uiHandler = new Handler(Looper.getMainLooper()); // Handler cho UI (ví dụ: scroll)
-
-    // --- Views for the CURRENT question ---
+    private Handler uiHandler = new Handler(Looper.getMainLooper());
     private View currentQaView;
     private TextView txtCurrentQuestion;
     private TextView txtResponse;
@@ -89,89 +89,69 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     private ImageView avatarUser;
     private ImageView iconWarning;
     private ImageView questionSpeaker;
-    private TextView tvTitle ;
+    private TextView tvTitle;
 
     // --- Controller ---
-    private SpeakingContract.Controller controller; // Tham chiếu đến Controller
-    //
-    private FirebaseAuth mAuth ;
+    private SpeakingContract.Controller controller;
+
+    // --- Firebase & Session ---
+    private FirebaseAuth mAuth;
     private UsernamePasswordSessionManager sessionManager;
     private static final String MS_GRAPH_PREFS = "MSGraphPrefs";
     private static final String MS_GRAPH_TOKEN_KEY = "ms_graph_token";
     private static final String MICROSOFT_PROVIDER_ID = "microsoft.com";
     private ExecutorService avatarExecutorService;
 
-    // --- Activity Lifecycle ---
+    // --- Azure Speech Recognizer ---
+    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK"; // THAY THẾ BẰNG KEY CỦA BẠN
+    private static final String AZURE_SPEECH_REGION = "eastus";
+    private SpeechConfig azureSpeechConfig;
+    private SpeechRecognizer azureSpeechRecognizer;
+    private AudioConfig azureAudioConfig;
+    private StringBuilder continuousRecoTextBuilder = new StringBuilder();
+
+    // --- Dialog & State ---
+    private boolean isCurrentlyListening = false;
+    private AlertDialog speechConfirmationDialog;
+    private TextView tvPartialSpeechTextInDialog;
+    private boolean speechConfirmedManually = false;
+    private boolean keepListeningActive = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_internal_speaking_topic);
-        //
-        // --- Khởi tạo các thành phần cần cho Avatar ---
+
         mAuth = FirebaseAuth.getInstance();
-        sessionManager = new UsernamePasswordSessionManager(this); // Khởi tạo SessionManager
+        sessionManager = new UsernamePasswordSessionManager(this);
         avatarExecutorService = Executors.newSingleThreadExecutor();
-        // Lấy dữ liệu Intent trước khi tạo Controller
+
         String levelName = getIntent().getStringExtra("levelName");
         String topicTitle = getIntent().getStringExtra("topicTitle");
-        //
-        // Initialize Controller (pass View reference and Context)
+
         controller = new SpeakingController(this, this, levelName, topicTitle);
 
-        addControls(); // Initialize UI elements
-        //show title
-        tvTitle.setText(topicTitle);
-        //
-        addEvent();    // Setup listeners to forward to Controller
-        initializeSoundPool(); // Initialize SoundPool
-        initTextToSpeech(); // Initialize TTS (sẽ gọi controller.onTtsReady())
+        addControls();
+        if (topicTitle != null) {
+            tvTitle.setText(topicTitle);
+        }
+        addEvent();
+        initializeSoundPool();
+        initTextToSpeech();
 
-        // Controller handles the rest of the initialization flow
-        controller.viewDidLoad(); // Báo cho Controller biết View đã sẵn sàng
+        try {
+            azureSpeechConfig = SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
+            azureSpeechConfig.setSpeechRecognitionLanguage("en-US");
+            azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput(); // Tạo một lần ở đây
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize Azure SpeechConfig: " + e.getMessage(), e);
+            showError("Azure Speech configuration error:" + e.getMessage());
+            if (btnMicro != null) btnMicro.setEnabled(false);
+        }
+
+        controller.viewDidLoad();
     }
-
-    @Override
-    protected void onDestroy() {
-        if (controller != null) {
-            controller.onDestroy(); // Báo cho Controller biết View sắp bị hủy
-        }
-        // View cleanup
-        if (textToSpeech != null) {
-            textToSpeech.stop();
-            textToSpeech.shutdown();
-        }
-        if (soundPool != null) {
-            soundPool.release();
-        }
-        if (uiHandler != null) {
-            uiHandler.removeCallbacksAndMessages(null);
-        }
-        if (avatarExecutorService != null && !avatarExecutorService.isShutdown()) {
-            avatarExecutorService.shutdown();
-        }
-        super.onDestroy();
-        Log.d(TAG, "onDestroy finished.");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (textToSpeech != null && textToSpeech.isSpeaking()) {
-            textToSpeech.stop();
-        }
-        // Có thể thông báo cho Controller nếu cần xử lý gì đó khi Pause
-        // controller.onViewPaused();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Có thể thông báo cho Controller nếu cần xử lý gì đó khi Resume
-        // controller.onViewResumed();
-    }
-
-    // --- Initialization (UI only) ---
 
     private void addControls() {
         questionContainer = findViewById(R.id.questionContainer);
@@ -179,10 +159,34 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         btnMicro = findViewById(R.id.btnSpeakingMicro);
         imgClose = findViewById(R.id.imgBackward);
         scrollViewContent = findViewById(R.id.scrollViewContent);
-        tvTitle = findViewById(R.id.tvScreenTitle) ;
+        tvTitle = findViewById(R.id.tvScreenTitle);
         imgHome = findViewById(R.id.imgHome);
-        //
+    }
 
+    private void addEvent() {
+        imgClose.setOnClickListener(v -> controller.onCloseButtonClicked());
+        btnMicro.setOnClickListener(v -> {
+            if (azureSpeechConfig == null) {
+                showToast("Cấu hình Azure Speech chưa sẵn sàng.");
+                return;
+            }
+            if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+                Log.d(TAG, "Mic clicked: Dialog is showing.");
+                return;
+            }
+            if (!isCurrentlyListening) {
+                Log.d(TAG, "Mic clicked: Starting new Azure SR session.");
+                controller.onMicButtonClicked();
+            } else {
+                Log.d(TAG, "Mic clicked: Azure SR is active. Stopping current session.");
+                stopListening();
+            }
+        });
+        imgHome.setOnClickListener(view -> {
+            Intent intent = new Intent(InternalSpeakingTopic.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        });
     }
 
     private void initTextToSpeech() {
@@ -190,494 +194,466 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             if (status == TextToSpeech.SUCCESS) {
                 int result = textToSpeech.setLanguage(Locale.US);
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    showToast("Ngôn ngữ nói (Tiếng Anh Mỹ) không được hỗ trợ!");
-                    // Vẫn báo TTS ready để controller có thể load data dù TTS lỗi
-                    if (controller instanceof SpeakingController) { // Kiểm tra kiểu để gọi phương thức cụ thể
-                        ((SpeakingController) controller).onTtsReady();
-                    }
-                } else {
-                    Log.d(TAG, "TextToSpeech initialized successfully.");
-                    textToSpeech.setPitch(1.1f);
-                    textToSpeech.setSpeechRate(0.95f);
-                    // Báo cho Controller biết TTS đã sẵn sàng
-                    if (controller instanceof SpeakingController) {
-                        ((SpeakingController) controller).onTtsReady();
-                    }
-                }
-            } else {
-                Log.e(TAG, "TextToSpeech initialization failed: " + status);
-                showToast("Không thể khởi tạo chức năng đọc văn bản!");
-                // Vẫn báo TTS ready để controller có thể load data dù TTS lỗi
-                if (controller instanceof SpeakingController) {
-                    ((SpeakingController) controller).onTtsReady();
-                }
-            }
+                    showToast("Spoken language (U.S. English) is not supported!");
+                } else { Log.d(TAG, "TextToSpeech initialized successfully."); textToSpeech.setPitch(1.1f); textToSpeech.setSpeechRate(0.95f); }
+            } else { Log.e(TAG, "TextToSpeech initialization failed: " + status); showToast("Unable to initialize text-to-speech functionality!");}
+            if (controller instanceof SpeakingController) { ((SpeakingController) controller).onTtsReady(); }
         });
     }
-
 
     private void initializeSoundPool() {
-        // Giữ nguyên logic khởi tạo SoundPool như trước
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build();
+        AudioAttributes audioAttributes = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
         soundPool = new SoundPool.Builder().setMaxStreams(2).setAudioAttributes(audioAttributes).build();
         soundPool.setOnLoadCompleteListener((sp, sampleId, status) -> {
-            if (status == 0) {
-                Log.d(TAG, "Sound loaded: ID = " + sampleId);
-                if (sampleId == correctSoundId || sampleId == incorrectSoundId) {
-                    if (correctSoundId != 0 && incorrectSoundId != 0) {
-                        soundsLoaded = true;
-                        Log.d(TAG,"Both sounds potentially loaded.");
-                    }
-                }
-            } else {
-                showToast("Lỗi tải hiệu ứng âm thanh ID " + sampleId);
-            }
+            if (status == 0) { Log.d(TAG, "Sound loaded: ID = " + sampleId); soundsLoaded = true; }
+            else { showToast("Failed to load sound effect ID." + sampleId + " status " + status); }
         });
-        try {
-            correctSoundId = soundPool.load(this, R.raw.correct_answer, 1);
-            incorrectSoundId = soundPool.load(this, R.raw.wrong_answer, 1);
-            if(correctSoundId == 0 || incorrectSoundId == 0){
-                showToast("Lỗi tìm file âm thanh trong res/raw");
-            }
-        } catch (Exception e) {
-            showToast("Không tìm thấy file âm thanh trong res/raw");
-            Log.e(TAG, "Error finding sound files", e);
+        try { correctSoundId = soundPool.load(this, R.raw.correct_answer, 1); incorrectSoundId = soundPool.load(this, R.raw.wrong_answer, 1); }
+        catch (Exception e) { showToast("Không tìm thấy file âm thanh trong res/raw"); Log.e(TAG, "Error loading sound files", e); }
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause called.");
+        if (textToSpeech != null && textToSpeech.isSpeaking()) {
+            textToSpeech.stop();
         }
-    }
 
-    // --- Event Forwarding to Controller ---
-
-    private void addEvent() {
-        imgClose.setOnClickListener(v -> controller.onCloseButtonClicked());
-        btnMicro.setOnClickListener(v -> controller.onMicButtonClicked());
-        imgHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(InternalSpeakingTopic.this, MainActivity.class);
-                startActivity(intent);
-                finish();
-            }
-        });
-        // Listener cho speaker/warning sẽ được set trong updateUiForNewQuestion
-    }
-
-    @Override
-    public void displayQuestion(String question) {
-        int currentIndex = -1; // Cần cách lấy index từ controller nếu logic này ở View
-        updateUiForNewQuestion(question); // Cập nhật view mới
-        setMicButtonEnabled(true); // Bật mic cho câu hỏi mới
-        scrollDown();
-    }
-
-    @SuppressLint("InflateParams")
-    @Override
-    public void updateUiForNewQuestion(String question) {
-        currentQaView = inflater.inflate(R.layout.custom_question_list, questionContainer, false);
-
-        // Lấy các view con từ currentQaView
-        txtCurrentQuestion = currentQaView.findViewById(R.id.txtQuestion);
-        questionSpeaker = currentQaView.findViewById(R.id.speaker);
-        txtResponse = currentQaView.findViewById(R.id.tvResponse);
-        responseSpeaker = currentQaView.findViewById(R.id.responseSpeaker);
-        avatarUser = currentQaView.findViewById(R.id.userAvatar);
-        iconWarning = currentQaView.findViewById(R.id.iconWarning);
-
-        txtCurrentQuestion.setText(question);
-        questionSpeaker.setOnClickListener(v -> controller.onQuestionSpeakerClicked(question)); // Forward event
-
-        hideResponseElements(); // Ẩn phần trả lời ban đầu
-
-        questionContainer.addView(currentQaView);
-    }
-
-    @Override
-    public void hideResponseElements() {
-        if (txtResponse != null) txtResponse.setVisibility(View.GONE);
-        if (responseSpeaker != null) responseSpeaker.setVisibility(View.GONE);
-        if (avatarUser != null) avatarUser.setVisibility(View.GONE);
-        if (iconWarning != null) {
-            iconWarning.setVisibility(View.GONE);
-            iconWarning.setOnClickListener(null); // Xóa listener cũ
-        }
-    }
-
-
-    @Override
-    public void displayUserAnswer(String userAnswer, boolean isCorrect) {
-
-        if (currentQaView == null || txtResponse == null || responseSpeaker == null || avatarUser == null) return;
-
-        txtResponse.setText(userAnswer);
-        txtResponse.setTextColor(ContextCompat.getColor(this, isCorrect ? R.color.Lime : R.color.Red));
-        txtResponse.setVisibility(View.VISIBLE);
-        responseSpeaker.setVisibility(View.VISIBLE);
-        //
-        responseSpeaker.setOnClickListener(v -> controller.onResponseSpeakerClicked(userAnswer)); // Forward event
-        if (avatarUser.getVisibility() != View.VISIBLE) {
-            // Nếu avatar CHƯA hiển thị -> Đây là lần đầu hiển thị câu trả lời cho câu hỏi này
-            loadAvatarBasedOnLogin(avatarUser); // Gọi hàm tải avatar (Firebase, MS Graph, or default)
-            avatarUser.setVisibility(View.VISIBLE); // Làm cho avatar hiển thị
-        } else {
-            // Nếu avatar ĐÃ hiển thị -> Không cần làm gì cả, chỉ cần giữ nguyên
-        }
-    }
-
-    // --- Phương thức mới: Load Avatar dựa trên trạng thái đăng nhập ---
-    private void loadAvatarBasedOnLogin(ImageView targetAvatarView) {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        // Ưu tiên 1: Firebase User
-        if (currentUser != null) {
-            // Kiểm tra xem có phải đăng nhập bằng Microsoft không
-            boolean isMicrosoftUser = false;
-            for (UserInfo profile : currentUser.getProviderData()) {
-                if (MICROSOFT_PROVIDER_ID.equals(profile.getProviderId())) {
-                    isMicrosoftUser = true;
-                    break;
+        if (isCurrentlyListening || (speechConfirmationDialog != null && speechConfirmationDialog.isShowing())) {
+            Log.d(TAG, "onPause: Stopping active Azure speech recognition and dialog.");
+            keepListeningActive = false;
+            if (azureSpeechRecognizer != null) {
+                try {
+                    azureSpeechRecognizer.stopContinuousRecognitionAsync(); // Không cần .get() ở onPause
+                } catch (Exception e) {
+                    Log.e(TAG, "Error stopping Azure recognizer in onPause: " + e.getMessage());
                 }
             }
-
-            if (isMicrosoftUser) {
-                // Người dùng Microsoft -> Lấy ảnh từ Graph API
-                Log.d(TAG, "Loading avatar for Microsoft user.");
-                String msGraphToken = getMsGraphToken();
-                if (!TextUtils.isEmpty(msGraphToken)) {
-                    fetchMicrosoftProfilePhoto(msGraphToken, targetAvatarView);
-                } else {
-                    Log.w(TAG, "MS Graph token not found for avatar loading. Using default.");
-                    loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); // Ảnh mặc định nếu ko có token
-                }
-            } else {
-                // Người dùng Firebase khác (Google, Email/Pass,...) -> Dùng photoUrl nếu có
-                Uri photoUrl = currentUser.getPhotoUrl();
-                if (photoUrl != null) {
-                    Log.d(TAG, "Loading avatar from Firebase photoUrl: " + photoUrl);
-                    Glide.with(this)
-                            .load(photoUrl)
-                            .circleCrop()
-                            .placeholder(R.drawable.unknown_avatar)
-                            .error(R.drawable.unknown_avatar) // Ảnh mặc định nếu URL lỗi
-                            .into(targetAvatarView);
-                } else {
-                    Log.d(TAG, "Firebase user has no photoUrl. Using default.");
-                    loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); // Mặc định nếu ko có photoUrl
-                }
-            }
-        }
-        // Ưu tiên 2: Session Manager (Đăng nhập Username/Password)
-        else if (sessionManager.isLoggedIn()) {
-            Log.d(TAG, "Loading default avatar for Session Manager user.");
-            loadDefaultAvatar(targetAvatarView, R.drawable.avatar); // Ảnh mặc định riêng cho session user
-        }
-        // Ưu tiên 3: Khách hoặc không xác định
-        else {
-            Log.d(TAG, "No logged-in user found. Loading default unknown avatar.");
-            loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); // Ảnh mặc định cuối cùng
+            // isCurrentlyListening sẽ được cập nhật trong Canceled/SessionStopped
+            dismissSpeechConfirmationDialog(); // Luôn đóng dialog khi pause
         }
     }
 
-    // --- Phương thức phụ: Load ảnh mặc định bằng Glide ---
-    private void loadDefaultAvatar(ImageView targetImageView, int drawableResId) {
-        Glide.with(this)
-                .load(drawableResId)
-                .circleCrop()
-                .placeholder(drawableResId) // Giữ chỗ bằng chính ảnh default
-                .error(R.drawable.unknown_avatar) // Fallback cuối cùng nếu có lỗi drawable
-                .into(targetImageView);
-    }
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "onDestroy called.");
+        keepListeningActive = false;
+        dismissSpeechConfirmationDialog();
 
-    private String getMsGraphToken() {
-        // Lấy context an toàn hơn
-        Context context = getApplicationContext();
-        if (context == null) return null;
-        SharedPreferences prefs = context.getSharedPreferences(MS_GRAPH_PREFS, Context.MODE_PRIVATE);
-        return prefs.getString(MS_GRAPH_TOKEN_KEY, null);
-    }
-    // Phương thức fetch ảnh MS (đã sửa để nhận targetImageView)
-    private void fetchMicrosoftProfilePhoto(String accessToken, ImageView targetImageView) {
-        if (avatarExecutorService == null || avatarExecutorService.isShutdown()) {
-            Log.w(TAG, "Avatar ExecutorService is not running. Cannot fetch photo.");
-            loadDefaultAvatar(targetImageView, R.drawable.unknown_avatar); // Load default nếu executor lỗi
-            return;
-        }
+        if (controller != null) { controller.onDestroy(); controller = null; }
+        if (textToSpeech != null) { textToSpeech.stop(); textToSpeech.shutdown(); textToSpeech = null; }
+        if (soundPool != null) { soundPool.release(); soundPool = null; }
+        if (uiHandler != null) { uiHandler.removeCallbacksAndMessages(null); }
 
-        avatarExecutorService.execute(() -> {
-            HttpURLConnection urlConnection = null;
-            InputStream inputStream = null;
-            ByteArrayOutputStream buffer = null;
-            byte[] photoData = null;
-            int responseCode = -1;
-
+        if (azureSpeechRecognizer != null) {
             try {
-                // ... (Logic kết nối và lấy dữ liệu byte[] từ Graph API giữ nguyên như HomeFragment) ...
-                URL url = new URL("https://graph.microsoft.com/v1.0/me/photo/$value");
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.setRequestProperty("Authorization", "Bearer " + accessToken);
-                urlConnection.setConnectTimeout(15000);
-                urlConnection.setReadTimeout(15000);
-                responseCode = urlConnection.getResponseCode();
-
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    inputStream = new BufferedInputStream(urlConnection.getInputStream());
-                    buffer = new ByteArrayOutputStream();
-                    byte[] data = new byte[1024];
-                    int nRead;
-                    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                        buffer.write(data, 0, nRead);
-                    }
-                    buffer.flush();
-                    photoData = buffer.toByteArray();
-                    Log.d(TAG, "Successfully fetched MS Graph photo data for avatar.");
-                } else {
-                    Log.e(TAG, "Failed to fetch MS Graph photo. Response code: " + responseCode);
-                    // Có thể clear token nếu lỗi 401/403 ở đây
-                    // if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED || responseCode == HttpURLConnection.HTTP_FORBIDDEN) {
-                    //     clearMsGraphToken(); // Cần context để clear
-                    // }
-                }
-            } catch (IOException e) {
-                Log.e(TAG, "IOException while fetching MS Graph photo: ", e);
-                photoData = null;
-            } finally {
-                // ... (Logic dọn dẹp tài nguyên giữ nguyên) ...
-                if (inputStream != null) try { inputStream.close(); } catch (IOException e) {}
-                if (buffer != null) try { buffer.close(); } catch (IOException e) {}
-                if (urlConnection != null) urlConnection.disconnect();
-            }
-
-            // --- Update UI on the Main Thread ---
-            final byte[] finalPhotoData = photoData;
-            final int finalResponseCode = responseCode; // Dùng để log nếu cần
-
-            // Đảm bảo Activity còn tồn tại trước khi cập nhật UI
-            if (!isFinishing() && !isDestroyed()) {
-                runOnUiThread(() -> {
-                    // Lấy UID để làm signature (nếu có)
-                    String signatureKey = "ms_avatar_default";
-                    FirebaseUser currentUser = mAuth.getCurrentUser();
-                    if (currentUser != null && !TextUtils.isEmpty(currentUser.getUid())) {
-                        signatureKey = currentUser.getUid(); // Dùng UID làm signature
-                    }
-
-                    if (finalPhotoData != null) {
-                        Glide.with(InternalSpeakingTopic.this) // Sử dụng Context Activity
-                                .load(finalPhotoData)
-                                .circleCrop()
-                                .signature(new ObjectKey(signatureKey)) // Thêm signature
-                                .placeholder(R.drawable.unknown_avatar)
-                                .error(R.drawable.unknown_avatar) // Fallback nếu Glide lỗi load byte[]
-                                .into(targetImageView); // Load vào ImageView được truyền vào
-                        Log.d(TAG, "MS Graph photo loaded into avatar view.");
-                    } else {
-                        Log.w(TAG, "MS Graph photo data is null. Loading default avatar.");
-                        // Load ảnh mặc định nếu fetch thất bại hoặc user không có ảnh (404)
-                        loadDefaultAvatar(targetImageView, R.drawable.unknown_avatar);
-                    }
-                });
-            } else {
-                Log.w(TAG, "Activity is finishing/destroyed. Cannot update avatar UI.");
-            }
-        });
-    }
-
-    @Override
-    public void displayEvaluationFeedback(String feedbackVi, String suggestionEn) {
-        // Not used directly, feedback shown via dialog/warning icon
-    }
-
-    @Override
-    public void showWarningIcon(boolean show, String feedbackMessage) {
-        if (iconWarning == null) return;
-        if (show) {
-            iconWarning.setVisibility(View.VISIBLE);
-            iconWarning.setImageResource(android.R.drawable.ic_dialog_info);
-            // Tint icon
-            Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info);
-            if (icon != null) {
-                icon = DrawableCompat.wrap(icon).mutate();
-                DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); // Dùng màu đỏ từ R
-                iconWarning.setImageDrawable(icon);
-            }
-            // Set listener to forward to controller
-            iconWarning.setOnClickListener(v -> controller.onWarningIconClicked(feedbackMessage));
-        } else {
-            iconWarning.setVisibility(View.GONE);
-            iconWarning.setOnClickListener(null);
+                azureSpeechRecognizer.stopContinuousRecognitionAsync().get(); // Chờ để đảm bảo dừng hẳn
+            } catch (Exception e) { Log.w(TAG, "Exception stopping recognizer in onDestroy: " + e.getMessage()); }
+            azureSpeechRecognizer.close();
+            azureSpeechRecognizer = null;
         }
-    }
+        if (azureAudioConfig != null) { azureAudioConfig.close(); azureAudioConfig = null; }
+        if (azureSpeechConfig != null) { azureSpeechConfig.close(); azureSpeechConfig = null; }
 
-    @Override
-    public void showFeedbackDialog(String message) {
-        // Giữ nguyên logic hiển thị AlertDialog như trước
-        if (isFinishing() || isDestroyed()) return;
-        Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info);
-        if (icon != null) {
-            icon = DrawableCompat.wrap(icon).mutate();
-            DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); // Dùng màu đỏ từ R
+        if (avatarExecutorService != null && !avatarExecutorService.isShutdown()) {
+            avatarExecutorService.shutdown();
         }
-        new AlertDialog.Builder(this)
-                .setTitle("Gợi ý phản hồi")
-                .setMessage(message)
-                .setIcon(icon)
-                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                .show();
+        super.onDestroy();
+        Log.d(TAG, "onDestroy finished.");
     }
 
-    @Override
-    public void showCompletionMessage() {
-        // Giữ nguyên logic hiển thị TextView hoàn thành như trước
-        if (questionContainer.findViewWithTag("completion_message") == null) {
-            TextView completionText = new TextView(this);
-            completionText.setText("Chúc mừng! Bạn đã hoàn thành tất cả câu hỏi!");
-            completionText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            completionText.setPadding(16, 32, 16, 32);
-            completionText.setTag("completion_message");
-            questionContainer.addView(completionText);
-        }
-        setMicButtonEnabled(false);
-    }
+    // --- SpeakingContract.View Implementation (Các phương thức không thay đổi nhiều đã được thu gọn ở đây) ---
+    @Override public void displayQuestion(String question) { updateUiForNewQuestion(question); setMicButtonEnabled(azureSpeechConfig != null); scrollDown(); }
+    @SuppressLint("InflateParams") @Override public void updateUiForNewQuestion(String question) { currentQaView = inflater.inflate(R.layout.custom_question_list, questionContainer, false); txtCurrentQuestion = currentQaView.findViewById(R.id.txtQuestion); questionSpeaker = currentQaView.findViewById(R.id.speaker); txtResponse = currentQaView.findViewById(R.id.tvResponse); responseSpeaker = currentQaView.findViewById(R.id.responseSpeaker); avatarUser = currentQaView.findViewById(R.id.userAvatar); iconWarning = currentQaView.findViewById(R.id.iconWarning); txtCurrentQuestion.setText(question); questionSpeaker.setOnClickListener(v -> controller.onQuestionSpeakerClicked(question)); hideResponseElements(); questionContainer.addView(currentQaView); }
+    @Override public void hideResponseElements() { if (txtResponse != null) txtResponse.setVisibility(View.GONE); if (responseSpeaker != null) responseSpeaker.setVisibility(View.GONE); if (avatarUser != null) avatarUser.setVisibility(View.GONE); if (iconWarning != null) { iconWarning.setVisibility(View.GONE); iconWarning.setOnClickListener(null); } }
+    @Override public void displayUserAnswer(String userAnswer, boolean isCorrect) { if (currentQaView == null || txtResponse == null || responseSpeaker == null || avatarUser == null) return; txtResponse.setText(userAnswer); txtResponse.setTextColor(ContextCompat.getColor(this, isCorrect ? R.color.Lime : R.color.Red)); txtResponse.setVisibility(View.VISIBLE); responseSpeaker.setVisibility(View.VISIBLE); responseSpeaker.setOnClickListener(v -> controller.onResponseSpeakerClicked(userAnswer)); if (avatarUser.getVisibility() != View.VISIBLE) { loadAvatarBasedOnLogin(avatarUser); avatarUser.setVisibility(View.VISIBLE); } }
+    private void loadAvatarBasedOnLogin(ImageView targetAvatarView) { FirebaseUser currentUser = mAuth.getCurrentUser(); if (currentUser != null) { boolean isMicrosoftUser = false; for (UserInfo profile : currentUser.getProviderData()) { if (MICROSOFT_PROVIDER_ID.equals(profile.getProviderId())) { isMicrosoftUser = true; break; } } if (isMicrosoftUser) { String msGraphToken = getMsGraphToken(); if (!TextUtils.isEmpty(msGraphToken)) fetchMicrosoftProfilePhoto(msGraphToken, targetAvatarView); else loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); } else { Uri photoUrl = currentUser.getPhotoUrl(); if (photoUrl != null) Glide.with(this).load(photoUrl).circleCrop().placeholder(R.drawable.unknown_avatar).error(R.drawable.unknown_avatar).into(targetAvatarView); else loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); } } else if (sessionManager.isLoggedIn()) { loadDefaultAvatar(targetAvatarView, R.drawable.avatar); } else { loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); } }
+    private void loadDefaultAvatar(ImageView targetImageView, int drawableResId) { if (isFinishing() || isDestroyed()) return; Glide.with(this).load(drawableResId).circleCrop().placeholder(drawableResId).error(R.drawable.unknown_avatar).into(targetImageView); }
+    private String getMsGraphToken() { SharedPreferences prefs = getApplicationContext().getSharedPreferences(MS_GRAPH_PREFS, Context.MODE_PRIVATE); return prefs.getString(MS_GRAPH_TOKEN_KEY, null); }
+    private void fetchMicrosoftProfilePhoto(String accessToken, ImageView targetImageView) { if (avatarExecutorService == null || avatarExecutorService.isShutdown()) { runOnUiThread(() -> loadDefaultAvatar(targetImageView, R.drawable.unknown_avatar)); return; } avatarExecutorService.execute(() -> { HttpURLConnection urlConnection = null; InputStream inputStream = null; ByteArrayOutputStream buffer = null; byte[] photoData = null; try { URL url = new URL("https://graph.microsoft.com/v1.0/me/photo/$value"); urlConnection = (HttpURLConnection) url.openConnection(); urlConnection.setRequestProperty("Authorization", "Bearer " + accessToken); if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) { inputStream = new BufferedInputStream(urlConnection.getInputStream()); buffer = new ByteArrayOutputStream(); byte[] data = new byte[1024]; int nRead; while ((nRead = inputStream.read(data, 0, data.length)) != -1) buffer.write(data, 0, nRead); buffer.flush(); photoData = buffer.toByteArray(); } } catch (IOException e) { Log.e(TAG, "IOException fetching MS Photo", e); } finally { try { if (inputStream != null) inputStream.close(); if (buffer != null) buffer.close(); } catch (IOException ignored) {} if (urlConnection != null) urlConnection.disconnect(); } final byte[] finalPhotoData = photoData; if (!isFinishing() && !isDestroyed()) { runOnUiThread(() -> { String uid = (mAuth.getCurrentUser() != null && mAuth.getCurrentUser().getUid() != null) ? mAuth.getCurrentUser().getUid() : "default_ms_key"; if (finalPhotoData != null) Glide.with(InternalSpeakingTopic.this).load(finalPhotoData).circleCrop().signature(new ObjectKey(uid)).placeholder(R.drawable.unknown_avatar).error(R.drawable.unknown_avatar).into(targetImageView); else loadDefaultAvatar(targetImageView, R.drawable.unknown_avatar); }); } }); }
+    @Override public void displayEvaluationFeedback(String feedbackVi, String suggestionEn) {}
+    @Override public void showWarningIcon(boolean show, String feedbackMessage) { if (iconWarning == null) return; if (show) { iconWarning.setVisibility(View.VISIBLE); Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info); if (icon != null) { icon = DrawableCompat.wrap(icon).mutate(); DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); iconWarning.setImageDrawable(icon); } iconWarning.setOnClickListener(v -> { if (controller != null) controller.onWarningIconClicked(feedbackMessage); }); } else { iconWarning.setVisibility(View.GONE); iconWarning.setOnClickListener(null); } }
+    @Override public void showFeedbackDialog(String message) { if (isFinishing() || isDestroyed()) return; Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info); if (icon != null) { icon = DrawableCompat.wrap(icon).mutate(); DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); } new AlertDialog.Builder(this).setTitle("Gợi ý phản hồi").setMessage(message).setIcon(icon).setPositiveButton("OK", (dialog, which) -> dialog.dismiss()).show(); }
+    @Override public void showCompletionMessage() { if (questionContainer.findViewWithTag("completion_message") == null) { TextView completionText = new TextView(this); completionText.setText("Chúc mừng! Bạn đã hoàn thành tất cả câu hỏi!"); completionText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); completionText.setPadding(16, 32, 16, 32); completionText.setTag("completion_message"); questionContainer.addView(completionText); } setMicButtonEnabled(false); }
+    @Override public void showError(String message) { showToast("Lỗi: " + message); Log.e(TAG, "Displaying Error: " + message); if (questionContainer.getChildCount() == 0 && currentQaView == null && !isFinishing()) { questionContainer.removeAllViews(); TextView errorText = new TextView(this); errorText.setText("Đã xảy ra lỗi: " + message + "\nVui lòng thử lại hoặc kiểm tra kết nối."); errorText.setTextColor(Color.RED); errorText.setPadding(16, 16, 16, 16); errorText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); questionContainer.addView(errorText); } }
+    @Override public void showToast(String message) { if (!isFinishing() && message != null) { Toast.makeText(this, message, Toast.LENGTH_SHORT).show(); } }
+    @Override public void showCustomToast(boolean success, String message) { if (isFinishing()) return; if (success) { CustomToast.showSuccess(this, message, R.drawable.success); } else { CustomToast.showFail(this, message, R.drawable.fail_icon); } }
+    @Override public void playSound(boolean isCorrect) { if (!soundsLoaded || soundPool == null) { Log.w(TAG, "Sound not played: soundsLoaded=" + soundsLoaded + ", soundPoolNull=" + (soundPool == null)); return; } int soundId = isCorrect ? correctSoundId : incorrectSoundId; if (soundId != 0) { soundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f); } else { Log.w(TAG, "Sound not played: soundId is 0 for isCorrect=" + isCorrect); } }
+    @Override public Context getContext() { return this; }
+    @Override public void scrollDown() { uiHandler.post(() -> scrollViewContent.fullScroll(View.FOCUS_DOWN)); }
+    @Override public void finishActivity() { finish(); }
 
-    @Override
-    public void showError(String message) {
-        // Giữ nguyên logic hiển thị lỗi (Toast hoặc TextView) như trước
-        showToast("Lỗi: " + message);
-        Log.e(TAG, "Displaying Error: " + message);
-
-        // Hiển thị lỗi trong container nếu chưa có câu hỏi
-        if(questionContainer.getChildCount() == 0 && currentQaView == null) { // Kiểm tra chính xác hơn
-            questionContainer.removeAllViews(); // Xóa các view cũ nếu có
-            TextView errorText = new TextView(this);
-            errorText.setText("Đã xảy ra lỗi: " + message);
-            errorText.setTextColor(Color.RED);
-            errorText.setPadding(16, 16, 16, 16);
-            questionContainer.addView(errorText);
-        }
-    }
-
-    @Override
-    public void showToast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void showCustomToast(boolean success, String message) {
-        // Giữ nguyên logic CustomToast như trước
-        if(success) {
-            CustomToast.showSuccess(this, message, R.drawable.success);
-        } else {
-            CustomToast.showFail(this, message, R.drawable.fail_icon);
-        }
-    }
 
     @Override
     public void setMicButtonEnabled(boolean enabled) {
-        // Giữ nguyên logic cập nhật trạng thái nút micro như trước
-        btnMicro.setEnabled(enabled);
-        btnMicro.setAlpha(enabled ? 1.0f : 0.5f);
-    }
-
-    @Override
-    public void playSound(boolean isCorrect) {
-        // Giữ nguyên logic phát âm thanh SoundPool như trước
-        int soundId = isCorrect ? correctSoundId : incorrectSoundId;
-        if (soundsLoaded && soundPool != null && soundId != 0) {
-            soundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f);
-        } else {
-            Log.w(TAG, "Cannot play sound - Loaded: " + soundsLoaded + ", Pool: " + (soundPool != null) + ", ID: " + soundId);
-        }
+        if (btnMicro == null) return;
+        boolean dialogIsOpen = (speechConfirmationDialog != null && speechConfirmationDialog.isShowing());
+        btnMicro.setEnabled(enabled && !dialogIsOpen && azureSpeechConfig != null);
+        btnMicro.setAlpha(btnMicro.isEnabled() ? 1.0f : 0.5f);
+        Log.d(TAG, "setMicButtonEnabled: " + enabled + ", DialogOpen: " + dialogIsOpen + ", AzureConfigReady: " + (azureSpeechConfig != null) + " -> MicEnabled: " + btnMicro.isEnabled());
     }
 
     @Override
     public void speakText(String text, String utteranceId) {
-        // Giữ nguyên logic gọi TTS như trước
-        if (textToSpeech != null && text != null && !text.isEmpty() && textToSpeech.getEngines().size() > 0) {
+        if (textToSpeech != null && !TextUtils.isEmpty(text) && textToSpeech.getEngines().size() > 0) {
+            if (isCurrentlyListening && azureSpeechRecognizer != null) {
+                Log.d(TAG, "TTS speakText: Stopping active Azure listening to speak.");
+                try {
+                    azureSpeechRecognizer.stopContinuousRecognitionAsync();
+                } catch (Exception e) { Log.e(TAG, "Error stopping Azure for TTS: " + e.getMessage()); }
+            }
+            dismissSpeechConfirmationDialog();
             Bundle params = new Bundle();
             params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId);
-            textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, params, utteranceId);
+            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId);
         } else {
-            Log.e(TAG, "TTS not ready, text empty, or no engines. Cannot speak.");
+            Log.e(TAG, "TTS not ready or text empty.");
         }
     }
 
     @Override
-    public Context getContext() {
-        return this; // Trả về Context của Activity
-    }
-
-    @Override
-    public void scrollDown() {
-        // Giữ nguyên logic cuộn ScrollView như trước
-        uiHandler.post(() -> scrollViewContent.fullScroll(View.FOCUS_DOWN));
-    }
-
-    @Override
-    public void finishActivity() {
-        finish(); // Đóng Activity
-    }
-
-    // --- Permission Handling ---
-    @Override
     public void requestAudioPermission() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET}, REQUEST_RECORD_AUDIO_PERMISSION);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
-            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
-            controller.onPermissionResult(granted); // Forward result to Controller
-        }
-    }
-
-    // --- Intent Handling ---
-    @Override
-    public void startSpeechRecognitionIntent() {
-        // Giữ nguyên logic tạo và bắt đầu RecognizerIntent như trước
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
-        //... (các extra khác) ...
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói câu trả lời của bạn...");
-        try {
-            startActivityForResult(intent, REQUEST_CODE_SPEECH_INPUT);
-        } catch (Exception e) {
-            controller.onSpeechError("Không thể khởi động nhận dạng giọng nói."); // Forward error
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_SPEECH_INPUT) {
-            if (resultCode == RESULT_OK && data != null) {
-                ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                if (results != null && !results.isEmpty()) {
-                    String spokenResponse = results.get(0).trim();
-                    if (!spokenResponse.isEmpty()) {
-                        String formattedResponse = spokenResponse.substring(0, 1).toUpperCase() + spokenResponse.substring(1);
-                        controller.onSpeechResult(formattedResponse); // Forward result
-                    } else {
-                        controller.onSpeechError("Không nhận dạng được giọng nói rõ ràng."); // Forward error
-                    }
-                } else {
-                    controller.onSpeechError("Không nhận dạng được giọng nói."); // Forward error
+            boolean audioGranted = false;
+            for (int i = 0; i < permissions.length; i++) {
+                if (permissions[i].equals(Manifest.permission.RECORD_AUDIO) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    audioGranted = true;
+                    break; // Chỉ cần một lần cấp quyền RECORD_AUDIO
                 }
+            }
+            if (controller != null) {
+                controller.onPermissionResult(audioGranted);
+            }
+            if (!audioGranted) {
+                showToast("Recording permission is required to use this feature.");
+                setMicButtonEnabled(false);
             } else {
-                String errorReason = "Unknown recognition error";
-                switch (resultCode) { /* ... (các case lỗi như cũ) ... */
-                    case RecognizerIntent.RESULT_AUDIO_ERROR: errorReason = "Lỗi âm thanh đầu vào."; break;
-                    case RecognizerIntent.RESULT_CLIENT_ERROR: errorReason = "Lỗi phía client."; break;
-                    case RecognizerIntent.RESULT_NETWORK_ERROR: errorReason = "Lỗi mạng."; break;
-                    case RecognizerIntent.RESULT_NO_MATCH: errorReason = "Không có kết quả phù hợp."; break;
-                    case RecognizerIntent.RESULT_SERVER_ERROR: errorReason = "Lỗi từ server nhận dạng."; break;
-                    case RESULT_CANCELED: errorReason = null; break; // User cancelled
-                }
-                controller.onSpeechError(errorReason); // Forward error/cancel
+                setMicButtonEnabled(azureSpeechConfig != null); // Bật mic nếu config đã sẵn sàng
             }
         }
+    }
+
+    // --- AZURE Speech Recognition & Dialog Methods ---
+    @Override
+    public void startListening() {
+        if (azureSpeechConfig == null) {
+            showToast("Azure Speech configuration is not ready.");
+            Log.e(TAG, "Azure SpeechConfig is null. Cannot start listening.");
+            return;
+        }
+        if (azureAudioConfig == null) { // Nên được khởi tạo ở onCreate, nhưng kiểm tra lại
+            azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput();
+            if (azureAudioConfig == null) {
+                showToast("Unable to configure microphone input");
+                Log.e(TAG, "Azure AudioConfig is null after re-attempt. Cannot start listening.");
+                return;
+            }
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestAudioPermission();
+            return;
+        }
+        if (!isNetworkAvailable()) {
+            showError("No internet connection! Try again");
+            return;
+        }
+
+        if (isCurrentlyListening || (speechConfirmationDialog != null && speechConfirmationDialog.isShowing())) {
+            Log.d(TAG, "Azure startListening: Ignored. Already listening or dialog is showing.");
+            return;
+        }
+
+        if (textToSpeech != null && textToSpeech.isSpeaking()) {
+            textToSpeech.stop();
+        }
+
+        if (azureSpeechRecognizer != null) { // Dọn dẹp instance cũ nếu có
+            try {
+                azureSpeechRecognizer.stopContinuousRecognitionAsync().get(); // Chờ dừng hẳn
+                azureSpeechRecognizer.close();
+                Log.d(TAG, "Closed previous Azure SpeechRecognizer instance.");
+            } catch (Exception e) { Log.w(TAG, "Exception closing previous recognizer: " + e.getMessage()); }
+            azureSpeechRecognizer = null;
+        }
+
+        azureSpeechRecognizer = new SpeechRecognizer(azureSpeechConfig, azureAudioConfig);
+
+        // Reset các cờ và buffer cho phiên mới
+        speechConfirmedManually = false;
+        keepListeningActive = true; // Bật cờ này khi bắt đầu một phiên nghe mới
+        continuousRecoTextBuilder.setLength(0); // Quan trọng: Reset bộ đệm văn bản
+
+        // Đăng ký các event handlers
+        azureSpeechRecognizer.sessionStarted.addEventListener((s, e) -> {
+            Log.d(TAG, "Azure Session STARTED. SessionId: " + e.getSessionId());
+            continuousRecoTextBuilder.setLength(0); // Reset lại ở đây để chắc chắn
+            runOnUiThread(() -> {
+                isCurrentlyListening = true;
+                indicateListeningState(true);
+                updateSpeechConfirmationDialog("Listening...");
+            });
+        });
+
+        azureSpeechRecognizer.recognizing.addEventListener((s, e) -> { // Partial results
+            if (e.getResult().getReason() == ResultReason.RecognizingSpeech) {
+                String partialText = e.getResult().getText();
+                Log.d(TAG, "Azure RECOGNIZING: " + partialText);
+                if (keepListeningActive && !speechConfirmedManually && !TextUtils.isEmpty(partialText)) {
+                    String stableText = continuousRecoTextBuilder.toString();
+                    String textToDisplayOnDialog = stableText + (stableText.isEmpty() ? "" : " ") + partialText;
+                    runOnUiThread(() -> updateSpeechConfirmationDialog(textToDisplayOnDialog));
+                }
+            }
+        });
+
+        azureSpeechRecognizer.recognized.addEventListener((s, e) -> { // Final results for an utterance segment
+            if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
+                String recognizedSegmentText = e.getResult().getText();
+                Log.d(TAG, "Azure RECOGNIZED segment: " + recognizedSegmentText);
+
+                if (keepListeningActive && !speechConfirmedManually) {
+                    if (!TextUtils.isEmpty(recognizedSegmentText)) {
+                        if (continuousRecoTextBuilder.length() > 0) {
+                            continuousRecoTextBuilder.append(" ");
+                        }
+                        continuousRecoTextBuilder.append(recognizedSegmentText);
+                    }
+                    final String fullStableText = continuousRecoTextBuilder.toString().trim();
+                    runOnUiThread(() -> {
+                        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+                            updateSpeechConfirmationDialog(fullStableText.isEmpty() ? "Pending..." : fullStableText);
+                        } else if (keepListeningActive) { // Dialog bị đóng bất ngờ
+                            showSpeechConfirmationDialog(fullStableText.isEmpty() ? "Pending..." : fullStableText);
+                        }
+                    });
+                }
+            } else if (e.getResult().getReason() == ResultReason.NoMatch) {
+                Log.d(TAG, "Azure NOMATCH: Speech could not be recognized for this segment. Details: " + e.getResult().getProperties().getProperty("CancellationDetails_ReasonDetailedText", ""));
+                if (keepListeningActive && !speechConfirmedManually) {
+                    runOnUiThread(() -> {
+                        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+                            String currentDialogTextInView = tvPartialSpeechTextInDialog.getText().toString();
+                            String builtText = continuousRecoTextBuilder.toString().trim();
+                            // Chỉ cập nhật nếu dialog đang trống hoặc chỉ có "Đang nghe..."
+                            // hoặc nếu text hiện tại là text đã build + một cái gì đó (như partial cũ)
+                            // Mục tiêu là không ghi đè lên một partial text có ý nghĩa bằng "No match"
+                            if (builtText.isEmpty() && (currentDialogTextInView.equals("Listening...") || currentDialogTextInView.equals("Chuẩn bị thu âm...")) ) {
+                                updateSpeechConfirmationDialog("(Unknown)");
+                            } else if (!builtText.isEmpty()){
+                                // Nếu đã có text ổn định, có thể thêm (không nhận dạng được tiếp)
+                                updateSpeechConfirmationDialog(builtText + " (Unknown)");
+                            }
+                        }
+                    });
+                }
+            }
+        });
+
+        azureSpeechRecognizer.canceled.addEventListener((s, e) -> {
+            Log.e(TAG, "Azure CANCELED: Reason=" + e.getReason() + ", ErrorDetails=" + e.getErrorDetails() + ", ErrorCode=" + e.getErrorCode());
+            final String errorDetails = e.getErrorDetails();
+            final String reason = e.getReason().toString();
+            runOnUiThread(() -> {
+                isCurrentlyListening = false;
+                indicateListeningState(false);
+                keepListeningActive = false;
+                dismissSpeechConfirmationDialog();
+                if (controller != null && !speechConfirmedManually) {
+                    controller.onSpeechError("Lỗi Azure: " + reason + (TextUtils.isEmpty(errorDetails) ? "" : " - " + errorDetails));
+                }
+                // Không close recognizer ở đây nếu có thể start lại
+            });
+        });
+
+        azureSpeechRecognizer.sessionStopped.addEventListener((s, e) -> {
+            Log.d(TAG, "Azure Session STOPPED. SessionId: " + e.getSessionId());
+            runOnUiThread(() -> {
+                isCurrentlyListening = false;
+                indicateListeningState(false);
+                // Nếu session dừng mà không phải do người dùng chủ động bấm "Xác nhận"/"Hủy"
+                // và keepListeningActive vẫn là true (nghĩa là không phải do onPause),
+                // thì có thể là do timeout hoặc lỗi mạng ngầm.
+                if (keepListeningActive && !speechConfirmedManually) {
+                    Log.w(TAG, "Azure session stopped unexpectedly while keepListeningActive was true.");
+                    if (tvPartialSpeechTextInDialog != null) {
+                        String currentText = tvPartialSpeechTextInDialog.getText().toString();
+                        // Chỉ cập nhật nếu dialog đang ở trạng thái chờ hoặc không có nhiều text
+                        if (currentText.equals("Listening...") || currentText.equals("Getting ready to record...") || continuousRecoTextBuilder.length() < 5) {
+                            updateSpeechConfirmationDialog("Session ended. Retry ?");
+                        }
+                    }
+                    // Không tự động gọi controller.onSpeechError ở đây, để người dùng quyết định qua dialog
+                }
+                // Nếu keepListeningActive là false (do người dùng bấm nút, hoặc onPause), thì đây là dừng bình thường.
+                // Dialog đã được xử lý bởi các nút đó.
+            });
+        });
+
+        showSpeechConfirmationDialog("Chuẩn bị thu âm...");
+        azureSpeechRecognizer.startContinuousRecognitionAsync();
+        Log.d(TAG, "Azure SpeechRecognizer: startContinuousRecognitionAsync called.");
+    }
+
+
+    @Override
+    public void stopListening() {
+        Log.d(TAG, "Azure stopListening: User or controller requested stop.");
+        keepListeningActive = false; // Tắt cờ duy trì lắng nghe
+
+        if (azureSpeechRecognizer != null) {
+            try {
+                azureSpeechRecognizer.stopContinuousRecognitionAsync();
+                // isCurrentlyListening và dialog sẽ được xử lý bởi sessionStopped/canceled events
+            } catch (Exception e) {
+                Log.e(TAG, "Error stopping Azure recognizer in stopListening: " + e.getMessage());
+                // Fallback nếu stopAsync có vấn đề
+                isCurrentlyListening = false;
+                indicateListeningState(false);
+                dismissSpeechConfirmationDialog();
+            }
+        } else {
+            isCurrentlyListening = false;
+            indicateListeningState(false);
+            dismissSpeechConfirmationDialog();
+        }
+    }
+
+    @Override
+    public void indicateListeningState(boolean isSRListening) {
+        if (btnMicro != null) {
+            boolean dialogIsOpen = (speechConfirmationDialog != null && speechConfirmationDialog.isShowing());
+            // Nút micro chỉ được bật khi: KHÔNG có dialog, Azure config OK, VÀ KHÔNG đang lắng nghe (để sẵn sàng cho lượt mới)
+            btnMicro.setEnabled(!dialogIsOpen && azureSpeechConfig != null && !isSRListening);
+            btnMicro.setAlpha((isSRListening && !dialogIsOpen) ? 0.6f : (btnMicro.isEnabled() ? 1.0f : 0.5f) ); // Mờ đi nếu đang nghe (và không có dialog)
+            Log.d(TAG, "IndicateListeningState (Azure): isSRListening=" + isSRListening +
+                    ", dialogOpen=" + dialogIsOpen +
+                    ", azureConfigNull=" + (azureSpeechConfig == null) +
+                    ", btnMicroEnabled=" + btnMicro.isEnabled());
+        }
+    }
+
+    @SuppressLint("InflateParams")
+    @Override
+    public void showSpeechConfirmationDialog(String initialText) {
+        if (isFinishing() || isDestroyed()) {
+            Log.w(TAG, "showSpeechConfirmationDialog: Activity is finishing/destroyed.");
+            return;
+        }
+        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+            // Nếu dialog đã hiển thị, chỉ cập nhật text nếu cần và đó không phải là text ban đầu
+            if (tvPartialSpeechTextInDialog != null && !TextUtils.equals(tvPartialSpeechTextInDialog.getText(), initialText) &&
+                    !(initialText.equals("Listening...") || initialText.equals("Getting ready to record...")) ) { // Không ghi đè lên prompt ban đầu
+                tvPartialSpeechTextInDialog.setText(initialText);
+            }
+            return;
+        }
+        Log.d(TAG, "showSpeechConfirmationDialog: Creating new dialog with text: " + initialText);
+        continuousRecoTextBuilder.setLength(0); // Reset bộ đệm khi dialog mới được tạo
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_speech_confirm, null);
+        builder.setView(dialogView);
+
+        tvPartialSpeechTextInDialog = dialogView.findViewById(R.id.tv_partial_speech_text);
+        Button btnConfirmSpeech = dialogView.findViewById(R.id.btn_confirm_speech);
+        Button btnCancelDialog = dialogView.findViewById(R.id.btn_cancel_speech_dialog);
+
+        if (tvPartialSpeechTextInDialog != null)
+            tvPartialSpeechTextInDialog.setText(initialText);
+
+        speechConfirmationDialog = builder.create();
+        speechConfirmationDialog.setCanceledOnTouchOutside(false);
+        speechConfirmationDialog.setCancelable(false);
+
+        btnConfirmSpeech.setOnClickListener(v -> {
+            if (tvPartialSpeechTextInDialog == null) return;
+            String finalTextToSubmit = tvPartialSpeechTextInDialog.getText().toString().trim();
+
+            Log.d(TAG, "Dialog: 'Xác nhận' clicked. Final Text: '" + finalTextToSubmit + "'. Stopping Azure session.");
+
+            keepListeningActive = false;
+            speechConfirmedManually = true;
+
+            if (azureSpeechRecognizer != null) {
+                try { azureSpeechRecognizer.stopContinuousRecognitionAsync(); }
+                catch (Exception e) { Log.e(TAG, "Error stopping Azure from Confirm: " + e.getMessage()); }
+            }
+
+            if (controller != null) {
+                String formattedResponse = finalTextToSubmit;
+                if (!TextUtils.isEmpty(formattedResponse) && !(formattedResponse.equals("Listening...") || formattedResponse.equals("Chuẩn bị thu âm...") || formattedResponse.contains("Không nhận dạng"))) {
+                    formattedResponse = formattedResponse.substring(0, 1).toUpperCase() + (formattedResponse.length() > 1 ? formattedResponse.substring(1) : "");
+                } else if (formattedResponse.contains("Không nhận dạng") || formattedResponse.contains("Đang xử lý") || formattedResponse.contains("Hết giờ") || formattedResponse.contains("Phiên kết thúc")) {
+                    formattedResponse = ""; // Gửi chuỗi rỗng nếu là thông báo hệ thống/lỗi
+                }
+                controller.onSpeechResult(formattedResponse);
+            }
+            dismissSpeechConfirmationDialog();
+        });
+
+        btnCancelDialog.setOnClickListener(v -> {
+            Log.d(TAG, "Dialog: 'Hủy' clicked. Stopping Azure session.");
+            keepListeningActive = false;
+            speechConfirmedManually = false;
+
+            if (azureSpeechRecognizer != null) {
+                try { azureSpeechRecognizer.stopContinuousRecognitionAsync(); }
+                catch (Exception e) { Log.e(TAG, "Error stopping Azure from Cancel: " + e.getMessage());}
+            }
+            dismissSpeechConfirmationDialog();
+            if (controller != null) {
+                //
+            }
+        });
+
+        if (!isFinishing()) {
+            speechConfirmationDialog.show();
+            if (btnMicro != null) btnMicro.setEnabled(false);
+        }
+    }
+
+    @Override
+    public void updateSpeechConfirmationDialog(String newTextToDisplay) {
+        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing() && tvPartialSpeechTextInDialog != null) {
+            if (TextUtils.isEmpty(newTextToDisplay) &&
+                    (tvPartialSpeechTextInDialog.getText().toString().equals("Listening") ||
+                            tvPartialSpeechTextInDialog.getText().toString().equals("Getting ready to record..."))) {
+                // Không làm gì
+            } else {
+                tvPartialSpeechTextInDialog.setText(newTextToDisplay);
+            }
+        } else if ((speechConfirmationDialog == null || !speechConfirmationDialog.isShowing()) && keepListeningActive && !speechConfirmedManually) {
+            Log.w(TAG, "updateSpeechConfirmationDialog: Dialog not showing but should be. Re-showing with text: " + newTextToDisplay);
+            showSpeechConfirmationDialog(newTextToDisplay);
+        }
+    }
+
+    @Override
+    public void dismissSpeechConfirmationDialog() {
+        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+            try { speechConfirmationDialog.dismiss(); Log.d(TAG, "dismissSpeechConfirmationDialog: Dialog dismissed."); }
+            catch (Exception e) { Log.e(TAG, "Error dismissing dialog", e); }
+        }
+        speechConfirmationDialog = null;
+        tvPartialSpeechTextInDialog = null;
+        setMicButtonEnabled(azureSpeechConfig != null && !isCurrentlyListening);
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager != null) {
+            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        }
+        return false;
     }
 }
