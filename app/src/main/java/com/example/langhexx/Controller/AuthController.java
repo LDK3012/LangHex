@@ -49,7 +49,7 @@ public class AuthController implements MicrosoftAuthModel.MicrosoftAuthListener 
         FirebaseUser firebaseUser = authResult.getUser();
 
         if (firebaseUser != null) {
-            saveMicrosoftUserToDatabase(firebaseUser);
+            saveMicrosoftUserToDatabase(firebaseUser); // This will now update safely
         } else {
             Log.e(TAG, "FirebaseUser is null after Microsoft sign-in success.");
             if (authCallback != null) {
@@ -65,11 +65,11 @@ public class AuthController implements MicrosoftAuthModel.MicrosoftAuthListener 
     }
 
     private void saveMicrosoftUserToDatabase(FirebaseUser firebaseUser) {
-        String firebaseUid = firebaseUser.getUid(); // Key sẽ là Firebase UID
+        String firebaseUid = firebaseUser.getUid(); // Key will be Firebase UID
         DatabaseReference microsoftUserNodeRef = databaseReference
                 .child("Users")
                 .child("MicrosoftUsers")
-                .child(firebaseUid);
+                .child(firebaseUid); // Path to the specific user's node
 
         String userEmail = firebaseUser.getEmail();
         String userName = firebaseUser.getDisplayName();
@@ -77,34 +77,41 @@ public class AuthController implements MicrosoftAuthModel.MicrosoftAuthListener 
 
         for (UserInfo profile : firebaseUser.getProviderData()) {
             if ("microsoft.com".equals(profile.getProviderId())) {
-                msGraphId = profile.getUid(); // Đây là Microsoft Graph ID
+                msGraphId = profile.getUid(); // This is the Microsoft Graph ID
                 if (profile.getEmail() != null && !profile.getEmail().isEmpty()) {
-                    userEmail = profile.getEmail(); // Ưu tiên email từ Microsoft provider
+                    userEmail = profile.getEmail(); // Prioritize email from Microsoft provider
                 }
                 if (profile.getDisplayName() != null && !profile.getDisplayName().isEmpty()) {
-                    userName = profile.getDisplayName(); // Ưu tiên display name từ Microsoft provider
+                    userName = profile.getDisplayName(); // Prioritize display name from Microsoft provider
                 }
                 Log.d(TAG, "Found Microsoft Graph ID from ProviderData: " + msGraphId);
                 break;
             }
         }
 
-        Map<String, Object> microsoftUserData = new HashMap<>();
-        microsoftUserData.put("email", userEmail);
+        // Create a map only for the fields you want to update or set
+        Map<String, Object> userProfileUpdates = new HashMap<>();
+        userProfileUpdates.put("email", userEmail);
         if (msGraphId != null) {
-            microsoftUserData.put("microsoftGraphId", msGraphId);
+            userProfileUpdates.put("microsoftGraphId", msGraphId);
         } else {
             Log.w(TAG, "Microsoft Graph ID not found in provider data for Firebase UID: " + firebaseUid +
-                    ". The 'microsoftGraphId' field will be missing for this user.");
+                    ". The 'microsoftGraphId' field will be missing or not updated for this user.");
+            // If msGraphId was previously set and now it's not found,
+            // you might want to decide if you want to remove it or leave the old value.
+            // For now, we're only setting it if found. If you want to ensure it's removed if not found:
+            // userProfileUpdates.put("microsoftGraphId", null); // This would remove the field if msGraphId is null
         }
-        microsoftUserData.put("name", userName);
+        userProfileUpdates.put("name", userName);
 
-        microsoftUserNodeRef.setValue(microsoftUserData)
+        // Use updateChildren() to update only the specified fields
+        // This will not affect other child nodes like 'Progress'
+        microsoftUserNodeRef.updateChildren(userProfileUpdates)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        Log.i(TAG, "Microsoft user data saved successfully under Users/MicrosoftUsers/" + firebaseUid);
+                        Log.i(TAG, "Microsoft user profile data updated successfully under Users/MicrosoftUsers/" + firebaseUid);
                     } else {
-                        Log.e(TAG, "Failed to save Microsoft user data under Users/MicrosoftUsers/" + firebaseUid, task.getException());
+                        Log.e(TAG, "Failed to update Microsoft user profile data under Users/MicrosoftUsers/" + firebaseUid, task.getException());
                     }
                 });
     }
