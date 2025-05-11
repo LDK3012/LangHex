@@ -49,15 +49,10 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
             return;
         }
         Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
-
         addControls(); // Gọi sau khi đã có levelName
-
-        // loadTopicsFromFirebase nên được gọi sau khi adapter đã được khởi tạo hoàn chỉnh
         loadTopicsFromFirebase(levelName);
-
         addEvents();
     }
-
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
@@ -69,7 +64,6 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        // Sử dụng CURRENT_SKILL_NAME để đảm bảo đường dẫn chính xác
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
@@ -83,7 +77,7 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 topicsArrayList.clear();
-                if (snapshot.exists()) { // Kiểm tra xem node "Topics" có tồn tại không
+                if (snapshot.exists()) {
                     for (DataSnapshot topicSnap : snapshot.getChildren()) {
                         String topicTitle = topicSnap.getKey();
                         if (topicTitle != null) {

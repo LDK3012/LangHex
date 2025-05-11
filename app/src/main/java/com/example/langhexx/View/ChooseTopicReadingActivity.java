@@ -35,14 +35,8 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Đảm bảo tên layout này chính xác trong thư mục res/layout của bạn.
-        // Trong code bạn gửi là "activity_choose_topic_reading_acvitity",
-        // nếu đó là tên đúng thì giữ nguyên, nếu không thì sửa thành tên đúng,
-        // ví dụ: R.layout.activity_choose_topic_reading
-        setContentView(R.layout.activity_choose_topic_reading_acvitity); // Sử dụng tên layout chuẩn, hoặc sửa lại nếu tên file của bạn khác
-
+        setContentView(R.layout.activity_choose_topic_reading_acvitity);
         levelName = getIntent().getStringExtra("levelName");
-
         if (levelName == null || levelName.isEmpty()) {
             Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
             Log.e(ACTIVITY_TAG, "levelName is null or empty!");
@@ -50,10 +44,7 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
             return;
         }
         Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
-
         addControls(); // Gọi sau khi đã có levelName
-
-        // loadTopicsFromFirebase nên được gọi sau khi adapter đã được khởi tạo
         loadTopicsFromFirebase(levelName);
 
         addEvents();
@@ -62,7 +53,6 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics); // Đảm bảo ID này tồn tại trong layout
         topicsArrayList = new ArrayList<>();
-        // TRUYỀN skillName "Reading" VÀO CONSTRUCTOR CỦA TopicAdapter
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
         imgBack = findViewById(R.id.imgBackward); // Đảm bảo ID này tồn tại trong layout
@@ -70,16 +60,13 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        // Sử dụng CURRENT_SKILL_NAME để đảm bảo đường dẫn chính xác
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
                 .child(CURRENT_SKILL_NAME) // Đảm bảo đây là "Reading"
                 .child("Topics");
-
         Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
-
         topicRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -94,14 +81,14 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
                     Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
                 } else {
                     Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
-                    Toast.makeText(ChooseTopicReadingActivity.this, "Không có chủ đề " + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ChooseTopicReadingActivity.this, "No Topic" + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
                 }
                 topicAdapter.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicReadingActivity.this, "Lỗi tải chủ đề " + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseTopicReadingActivity.this, "Fail" + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
             }
         });
@@ -130,8 +117,6 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Topics selectedTopic = topicsArrayList.get(position);
-                // Điều hướng đến Activity cho bài tập Reading
-                // Thay thế Reading_Topic_Exercise_Activity.class bằng tên Activity thực tế của bạn
                 Intent intent = new Intent(ChooseTopicReadingActivity.this, Reading_Topic_Exercise_Activity.class); // <--- THAY ĐỔI Activity ĐÍCH nếu cần
                 intent.putExtra("levelName", levelName);
                 intent.putExtra("topicTitle", selectedTopic.getTitle());

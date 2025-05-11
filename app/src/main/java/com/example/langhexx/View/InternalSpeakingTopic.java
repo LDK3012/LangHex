@@ -1,4 +1,4 @@
-package com.example.langhexx.View; // Thay thế bằng package thực tế của bạn
+package com.example.langhexx.View;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -63,8 +63,6 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-// import java.util.concurrent.Future; // For Azure async operations, not explicitly used here anymore for get()
-
 public class InternalSpeakingTopic extends AppCompatActivity implements SpeakingContract.View {
 
     private static final String TAG = "InternalSpeakingTopicView";
@@ -231,7 +229,6 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                     Log.e(TAG, "Error stopping Azure recognizer in onPause: " + e.getMessage());
                 }
             }
-            // isCurrentlyListening sẽ được cập nhật trong Canceled/SessionStopped
             dismissSpeechConfirmationDialog(); // Luôn đóng dialog khi pause
         }
     }
@@ -264,7 +261,6 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         Log.d(TAG, "onDestroy finished.");
     }
 
-    // --- SpeakingContract.View Implementation (Các phương thức không thay đổi nhiều đã được thu gọn ở đây) ---
     @Override public void displayQuestion(String question) { updateUiForNewQuestion(question); setMicButtonEnabled(azureSpeechConfig != null); scrollDown(); }
     @SuppressLint("InflateParams") @Override public void updateUiForNewQuestion(String question) { currentQaView = inflater.inflate(R.layout.custom_question_list, questionContainer, false); txtCurrentQuestion = currentQaView.findViewById(R.id.txtQuestion); questionSpeaker = currentQaView.findViewById(R.id.speaker); txtResponse = currentQaView.findViewById(R.id.tvResponse); responseSpeaker = currentQaView.findViewById(R.id.responseSpeaker); avatarUser = currentQaView.findViewById(R.id.userAvatar); iconWarning = currentQaView.findViewById(R.id.iconWarning); txtCurrentQuestion.setText(question); questionSpeaker.setOnClickListener(v -> controller.onQuestionSpeakerClicked(question)); hideResponseElements(); questionContainer.addView(currentQaView); }
     @Override public void hideResponseElements() { if (txtResponse != null) txtResponse.setVisibility(View.GONE); if (responseSpeaker != null) responseSpeaker.setVisibility(View.GONE); if (avatarUser != null) avatarUser.setVisibility(View.GONE); if (iconWarning != null) { iconWarning.setVisibility(View.GONE); iconWarning.setOnClickListener(null); } }
@@ -326,7 +322,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             for (int i = 0; i < permissions.length; i++) {
                 if (permissions[i].equals(Manifest.permission.RECORD_AUDIO) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                     audioGranted = true;
-                    break; // Chỉ cần một lần cấp quyền RECORD_AUDIO
+                    break;
                 }
             }
             if (controller != null) {
@@ -349,7 +345,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             Log.e(TAG, "Azure SpeechConfig is null. Cannot start listening.");
             return;
         }
-        if (azureAudioConfig == null) { // Nên được khởi tạo ở onCreate, nhưng kiểm tra lại
+        if (azureAudioConfig == null) {
             azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput();
             if (azureAudioConfig == null) {
                 showToast("Unable to configure microphone input");
@@ -389,8 +385,8 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
 
         // Reset các cờ và buffer cho phiên mới
         speechConfirmedManually = false;
-        keepListeningActive = true; // Bật cờ này khi bắt đầu một phiên nghe mới
-        continuousRecoTextBuilder.setLength(0); // Quan trọng: Reset bộ đệm văn bản
+        keepListeningActive = true;
+        continuousRecoTextBuilder.setLength(0);
 
         // Đăng ký các event handlers
         azureSpeechRecognizer.sessionStarted.addEventListener((s, e) -> {
@@ -403,7 +399,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             });
         });
 
-        azureSpeechRecognizer.recognizing.addEventListener((s, e) -> { // Partial results
+        azureSpeechRecognizer.recognizing.addEventListener((s, e) -> {
             if (e.getResult().getReason() == ResultReason.RecognizingSpeech) {
                 String partialText = e.getResult().getText();
                 Log.d(TAG, "Azure RECOGNIZING: " + partialText);
@@ -415,7 +411,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             }
         });
 
-        azureSpeechRecognizer.recognized.addEventListener((s, e) -> { // Final results for an utterance segment
+        azureSpeechRecognizer.recognized.addEventListener((s, e) -> {
             if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
                 String recognizedSegmentText = e.getResult().getText();
                 Log.d(TAG, "Azure RECOGNIZED segment: " + recognizedSegmentText);
@@ -443,13 +439,9 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                         if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
                             String currentDialogTextInView = tvPartialSpeechTextInDialog.getText().toString();
                             String builtText = continuousRecoTextBuilder.toString().trim();
-                            // Chỉ cập nhật nếu dialog đang trống hoặc chỉ có "Đang nghe..."
-                            // hoặc nếu text hiện tại là text đã build + một cái gì đó (như partial cũ)
-                            // Mục tiêu là không ghi đè lên một partial text có ý nghĩa bằng "No match"
                             if (builtText.isEmpty() && (currentDialogTextInView.equals("Listening...") || currentDialogTextInView.equals("Chuẩn bị thu âm...")) ) {
                                 updateSpeechConfirmationDialog("(Unknown)");
                             } else if (!builtText.isEmpty()){
-                                // Nếu đã có text ổn định, có thể thêm (không nhận dạng được tiếp)
                                 updateSpeechConfirmationDialog(builtText + " (Unknown)");
                             }
                         }
@@ -470,7 +462,6 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                 if (controller != null && !speechConfirmedManually) {
                     controller.onSpeechError("Lỗi Azure: " + reason + (TextUtils.isEmpty(errorDetails) ? "" : " - " + errorDetails));
                 }
-                // Không close recognizer ở đây nếu có thể start lại
             });
         });
 
@@ -479,9 +470,6 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             runOnUiThread(() -> {
                 isCurrentlyListening = false;
                 indicateListeningState(false);
-                // Nếu session dừng mà không phải do người dùng chủ động bấm "Xác nhận"/"Hủy"
-                // và keepListeningActive vẫn là true (nghĩa là không phải do onPause),
-                // thì có thể là do timeout hoặc lỗi mạng ngầm.
                 if (keepListeningActive && !speechConfirmedManually) {
                     Log.w(TAG, "Azure session stopped unexpectedly while keepListeningActive was true.");
                     if (tvPartialSpeechTextInDialog != null) {
@@ -491,10 +479,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                             updateSpeechConfirmationDialog("Session ended. Retry ?");
                         }
                     }
-                    // Không tự động gọi controller.onSpeechError ở đây, để người dùng quyết định qua dialog
                 }
-                // Nếu keepListeningActive là false (do người dùng bấm nút, hoặc onPause), thì đây là dừng bình thường.
-                // Dialog đã được xử lý bởi các nút đó.
             });
         });
 
@@ -515,7 +500,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                 // isCurrentlyListening và dialog sẽ được xử lý bởi sessionStopped/canceled events
             } catch (Exception e) {
                 Log.e(TAG, "Error stopping Azure recognizer in stopListening: " + e.getMessage());
-                // Fallback nếu stopAsync có vấn đề
+
                 isCurrentlyListening = false;
                 indicateListeningState(false);
                 dismissSpeechConfirmationDialog();
@@ -531,7 +516,6 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     public void indicateListeningState(boolean isSRListening) {
         if (btnMicro != null) {
             boolean dialogIsOpen = (speechConfirmationDialog != null && speechConfirmationDialog.isShowing());
-            // Nút micro chỉ được bật khi: KHÔNG có dialog, Azure config OK, VÀ KHÔNG đang lắng nghe (để sẵn sàng cho lượt mới)
             btnMicro.setEnabled(!dialogIsOpen && azureSpeechConfig != null && !isSRListening);
             btnMicro.setAlpha((isSRListening && !dialogIsOpen) ? 0.6f : (btnMicro.isEnabled() ? 1.0f : 0.5f) ); // Mờ đi nếu đang nghe (và không có dialog)
             Log.d(TAG, "IndicateListeningState (Azure): isSRListening=" + isSRListening +

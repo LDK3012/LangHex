@@ -180,7 +180,7 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         textFeedbackGrammarVocabulary = includedFeedbackPanel.findViewById(R.id.text_feedback_grammar_vocabulary);
         textFeedbackLength = includedFeedbackPanel.findViewById(R.id.text_feedback_length);
         TextView reviewTextView = findViewById(R.id.feedback_trigger_button);
-        if (reviewTextView != null) { // Đảm bảo reviewTextView không null
+        if (reviewTextView != null) {
             reviewTextView.setPaintFlags(reviewTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         }
         if (includedFeedbackPanel != null) includedFeedbackPanel.setVisibility(View.GONE);
@@ -235,7 +235,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
                 // Đặt callback mới
                 textChangeRunnable = () -> {
                     if (controller != null && answerEditText.isEnabled()) {
-                        // Gọi onAnswerTextChanged của controller, nơi sẽ xử lý cả logic nút submit và inline analysis
                         controller.onAnswerTextChanged(currentText);
                     }
                 };
@@ -253,7 +252,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         });
     }
 
-    // ... (dpToPx, displayStructuredAIFeedback, updateFeedbackItemUI, ... giữ nguyên) ...
     private int dpToPx(int dp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
@@ -760,7 +758,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
 
 
-    // --- Triển khai các phương thức mới cho inline error highlighting ---
 
     @Override
 
@@ -774,9 +771,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
             if (editable == null) return;
 
-
-
-            // Xóa các span đã thêm trước đó
 
             for (Object span : currentErrorSpans) {
 
@@ -832,7 +826,7 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
         Log.d(TAG, "onPause");
 
-        if (textChangeRunnable != null) { // Hủy debounce khi pause
+        if (textChangeRunnable != null) {
 
             textChangeHandler.removeCallbacks(textChangeRunnable);
 
@@ -892,7 +886,7 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
         Log.d(TAG, "onDestroy");
 
-        if (textChangeRunnable != null) { // Hủy debounce khi destroy
+        if (textChangeRunnable != null) {
 
             textChangeHandler.removeCallbacks(textChangeRunnable);
 
@@ -916,66 +910,50 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
 
     @Override
     public void onBackPressed() {
-        // Kiểm tra xem controller có xử lý sự kiện back không
         if (controller != null && controller.handleBackPressed()) {
             return; // Nếu controller đã xử lý, không làm gì thêm
         }
 
-        // Xác định các trạng thái hiện tại
         boolean hasUnsavedText = answerEditText != null && answerEditText.isEnabled() && !answerEditText.getText().toString().trim().isEmpty();
         boolean isInFeedbackState = controller != null && controller.getCurrentButtonState() == WritingController.STATE_RETRY_WRITING;
         boolean isAllCriteriaSuccess = controller != null && controller.areAllCriteriaSuccess();
         boolean isEditingAfterFeedback = controller != null && controller.isUserEditingAfterFeedback();
 
-        String message = ""; // Tin nhắn sẽ hiển thị trong dialog
-        boolean shouldShowDialog = false; // Cờ xác định có nên hiển thị dialog không
+        String message = "";
+        boolean shouldShowDialog = false;
 
-        // Logic xử lý khi người dùng nhấn nút back
+
         if (isInFeedbackState) {
-            // Nếu đang ở trạng thái nhận phản hồi
             if (isAllCriteriaSuccess) {
-                // Nếu tất cả tiêu chí đã thành công, hỏi người dùng có chắc chắn muốn quay lại không
                 shouldShowDialog = true;
                 message = "Are you sure you want to go back?";
             } else {
-                // --- THAY ĐỔI ĐÃ ÁP DỤNG ---
-                // Nếu không phải tất cả tiêu chí đều thành công (trường hợp "Your feedback progress will be dismissed...")
-                // thì bỏ qua dialog và thực hiện hành động quay lại ngay lập tức.
-                super.onBackPressed(); // Gọi hành động quay lại của lớp cha
-                return; // Thoát khỏi phương thức sớm
+                super.onBackPressed();
+                return;
             }
         } else if (isEditingAfterFeedback && hasUnsavedText) {
-            // Nếu người dùng đang chỉnh sửa sau khi nhận phản hồi và có văn bản chưa lưu
             String currentText = answerEditText.getText().toString().trim();
             String previousText = controller.getSubmittedTextForCurrentFeedback().trim();
             if (!currentText.equals(previousText)) {
-                // Nếu văn bản hiện tại khác với văn bản đã gửi trước đó, cảnh báo mất thay đổi
                 shouldShowDialog = true;
                 message = "Your changes will be lost. Are you sure you want to exit?";
             } else {
-                // Nếu không có thay đổi, thực hiện hành động quay lại
                 super.onBackPressed();
                 return;
             }
         } else if (hasUnsavedText) {
-            // Nếu có văn bản chưa lưu (không phải trong trạng thái feedback hay chỉnh sửa sau feedback)
-            // cảnh báo mất bài viết hiện tại
             shouldShowDialog = true;
             message = "Your current writing will be lost. Are you sure you want to exit?";
         }
 
-        // Nếu cờ shouldShowDialog là true, hiển thị AlertDialog
         if (shouldShowDialog) {
             new AlertDialog.Builder(this)
                     .setTitle("Exit Exercise") // Tiêu đề của dialog
                     .setMessage(message) // Nội dung tin nhắn
-                    .setPositiveButton("Exit", (dialog, which) -> super.onBackPressed()) // Nút đồng ý thoát
-                    .setNegativeButton("Stay", null) // Nút hủy, không làm gì cả
-                    .show(); // Hiển thị dialog
+                    .setPositiveButton("Exit", (dialog, which) -> super.onBackPressed())
+                    .setNegativeButton("Stay", null)
+                    .show();
         } else {
-            // Nếu không cần hiển thị dialog (ví dụ, nếu đã return sớm ở trên,
-            // hoặc không có điều kiện nào kích hoạt dialog),
-            // thì thực hiện hành động quay lại mặc định.
             super.onBackPressed();
         }
     }

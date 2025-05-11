@@ -21,15 +21,12 @@ public class CreatePostActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // After attachBaseContext is called, setContentView will use the correct locale
         setContentView(R.layout.activity_create_post);
         addControls();
         addEvents();
     }
 
     public void addControls(){
-        // Now, getString(R.id.btnBack) and other resource lookups
-        // within this Activity should use the correct language.
         imgBackward = findViewById(R.id.imgBackward);
     }
 

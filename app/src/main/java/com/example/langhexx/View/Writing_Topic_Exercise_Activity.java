@@ -6,13 +6,8 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -28,11 +23,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
-    private static final String TAG = "WritingExerciseActivity"; // Đổi TAG
+    private static final String TAG = "WritingExerciseActivity";
     private ImageView imgClose, imgHome;
     private TextView tvTitle;
     private RecyclerView rvExercises;
-    private WritingExerciseAdapter exerciseAdapter; // Đổi kiểu Adapter
+    private WritingExerciseAdapter exerciseAdapter;
     private List<String> exerciseTitlesList;
     private String levelName;
     private String topicTitle;
@@ -83,7 +78,7 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 exerciseTitlesList.clear();
                 for (DataSnapshot exerciseGroupSnap : snapshot.getChildren()) {
-                    String exerciseTitle = exerciseGroupSnap.getKey(); // Lấy tên bài tập (key)
+                    String exerciseTitle = exerciseGroupSnap.getKey();
                     if (exerciseTitle != null) {
                         exerciseTitlesList.add(exerciseTitle);
                     }

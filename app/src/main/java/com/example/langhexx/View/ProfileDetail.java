@@ -39,13 +39,11 @@ import java.util.concurrent.Executors;
 public class ProfileDetail extends AppCompatActivity {
 
     private static final String TAG = "ProfileDetail";
-
-    // Khai báo View theo ID trong XML mới
-    private Button btnBack; // Dùng Button hoặc AppCompatButton đều được
+    private Button btnBack;
     private ImageView imgAvatar;
-    private EditText edtProfileName; // Đây là EditText
-    private TextView txtEmail; // Đây là label "Email"
-    private EditText edtEmail; // Đây là EditText cho email
+    private EditText edtProfileName;
+    private TextView txtEmail;
+    private EditText edtEmail;
     private TextView txtNameLabel;
     private AuthController authController;
     private FirebaseAuth mAuth;
@@ -60,7 +58,7 @@ public class ProfileDetail extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_profile_detail); // Sử dụng layout bạn cung cấp
+        setContentView(R.layout.activity_profile_detail);
 
         mAuth = FirebaseAuth.getInstance();
         sessionManager = new UsernamePasswordSessionManager(this);
@@ -92,7 +90,7 @@ public class ProfileDetail extends AppCompatActivity {
     }
 
     private void addEvents() {
-        btnBack.setOnClickListener(view -> finish()); // Lambda cho ngắn gọn
+        btnBack.setOnClickListener(view -> finish());
     }
 
     private void loadUserProfileData() {
@@ -180,12 +178,10 @@ public class ProfileDetail extends AppCompatActivity {
         Glide.with(this)
                 .load(drawableId)
                 .circleCrop()
-                .placeholder(R.drawable.avatar) // Có thể thêm placeholder ở đây nữa
-                .error(R.drawable.unknown_avatar) // Ảnh nếu lỗi khi load drawable (ít xảy ra)
+                .placeholder(R.drawable.avatar) // Có thể thêm placeholder ở đây
+                .error(R.drawable.unknown_avatar) // Ảnh nếu lỗi khi load drawable
                 .into(imgAvatar);
     }
-
-    // *** CÁC PHƯƠNG THỨC HELPER (Giữ nguyên từ trước) ***
 
     private String extractNameFromDisplayName(String displayName, String email) {
         String nameToDisplay = null;

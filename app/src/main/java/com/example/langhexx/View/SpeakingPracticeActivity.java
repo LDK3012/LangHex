@@ -33,7 +33,6 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
     private CountDownTimer countDownTimer;
     private long timeLeftInMillis = 300000; // 5 phút
 
-    // Xác định liệu ứng dụng có cần bắt đầu ghi âm sau khi quyền được cấp
     private boolean shouldStartRecording = false;
 
     @Override
@@ -64,7 +63,6 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                     startRecording();
                 } else {
-                    // Nếu chưa cấp quyền, yêu cầu quyền và đặt cờ để bắt đầu ghi âm sau khi được cấp
                     shouldStartRecording = true;
                     ActivityCompat.requestPermissions(this,
                             new String[]{Manifest.permission.RECORD_AUDIO},
@@ -75,7 +73,7 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
 
         btnComplete.setOnClickListener(v -> {
             Toast.makeText(this, "Đã hoàn thành bài tập", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(SpeakingPracticeActivity.this, MainActivity.class); // Quay lại trang chủ
+            Intent intent = new Intent(SpeakingPracticeActivity.this, MainActivity.class);
             startActivity(intent);
             finish();
         });
@@ -104,7 +102,6 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
     }
 
     private void startRecording() {
-        // Thiết lập tên tệp ghi âm
         fileName = getExternalCacheDir().getAbsolutePath();
         fileName += "/audiorecord.3gp";
         recorder = new MediaRecorder();
@@ -136,9 +133,6 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
             isRecording = false;
             btnMic.setImageResource(R.drawable.micro);
             Toast.makeText(this, "Đã dừng ghi âm", Toast.LENGTH_SHORT).show();
-
-            // Xử lý tệp âm thanh đã ghi (fileName)
-            // Ví dụ: lưu vào cơ sở dữ liệu hoặc phát lại
         } catch (RuntimeException stopException) {
             // Xử lý trường hợp stop khi chưa start
             stopException.printStackTrace();

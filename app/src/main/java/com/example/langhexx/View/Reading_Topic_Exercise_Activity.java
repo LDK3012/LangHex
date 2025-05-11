@@ -13,7 +13,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// *** Import the new ReadingExerciseAdapter ***
 import com.example.langhexx.Controller.ReadingExerciseAdapter;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
@@ -25,14 +24,13 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.List;
 
-// *** Renamed class ***
 public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
 
-    private static final String TAG = "ReadingExerciseActivity"; // Renamed TAG
+    private static final String TAG = "ReadingExerciseActivity";
     private ImageView imgClose, imgHome;
     private TextView tvTitle;
     private RecyclerView rvExercises;
-    private ReadingExerciseAdapter exerciseAdapter; // Use ReadingExerciseAdapter
+    private ReadingExerciseAdapter exerciseAdapter;
     private List<String> exerciseTitlesList;
     private String levelName;
     private String topicTitle;
@@ -40,8 +38,7 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // *** Use a layout specific for Reading or reuse Listening's if identical ***
-        setContentView(R.layout.activity_reading_topic_exercise); // Create this layout
+        setContentView(R.layout.activity_reading_topic_exercise);
 
         levelName = getIntent().getStringExtra("levelName");
         topicTitle = getIntent().getStringExtra("topicTitle");
@@ -54,7 +51,6 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
     }
 
     private void addControls() {
-        // *** Ensure these IDs exist in activity_reading_topic_exercise.xml ***
         imgClose = findViewById(R.id.imgBackward);
         tvTitle = findViewById(R.id.tvScreenTitle);
         rvExercises = findViewById(R.id.rvExercises);
@@ -62,7 +58,6 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
         tvTitle.setText(topicTitle); // Set topic title
         rvExercises.setLayoutManager(new LinearLayoutManager(this));
         exerciseTitlesList = new ArrayList<>();
-        // *** Instantiate ReadingExerciseAdapter ***
         exerciseAdapter = new ReadingExerciseAdapter(this, exerciseTitlesList, levelName, topicTitle);
         rvExercises.setAdapter(exerciseAdapter);
     }
@@ -72,7 +67,7 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child("Reading") // *** Changed from "Listening" to "Reading" ***
+                .child("Reading")
                 .child("Topics")
                 .child(topicTitle)
                 .child("Exercises");
@@ -89,7 +84,7 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
                         exerciseTitlesList.add(exerciseTitle);
                     }
                 }
-                exerciseAdapter.notifyDataSetChanged(); // Update RecyclerView
+                exerciseAdapter.notifyDataSetChanged();
             }
 
             @Override

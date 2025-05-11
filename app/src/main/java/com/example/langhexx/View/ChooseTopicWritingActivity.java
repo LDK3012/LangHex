@@ -35,9 +35,8 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
     private TopicAdapter topicAdapter;
     private String levelName;
     private ImageView imgBack, imgHome;
-    private static final String ACTIVITY_TAG = "ChooseTopicWriting"; // Thẻ log
-    private final String CURRENT_SKILL_NAME = "Writing"; // <-- Định nghĩa tên kỹ năng
-
+    private static final String ACTIVITY_TAG = "ChooseTopicWriting";
+    private final String CURRENT_SKILL_NAME = "Writing";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,9 +52,8 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
         }
         Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
 
-        addControls(); // Gọi sau khi đã có levelName
+        addControls();
 
-        // loadTopicsFromFirebase nên được gọi sau khi adapter đã được khởi tạo
         loadTopicsFromFirebase(levelName);
 
         addEvents();
@@ -64,7 +62,6 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
-        // TRUYỀN skillName "Writing" VÀO CONSTRUCTOR CỦA TopicAdapter
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
         imgBack = findViewById(R.id.imgBackward);
@@ -72,7 +69,6 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        // Sử dụng CURRENT_SKILL_NAME để đảm bảo đường dẫn chính xác
         DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
@@ -110,7 +106,6 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
     }
 
     private void addEvents() {
-        // Kiểm tra null cho imgBack đã có trong code bạn cung cấp, rất tốt!
         if (imgBack != null) {
             imgBack.setOnClickListener(new View.OnClickListener() {
                 @Override

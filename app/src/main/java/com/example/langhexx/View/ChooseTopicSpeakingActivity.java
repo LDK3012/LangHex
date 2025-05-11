@@ -28,10 +28,7 @@ import java.util.Calendar; // Sử dụng Calendar cho thời gian
 import java.util.HashSet;
 import java.util.Set;
 
-// KHÔNG implements interface nữa
 public class ChooseTopicSpeakingActivity extends AppCompatActivity {
-
-    // KHÔNG CÓ INNER INTERFACE Ở ĐÂY
 
     private ListView lvTopics;
     private ArrayList<Topics> topicsArrayList;
@@ -41,8 +38,8 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private static final String ACTIVITY_TAG = "ChooseTopicSpeakingActivity";
     private final String CURRENT_SKILL_NAME = "Speaking";
     private SharedPreferences sharedPreferences;
-    private static final String PREFS_NAME = "TopicPrefs"; // Tên file SharedPreferences
-    private String clickedTopicsKey; // Key để lưu các topic đã click, phụ thuộc vào level và skill
+    private static final String PREFS_NAME = "TopicPrefs";
+    private String clickedTopicsKey;
     private Set<String> clickedTopicTitlesForSpeaking;
 
     @Override
@@ -51,9 +48,8 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_choose_topic_speaking);
 
         levelName = getIntent().getStringExtra("levelName");
-
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Unknown", Toast.LENGTH_LONG).show();
             Log.e(ACTIVITY_TAG, "levelName là null hoặc rỗng!");
             finish();
             return;
@@ -103,7 +99,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putStringSet(clickedTopicsKey, clickedTopicTitlesForSpeaking);
             editor.apply();
-            Log.d(ACTIVITY_TAG, "Đã xóa lịch sử chủ đề '" + topicTitle + "' (Speaking) khỏi SharedPreferences.");
+            Log.d(ACTIVITY_TAG, "Topic history has been deleted '" + topicTitle + "' (Speaking) from SharedPreferences.");
             Toast.makeText(this, "Đã xóa lịch sử cho '" + topicTitle + "'.", Toast.LENGTH_SHORT).show();
 
             if (topicAdapter != null) {
@@ -119,8 +115,6 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
         topicAdapter.setHighlightedTopicTitles(this.clickedTopicTitlesForSpeaking);
-        // KHÔNG CÒN DÒNG NÀY: topicAdapter.setTopicItemInteractionListener(this);
-
         lvTopics.setAdapter(topicAdapter);
 
         imgBack = findViewById(R.id.imgBackward);
