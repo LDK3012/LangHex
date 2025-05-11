@@ -1,33 +1,31 @@
 package com.example.langhexx.Model;
 
 import android.app.Activity;
-import android.content.Context; // Import Context
-import android.content.SharedPreferences; // Import SharedPreferences
-import android.text.TextUtils; // Import TextUtils
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.OAuthCredential; // Import OAuthCredential
 import com.google.firebase.auth.OAuthProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MicrosoftAuthModel {
-    private static final String TAG = "MicrosoftAuthModel"; // Tag cho logging
+    private static final String TAG = "MicrosoftAuthModel";
     private FirebaseAuth firebaseAuth;
 
-    // Constants for SharedPreferences (must match HomeFragment)
+    // Constants for SharedPreferences
     private static final String MS_GRAPH_PREFS = "MSGraphPrefs";
     private static final String MS_GRAPH_TOKEN_KEY = "ms_graph_token";
 
-    // Interface để thông báo kết quả về Controller - *** CHANGED ***
+    // Interface để thông báo kết quả về Controller
     public interface MicrosoftAuthListener {
         // Pass the full AuthResult on success
-        void onSignInSuccess(Activity activity, AuthResult authResult); // Added Activity context
+        void onSignInSuccess(Activity activity, AuthResult authResult);
         void onSignInFailure(String errorMessage);
     }
 
@@ -40,8 +38,7 @@ public class MicrosoftAuthModel {
         provider.addCustomParameter("prompt", "consent");
         provider.addCustomParameter("tenant", "common");
         List<String> scopes = new ArrayList<>();
-        scopes.add("User.Read"); // Needed to read user profile info including photo
-        // Add other scopes if necessary, e.g., "profile", "openid", "email"
+        scopes.add("User.Read");
         provider.setScopes(scopes);
 
         Task<AuthResult> pendingResultTask = firebaseAuth.getPendingAuthResult();
@@ -50,8 +47,7 @@ public class MicrosoftAuthModel {
             pendingResultTask
                     .addOnSuccessListener(authResult -> {
                         Log.d(TAG, "Pending sign-in success.");
-                        // *** CHANGED: Pass activity and authResult ***
-                        saveTokenFromAuthResult(activity, authResult); // Save token immediately
+                        saveTokenFromAuthResult(activity, authResult);
                         listener.onSignInSuccess(activity, authResult);
                     })
                     .addOnFailureListener(e -> {
@@ -63,8 +59,7 @@ public class MicrosoftAuthModel {
             firebaseAuth.startActivityForSignInWithProvider(activity, provider.build())
                     .addOnSuccessListener(authResult -> {
                         Log.d(TAG, "New sign-in success.");
-                        // *** CHANGED: Pass activity and authResult ***
-                        saveTokenFromAuthResult(activity, authResult); // Save token immediately
+                        saveTokenFromAuthResult(activity, authResult);
                         listener.onSignInSuccess(activity, authResult);
                     })
                     .addOnFailureListener(e -> {
@@ -74,7 +69,6 @@ public class MicrosoftAuthModel {
         }
     }
 
-    // --- Helper method to extract and save token ---
     private void saveTokenFromAuthResult(Context context, AuthResult authResult) {
         if (authResult == null || context == null) {
             Log.e(TAG, "Cannot save token, AuthResult or Context is null.");
@@ -96,11 +90,8 @@ public class MicrosoftAuthModel {
         }
     }
 
-    // --- Method to save token to SharedPreferences ---
     private void saveMsGraphToken(Context context, String token) {
         if (token == null || context == null) return;
-
-        // Use application context to prevent leaks if context is short-lived
         SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(MS_GRAPH_PREFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(MS_GRAPH_TOKEN_KEY, token);

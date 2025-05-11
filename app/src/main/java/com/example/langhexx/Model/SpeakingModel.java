@@ -8,7 +8,6 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.example.langhexx.Model.SpeakingContract; // Import contract
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -21,7 +20,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 public class SpeakingModel implements SpeakingContract.Model{
     private static final String TAG = "SpeakingModel";
@@ -32,15 +30,12 @@ public class SpeakingModel implements SpeakingContract.Model{
     private ArrayList<String> questionList = new ArrayList<>();
     private int currentQuestionIndex = 0;
     private RequestQueue requestQueue;
-    private Context appContext; // Use Application context to avoid leaks
+    private Context appContext;
 
     public SpeakingModel(Context context) {
         this.appContext = context.getApplicationContext();
         requestQueue = Volley.newRequestQueue(appContext);
     }
-
-
-
 
     @Override
     public void loadQuestions(String levelName, String topicTitle, SpeakingContract.QuestionListener listener) {
@@ -263,9 +258,7 @@ public class SpeakingModel implements SpeakingContract.Model{
                 return headers;
             }
         };
-
-        // Add request to queue with a tag for cancellation
-        jsonObjectRequest.setTag(TAG); // Use TAG for potential cancellation
+        jsonObjectRequest.setTag(TAG);
         requestQueue.add(jsonObjectRequest);
     }
 
@@ -274,7 +267,7 @@ public class SpeakingModel implements SpeakingContract.Model{
         if (questionList != null && currentQuestionIndex < questionList.size()) {
             return questionList.get(currentQuestionIndex);
         }
-        return null; // Or throw an exception
+        return null;
     }
 
     @Override

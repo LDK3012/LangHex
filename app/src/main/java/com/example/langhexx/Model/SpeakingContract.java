@@ -1,4 +1,4 @@
-package com.example.langhexx.Model; // Thay đổi thành package của bạn
+package com.example.langhexx.Model;
 
 import android.content.Context;
 import java.util.List;

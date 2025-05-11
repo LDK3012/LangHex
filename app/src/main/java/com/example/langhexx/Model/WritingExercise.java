@@ -1,12 +1,12 @@
 package com.example.langhexx.Model;
 
 public class WritingExercise {
-    private String id; // Unique identifier for the exercise (e.g., Firebase key)
-    private String title; // Title of the exercise (e.g., "Environment 1")
-    private String script; // The writing prompt or question text
+    private String id;
+    private String title;
+    private String script;
 
     public WritingExercise() {
-        // Default constructor required for calls to DataSnapshot.getValue(WritingExercise.class)
+
     }
 
     public WritingExercise(String id, String title, String script) {

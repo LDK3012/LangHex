@@ -4,13 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class UserWritingAnswer {
-    private String exerciseId; // ID của bài tập writing (ví dụ: "Environment 1")
+    private String exerciseId;
     private String levelName;
     private String topicTitle;
     private String userAnswer;
     private long timestamp;
-    private String feedbackSummary; // Có thể lưu tóm tắt feedback (ví dụ: "All criteria success")
-    // Bạn có thể thêm các trường feedback chi tiết hơn nếu muốn
+    private String feedbackSummary;
 
     public UserWritingAnswer() {
         // Default constructor

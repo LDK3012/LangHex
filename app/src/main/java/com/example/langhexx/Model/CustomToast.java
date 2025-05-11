@@ -13,7 +13,6 @@ import com.example.langhexx.R;
 public class CustomToast {
 
     private CustomToast() {
-        // Private constructor để không ai new được class này
     }
 
     public static void showSuccess(Context context, String message, int iconResId) {

@@ -1,13 +1,10 @@
 package com.example.langhexx.Model;
 
 public class MicrosoftUser {
-    private String userId; // Microsoft User ID
+    private String userId;
     private String email;
     private String displayName;
-    // Thêm các trường khác nếu cần, ví dụ: avatarUrl
-
     public MicrosoftUser() {
-        // Default constructor required for calls to DataSnapshot.getValue(MicrosoftUser.class)
     }
 
     public MicrosoftUser(String userId, String email, String displayName) {
@@ -16,7 +13,7 @@ public class MicrosoftUser {
         this.displayName = displayName;
     }
 
-    // Getters
+
     public String getUserId() {
         return userId;
     }
@@ -29,7 +26,6 @@ public class MicrosoftUser {
         return displayName;
     }
 
-    // Setters (tùy chọn)
     public void setUserId(String userId) {
         this.userId = userId;
     }

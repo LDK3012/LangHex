@@ -1,4 +1,4 @@
-package com.example.langhexx.Model; // Hoặc package phù hợp
+package com.example.langhexx.Model;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -6,16 +6,14 @@ import java.util.Map;
 public class ListeningQuestion {
     private String id;
     private String questionText;
-    private Map<String, String> options; // Key: "A", "B", "C", "D"; Value: Text của option
-    private String correctAnswer; // Key của đáp án đúng, ví dụ: "B"
-    private int selectedOptionId = -1; // Lưu ID của RadioButton được chọn (-1 là chưa chọn)
-    private String questionNumberText; // Thêm nếu bạn muốn hiển thị "Question 1:", "Question 2:",...
+    private Map<String, String> options;
+    private String correctAnswer;
+    private int selectedOptionId = -1;
+    private String questionNumberText;
 
     public ListeningQuestion() {
         this.options = new HashMap<>();
     }
-
-    // Getters and Settersquesti
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
