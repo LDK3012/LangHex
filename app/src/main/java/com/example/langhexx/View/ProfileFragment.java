@@ -93,7 +93,7 @@ public class ProfileFragment extends Fragment {
                 String lastUpdateVersion = prefs.getString("current_version", null);
                 String lastUpdateDate = prefs.getString("last_update_date", null);
 
-                StringBuilder sb = new StringBuilder("Phiên bản ");
+                StringBuilder sb = new StringBuilder("Version ");
                 sb.append(versionName);
 
                 if (lastUpdateVersion != null && lastUpdateDate != null) {

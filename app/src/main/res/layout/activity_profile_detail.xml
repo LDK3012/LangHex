@@ -31,7 +31,7 @@
         android:layout_weight="4"
         android:gravity="center"
         android:paddingRight="30dp"
-        android:text="Thông tin tài khoản"
+        android:text="Account Information"
         android:textColor="@color/white"
         android:textSize="20dp"
         android:textStyle="bold" />
@@ -72,7 +72,7 @@
           android:id="@+id/txtDisplay"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
-          android:text="Tên"
+          android:text="Name"
           android:textColor="@color/black"
           android:textSize="18dp" />
 
