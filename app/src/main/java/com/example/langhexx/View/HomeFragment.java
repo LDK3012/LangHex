@@ -94,6 +94,12 @@ public class HomeFragment extends Fragment {
         levelsList = new ArrayList<>();
         levelsList.add(new Levels("General English - Vstep", String.valueOf(R.drawable.example)));
         levelsList.add(new Levels("A1", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A2", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A3", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A4", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A5", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A6", String.valueOf(R.drawable.example)));
+        levelsList.add(new Levels("A7", String.valueOf(R.drawable.example)));
         // ... (các levels khác)
 
         if (getActivity() != null) {
