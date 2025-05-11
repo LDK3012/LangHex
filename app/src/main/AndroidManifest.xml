@@ -16,6 +16,9 @@
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
         <activity
+            android:name=".View.ForumPostActivity"
+            android:exported="false" />
+        <activity
             android:name=".View.CreatePostActivity"
             android:exported="false" />
         <activity
