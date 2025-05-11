@@ -6,19 +6,11 @@ import android.util.Log; // Thêm Log
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
-// Bỏ ListAdapter nếu không dùng ép kiểu trực tiếp
 import android.widget.ListView;
 import android.widget.Toast;
-
-// Bỏ các import không dùng tới từ EdgeToEdge nếu bạn không triển khai nó ở đây
-// import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-// import androidx.core.graphics.Insets;
-// import androidx.core.view.ViewCompat;
-// import androidx.core.view.WindowInsetsCompat;
-
-import com.example.langhexx.Controller.TopicAdapter; // Đảm bảo bạn đang dùng TopicAdapter đã cập nhật
+import com.example.langhexx.Controller.TopicAdapter;
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;

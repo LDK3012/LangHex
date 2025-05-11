@@ -13,7 +13,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.langhexx.Controller.ReadingController; // Import Controller
+import com.example.langhexx.Controller.ReadingController;
 import com.example.langhexx.Controller.ReadingQuestionListAdapter;
 import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.ReadingQuestion;
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InternalReadingTopic extends AppCompatActivity implements ReadingController.ViewInterface { // Implement View Interface
+public class InternalReadingTopic extends AppCompatActivity implements ReadingController.ViewInterface {
 
     private static final String TAG = "InternalReadTopicVIEW";
 

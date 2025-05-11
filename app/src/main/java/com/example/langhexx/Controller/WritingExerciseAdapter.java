@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.langhexx.R;
 import com.example.langhexx.View.InternalWritingTopic;
-//import com.example.langhexx.View.InternalWritingTopic; // Đổi sang Activity đích cho Writing
 
 import java.util.List;
 
@@ -33,7 +32,6 @@ public class WritingExerciseAdapter extends RecyclerView.Adapter<WritingExercise
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Sử dụng layout item chung hoặc tạo layout item riêng cho writing exercise nếu cần
         View view = LayoutInflater.from(context).inflate(R.layout.item_exercise, parent, false);
         return new ViewHolder(view);
     }
@@ -47,10 +45,10 @@ public class WritingExerciseAdapter extends RecyclerView.Adapter<WritingExercise
         holder.tvExerciseItemTitle.setText(numberedExerciseTitle);
 
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(context, InternalWritingTopic.class); // Chuyển đến InternalWritingTopic
+            Intent intent = new Intent(context, InternalWritingTopic.class);
             intent.putExtra("LEVEL_NAME", levelName);
             intent.putExtra("TOPIC_TITLE", topicTitle);
-            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle); // Gửi tên bài tập gốc
+            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle);
             context.startActivity(intent);
         });
     }
@@ -65,7 +63,7 @@ public class WritingExerciseAdapter extends RecyclerView.Adapter<WritingExercise
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvExerciseItemTitle = itemView.findViewById(R.id.tvExerciseTitle); // Đảm bảo ID này có trong item_exercise.xml
+            tvExerciseItemTitle = itemView.findViewById(R.id.tvExerciseTitle);
         }
     }
 }

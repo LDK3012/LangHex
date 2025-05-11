@@ -1,4 +1,4 @@
-package com.example.langhexx.Controller; // Thay đổi package nếu cần
+package com.example.langhexx.Controller;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -6,7 +6,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.langhexx.R; // Đảm bảo import R đúng cách
+import com.example.langhexx.R;
 
 import java.util.ArrayList;
 
@@ -28,10 +28,7 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            // Ánh xạ TextView từ layout item_notification.xml
             notificationTextView = itemView.findViewById(R.id.txtNotificationItem);
-            // Bạn có thể thêm OnClickListener cho itemView hoặc các view con tại đây nếu cần
-            // itemView.setOnClickListener(v -> { /* Xử lý khi click vào item */ });
         }
 
         /**
@@ -42,7 +39,7 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
             if (notificationText != null) {
                 notificationTextView.setText(notificationText);
             } else {
-                notificationTextView.setText(""); // Hoặc ẩn view nếu data là null
+                notificationTextView.setText("");
             }
         }
     }
@@ -65,7 +62,6 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Tạo một view mới bằng cách inflate layout item_notification.xml
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_notification, parent, false);
         return new ViewHolder(view);
@@ -79,9 +75,7 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
      */
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        // Lấy phần tử từ danh sách tại vị trí position
         String currentNotification = notificationList.get(position);
-        // Gắn dữ liệu của phần tử đó vào ViewHolder
         holder.bind(currentNotification);
     }
 
@@ -103,7 +97,6 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         if (newNotifications != null) {
             this.notificationList.addAll(newNotifications);
         }
-        notifyDataSetChanged(); // Thông báo cho RecyclerView cập nhật lại toàn bộ danh sách
-        // Cân nhắc dùng DiffUtil để cập nhật hiệu quả hơn nếu danh sách lớn và thay đổi thường xuyên
+        notifyDataSetChanged();
     }
 }

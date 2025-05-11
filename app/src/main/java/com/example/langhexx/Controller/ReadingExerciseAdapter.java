@@ -11,11 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.langhexx.R;
-// *** Import the new InternalReadingTopic activity ***
 import com.example.langhexx.View.InternalReadingTopic;
 import java.util.List;
 
-// *** Renamed class ***
 public class ReadingExerciseAdapter extends RecyclerView.Adapter<ReadingExerciseAdapter.ViewHolder> {
 
     private Context context;
@@ -33,7 +31,6 @@ public class ReadingExerciseAdapter extends RecyclerView.Adapter<ReadingExercise
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Reuse item_exercise.xml or create a specific one
         View view = LayoutInflater.from(context).inflate(R.layout.item_exercise, parent, false);
         return new ViewHolder(view);
     }
@@ -47,11 +44,10 @@ public class ReadingExerciseAdapter extends RecyclerView.Adapter<ReadingExercise
         holder.tvExerciseItemTitle.setText(numberedExerciseTitle);
 
         holder.itemView.setOnClickListener(v -> {
-            // *** Navigate to InternalReadingTopic ***
             Intent intent = new Intent(context, InternalReadingTopic.class);
-            intent.putExtra("LEVEL_NAME", levelName); // Consistent key naming convention recommended
+            intent.putExtra("LEVEL_NAME", levelName);
             intent.putExtra("TOPIC_TITLE", topicTitle);
-            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle); // Pass the original title
+            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle);
             context.startActivity(intent);
         });
     }
@@ -62,11 +58,10 @@ public class ReadingExerciseAdapter extends RecyclerView.Adapter<ReadingExercise
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvExerciseItemTitle; // Ensure this ID exists in item_exercise.xml
+        TextView tvExerciseItemTitle;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            // *** Ensure this ID exists in item_exercise.xml ***
             tvExerciseItemTitle = itemView.findViewById(R.id.tvExerciseTitle);
         }
     }

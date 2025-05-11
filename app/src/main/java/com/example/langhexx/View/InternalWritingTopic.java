@@ -14,9 +14,9 @@ import android.graphics.drawable.GradientDrawable;
 
 import android.os.Bundle;
 
-import android.os.Handler; // Thêm Handler
+import android.os.Handler;
 
-import android.os.Looper;  // Thêm Looper
+import android.os.Looper;
 
 import android.text.Editable;
 
@@ -60,9 +60,9 @@ import com.example.langhexx.R;
 
 
 
-import java.util.ArrayList; // Thêm ArrayList
+import java.util.ArrayList;
 
-import java.util.List;      // Thêm List
+import java.util.List;
 
 
 

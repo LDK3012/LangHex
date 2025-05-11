@@ -1,4 +1,4 @@
-package com.example.langhexx.Controller; // Or your actual package
+package com.example.langhexx.Controller;
 
 import android.content.Context;
 import android.util.Log;
@@ -10,15 +10,13 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.core.content.ContextCompat;
-
-// Import Model and R
 import com.example.langhexx.Model.ListeningQuestion;
-import com.example.langhexx.R; // Đảm bảo R được import đúng
+import com.example.langhexx.R;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
 
 public class ListeningQuestionListAdapter extends BaseAdapter {
 
@@ -65,7 +63,7 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
         for (int i = 0; i < questions.size(); i++) {
             selectedAnswers.put(i, -1);
         }
-        notifyDataSetChanged(); // Thông báo cho ListView vẽ lại
+        notifyDataSetChanged();
     }
 
     /**
@@ -80,7 +78,7 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
         this.resultsShown = true;  // Đặt cờ hiển thị kết quả
         this.answersDisabled = true; // Vô hiệu hóa tương tác khi xem kết quả
         Log.d(TAG, "Showing results. User answers count: " + submittedAnswers.size() + ", Correctness count: " + correctnessMap.size());
-        notifyDataSetChanged(); // Yêu cầu ListView vẽ lại để hiển thị kết quả
+        notifyDataSetChanged();
     }
 
     /**
@@ -114,7 +112,6 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        // Sử dụng position làm ID ổn định nếu không có ID long duy nhất
         return position;
     }
 
@@ -123,10 +120,8 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
         ViewHolder viewHolder;
 
         if (convertView == null) {
-            // Sử dụng layout item_question.xml (Đảm bảo file này tồn tại trong res/layout)
             convertView = inflater.inflate(R.layout.item_question, parent, false);
             viewHolder = new ViewHolder();
-            // Tìm các view trong layout item_question.xml
             viewHolder.tvQuestionNumber = convertView.findViewById(R.id.tvQuestionNumber);
             viewHolder.tvQuestionText = convertView.findViewById(R.id.tvQuestionText);
             viewHolder.rgOptions = convertView.findViewById(R.id.rgOptions);
@@ -134,17 +129,14 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
             viewHolder.rbOptionB = convertView.findViewById(R.id.rbOptionB);
             viewHolder.rbOptionC = convertView.findViewById(R.id.rbOptionC);
             viewHolder.rbOptionD = convertView.findViewById(R.id.rbOptionD);
-            // (Thêm rbOptionE, F... nếu layout có)
             convertView.setTag(viewHolder);
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
 
         ListeningQuestion question = getItem(position);
-
-        // --- Set Số thứ tự ---
         if (viewHolder.tvQuestionNumber != null) {
-            String questionNumberStr = (position + 1) + "."; // Hiển thị dạng "1.", "2.", ...
+            String questionNumberStr = (position + 1) + ".";
             viewHolder.tvQuestionNumber.setText(questionNumberStr);
         }
 
@@ -202,9 +194,6 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
                         int iconRes = isCorrect ? R.drawable.ic_correct_green : R.drawable.ic_incorrect_red;
                         // Đặt icon vào cuối RadioButton
                         submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, iconRes, 0);
-                        // Optional: Thay đổi màu chữ nếu muốn
-                        // int textColorRes = isCorrect ? R.color.your_green_color : R.color.your_red_color;
-                        // submittedRadioButton.setTextColor(ContextCompat.getColor(context, textColorRes));
                     } else {
                         // Log lỗi nếu thiếu thông tin đúng/sai
                         Log.w(TAG, "Correctness info missing for submitted answer at position " + position);
@@ -242,19 +231,14 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
      */
     private void configureRadioButton(RadioButton rb, String key, String text, int position, RadioGroup rg) {
         if (rb == null) return; // Kiểm tra null an toàn
-
-        // Luôn reset trạng thái hình ảnh khi cấu hình lại
         rb.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0); // Xóa icon cũ
-        // Đặt màu chữ mặc định (thay đổi nếu cần)
         rb.setTextColor(ContextCompat.getColor(context, android.R.color.primary_text_light));
-
-        // Đặt text và hiển thị/ẩn nếu có dữ liệu
         if (text != null && !text.isEmpty()) {
             rb.setText(text);
             rb.setVisibility(View.VISIBLE);
         } else {
-            rb.setText(""); // Xóa text cũ nếu option không tồn tại
-            rb.setVisibility(View.GONE); // Ẩn đi nếu không có text
+            rb.setText("");
+            rb.setVisibility(View.GONE);
         }
     }
 
@@ -267,7 +251,6 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
             View view = group.getChildAt(i);
             if (view instanceof RadioButton) {
                 view.setEnabled(enabled);
-                // Làm mờ đi một chút nếu bị vô hiệu hóa
                 view.setAlpha(enabled ? 1.0f : 0.6f);
             }
         }
@@ -284,7 +267,6 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
         RadioButton rbOptionB;     // Lựa chọn B
         RadioButton rbOptionC;     // Lựa chọn C
         RadioButton rbOptionD;     // Lựa chọn D
-        // (Thêm rbOptionE, F... nếu cần)
     }
 
     /**

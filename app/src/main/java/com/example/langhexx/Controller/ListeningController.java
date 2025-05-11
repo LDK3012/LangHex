@@ -1,4 +1,4 @@
-package com.example.langhexx.Controller; // Or your appropriate package
+package com.example.langhexx.Controller;
 
 import android.content.Context;
 import android.content.Intent;
@@ -10,8 +10,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.langhexx.Model.ListeningQuestion; // Use ListeningQuestion model
-import com.example.langhexx.R; // Required for mapping RadioButton IDs
+import com.example.langhexx.Model.ListeningQuestion;
+import com.example.langhexx.R;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -38,8 +38,8 @@ public class ListeningController implements
 
     // --- View Interface ---
     public interface ViewInterface {
-        // Standard View Operations
-        Context getContext(); // Controller needs context for TTS/File ops
+
+        Context getContext();
         void displayExerciseTitle(String title);
         void updateAdapterData(List<ListeningQuestion> newQuestions);
         void showResultsInAdapter(Map<Integer, Integer> userAnswers, Map<Integer, Boolean> correctnessMap);
@@ -64,11 +64,11 @@ public class ListeningController implements
         void showAudioError(String errorMessage); // Show an error related to audio
     }
 
-    // --- State Constants (Submit Button) ---
+    // --- State Constants (Submit Button)
     public static final int STATE_SUBMIT = 0;
     public static final int STATE_RETRY = 1;
     public static final int STATE_NEXT = 2;
-    public static final int STATE_FINISHED_HAS_NEXT = 3; // Might not be needed if logic combines NEXT/FINISHED
+    public static final int STATE_FINISHED_HAS_NEXT = 3;
     public static final int STATE_FINISHED_NO_NEXT = -1;
     private int currentButtonState = STATE_SUBMIT;
 
@@ -89,7 +89,7 @@ public class ListeningController implements
     // --- TTS Members ---
     private TextToSpeech tts;
     private boolean isTtsInitialized = false;
-    private File audioFile; // Synthesized audio file
+    private File audioFile;
 
     // --- MediaPlayer Members ---
     private MediaPlayer mediaPlayer;
@@ -126,12 +126,12 @@ public class ListeningController implements
     // Called by View after basic setup
     public void initialize() {
         Log.d(TAG, "Initializing Controller...");
-        view.setUIElementsVisibility(false); // Hide main content initially
-        view.displayExerciseTitle(exerciseTitle); // Show title early
-        view.resetAudioControls(); // Set audio controls to initial disabled state
-        initializeTextToSpeech(); // Start TTS initialization
-        loadExerciseDataFromFirebase(); // Start loading script and questions
-        loadAllExerciseTitlesFromFirebase(); // Start loading list of all exercises
+        view.setUIElementsVisibility(false);
+        view.displayExerciseTitle(exerciseTitle);
+        view.resetAudioControls();
+        initializeTextToSpeech();
+        loadExerciseDataFromFirebase();
+        loadAllExerciseTitlesFromFirebase();
     }
 
     private void handleInitializationError(String errorMessage) {
@@ -145,7 +145,6 @@ public class ListeningController implements
     private void initializeTextToSpeech() {
         Log.d(TAG, "Initializing TextToSpeech...");
         try {
-            // View provides the context needed for TTS initialization
             tts = new TextToSpeech(view.getContext(), this);
         } catch (Exception e) {
             Log.e(TAG, "Exception initializing TTS", e);
@@ -319,7 +318,6 @@ public class ListeningController implements
                     view.updateAdapterData(questionsList); // Update adapter via View Interface
                     if(questionsList.isEmpty()) {
                         view.showToast("No questions available for this exercise.");
-                        // If no script AND no questions, maybe finish? Or rely on button state logic.
                     }
                 }
 
@@ -336,9 +334,8 @@ public class ListeningController implements
     }
 
     private ListeningQuestion parseListeningQuestionSnapshot(DataSnapshot questionSnap) {
-        // Similar parsing logic as ReadingController, but creates ListeningQuestion
         ListeningQuestion question = new ListeningQuestion();
-        question.setId(questionSnap.getKey()); // Use Firebase key as ID
+        question.setId(questionSnap.getKey());
 
         String text = questionSnap.child("questionText").getValue(String.class);
         String answer = questionSnap.child("correctAnswer").getValue(String.class);
@@ -398,8 +395,6 @@ public class ListeningController implements
                             allExerciseTitles.add(title);
                         }
                     }
-                    // Optional: Sort titles if needed
-                    // Collections.sort(allExerciseTitles);
                     Log.i(TAG, "Loaded " + allExerciseTitles.size() + " titles for topic: " + topicTitle);
                 } else {
                     Log.w(TAG, "No exercises found under topic path: " + topicTitle);
@@ -410,7 +405,7 @@ public class ListeningController implements
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Failed to load all exercise titles: " + error.getMessage());
-                titlesLoaded = true; // Mark as loaded (with error) to allow UI to proceed if needed
+                titlesLoaded = true;
                 checkIfAllDataLoadedAndReady();
             }
         });
@@ -419,33 +414,25 @@ public class ListeningController implements
     private void handleFirebaseLoadError(String message) {
         if (view != null) {
             view.showToast(message);
-            view.resetAudioControls(); // Ensure audio controls are reset on error
-            // Consider finishing if essential data failed
-            if(!exerciseDataLoaded) { // Finish if the main exercise data failed
+            view.resetAudioControls();
+            if(!exerciseDataLoaded) {
                 view.finishActivity();
             }
         }
     }
 
     private void checkIfAllDataLoadedAndReady() {
-        // This check is now more about enabling the submit button and general UI
-        // Audio readiness is handled separately by its own callbacks
         if (exerciseDataLoaded && titlesLoaded && view != null) {
             Log.d(TAG, "All initial data (exercise + titles) loaded.");
             boolean hasContentToShow = (scriptToSpeak != null && !scriptToSpeak.isEmpty()) || !questionsList.isEmpty();
-            view.setUIElementsVisibility(hasContentToShow); // Show main layout if there's script or questions
-            // Initial button state depends on whether there are questions
+            view.setUIElementsVisibility(hasContentToShow);
             if(questionsList.isEmpty()){
                 if (scriptToSpeak != null && !scriptToSpeak.isEmpty()) {
-                    // Only script, no questions - maybe a 'Listen Only' state?
-                    // For now, disable submit
                     resetSubmitButtonToSubmitState(false); // Disable submit
                 } else {
-                    // No script, no questions - error state, likely already handled
                     resetSubmitButtonToSubmitState(false);
                 }
             } else {
-                // Has questions, enable submit button initially
                 resetSubmitButtonToSubmitState(true); // Enable submit
             }
         }
@@ -566,9 +553,6 @@ public class ListeningController implements
                     view.resetAudioControls();
                 }
                 releaseMediaPlayer(); // Release faulty player
-                // Optionally delete the problematic audio file
-                // if (audioFile != null && audioFile.exists()) audioFile.delete();
-                // audioFile = null;
                 return true; // Error handled
             });
 
@@ -635,10 +619,6 @@ public class ListeningController implements
             // Reset seekbar to end, then optionally to start
             int duration = mediaPlayer.getDuration();
             if (duration > 0) view.updateAudioProgress(duration, duration); // Move thumb to end
-
-            // Optional: Seek back to beginning after completion
-            // mediaPlayer.seekTo(0);
-            // view.updateAudioProgress(0, duration);
 
         } catch (IllegalStateException e) {
             Log.e(TAG, "IllegalStateException in onCompletion", e);
@@ -758,8 +738,6 @@ public class ListeningController implements
         if (questionsList.isEmpty()) {
             Log.w(TAG, "Submit button clicked, but no questions are loaded.");
             view.showToast("No questions to submit.");
-            // Decide what happens if only audio exists: maybe Finish/Next?
-            // updateButtonStateBasedOnResults(true); // Treat as complete?
             return;
         }
 
@@ -771,7 +749,7 @@ public class ListeningController implements
                 retryExercise();
                 break;
             case STATE_NEXT:
-            case STATE_FINISHED_HAS_NEXT: // Treat same as NEXT
+            case STATE_FINISHED_HAS_NEXT:
                 goToNextExercise();
                 break;
             case STATE_FINISHED_NO_NEXT:
@@ -790,8 +768,6 @@ public class ListeningController implements
 
         Map<Integer, Integer> userAnswers = view.getAdapterSelectedAnswers();
         int totalQuestions = questionsList.size();
-
-        // Should not happen if button logic is correct, but check anyway
         if (totalQuestions == 0) {
             Log.w(TAG, "checkAnswers: No questions available.");
             updateButtonStateBasedOnResults(true); // Treat as 'all correct' to move on if needed
@@ -810,7 +786,7 @@ public class ListeningController implements
 
         if (allAnswered) {
             Log.d(TAG, "All questions answered. Showing confirmation.");
-            view.showConfirmationDialog("Xác nhận nộp bài", "Bạn có chắc chắn muốn nộp bài không?", this::proceedWithSubmission);
+            view.showConfirmationDialog("Confirm", "Are you sure want to submit ?", this::proceedWithSubmission);
         } else {
             Log.d(TAG, "Not all questions answered. First unanswered: " + firstUnanswered);
             view.showFailToast("Please answer all questions!"); // Use fail toast
@@ -848,10 +824,6 @@ public class ListeningController implements
             }
             ListeningQuestion question = questionsList.get(i);
             int selectedRadioButtonId = userAnswers.getOrDefault(i, -1);
-            // Map the RadioButton ID back to the answer key ("A", "B", "C", "D")
-            // IMPORTANT: This mapping relies on the RadioButton IDs defined in R.java
-            // It's generally better if the adapter stores the selected *key* directly,
-            // but if it stores the ID, we map it back here.
             String selectedAnswerKey = mapRadioButtonIdToKey(selectedRadioButtonId);
 
             boolean isCorrect = question.getCorrectAnswer() != null &&
@@ -886,7 +858,7 @@ public class ListeningController implements
         if (selectedRadioButtonId == R.id.rbOptionB) return "B";
         if (selectedRadioButtonId == R.id.rbOptionC) return "C";
         if (selectedRadioButtonId == R.id.rbOptionD) return "D";
-        return ""; // Return empty if ID is -1 or not recognized
+        return "";
     }
 
     private void updateButtonStateBasedOnResults(boolean allCorrect) {
@@ -988,9 +960,7 @@ public class ListeningController implements
         currentButtonState = STATE_SUBMIT;
         if (view != null) {
             view.setSubmitButtonState(STATE_SUBMIT, "Submit", enabled);
-            // Explicitly enable/disable based on the parameter
             // TODO: Re-evaluate how enabled state should work here
-            // The view's implementation of setSubmitButtonState should handle enabling/disabling
         }
     }
 
@@ -1013,7 +983,6 @@ public class ListeningController implements
     public void onPause() {
         Log.d(TAG, "onPause called by View.");
         pauseAudioPlayback();
-        // Stop TTS if it happens to be speaking (though unlikely in this flow)
         if (tts != null) {
             try {
                 tts.stop();
@@ -1027,8 +996,6 @@ public class ListeningController implements
         if (mediaPlayer != null && isMediaPlayerPrepared && view != null) {
             boolean wasPlaying = false;
             try {
-                // Check if it was playing *before* pause (isPlaying flag should be accurate)
-                // Or check the actual state if unsure: wasPlaying = mediaPlayer.isPlaying();
                 wasPlaying = isPlaying; // Rely on our state flag set in onPause/toggle
                 view.setPlayButtonState(wasPlaying); // Set correct icon
                 if (wasPlaying) {
@@ -1101,6 +1068,5 @@ public class ListeningController implements
         }
         isMediaPlayerPrepared = false;
         isPlaying = false;
-        // Do NOT reset UI here, calling function should handle UI state
     }
 }

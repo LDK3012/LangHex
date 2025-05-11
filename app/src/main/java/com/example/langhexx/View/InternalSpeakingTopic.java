@@ -51,7 +51,6 @@ import com.google.firebase.auth.UserInfo;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.SpeechRecognizer;
 import com.microsoft.cognitiveservices.speech.ResultReason;
-// import com.microsoft.cognitiveservices.speech.SpeechRecognitionResult; // Không dùng trực tiếp ở đây nữa
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
 
 import java.io.BufferedInputStream;

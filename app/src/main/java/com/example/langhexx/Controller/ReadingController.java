@@ -6,7 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.langhexx.Model.ReadingQuestion;
-import com.example.langhexx.R; // Required for mapping RadioButton IDs
+import com.example.langhexx.R;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -47,9 +47,9 @@ public class ReadingController {
     public static final int STATE_SUBMIT = 0;
     public static final int STATE_RETRY = 1;
     public static final int STATE_NEXT = 2;
-    public static final int STATE_FINISHED_HAS_NEXT = 3; // Internally might be same as NEXT but indicates completion
-    public static final int STATE_FINISHED_NO_NEXT = -1; // Final state, no more exercises
-    private int currentButtonState = STATE_SUBMIT; // Initial state
+    public static final int STATE_FINISHED_HAS_NEXT = 3;
+    public static final int STATE_FINISHED_NO_NEXT = -1;
+    private int currentButtonState = STATE_SUBMIT;
 
     // --- Data Members ---
     private ViewInterface view;
@@ -57,7 +57,7 @@ public class ReadingController {
     private String topicTitle;
     private String exerciseTitle;
     private String passageText;
-    private List<ReadingQuestion> questionsList; // Controller holds the canonical list
+    private List<ReadingQuestion> questionsList;
     private ArrayList<String> allExerciseTitles;
     private boolean dataLoaded = false;
     private boolean titlesLoaded = false;
@@ -134,8 +134,8 @@ public class ReadingController {
                     Log.d(TAG, "Passage loaded.");
                 } else {
                     Log.w(TAG, "'script' field missing or empty.");
-                    view.displayPassage(null); // Explicitly tell view passage is missing
-                    // Don't show a toast here, just let the view hide the passage area
+                    view.displayPassage(null);
+
                 }
 
                 // Load questions
@@ -174,7 +174,6 @@ public class ReadingController {
     }
 
     private ReadingQuestion parseReadingQuestionSnapshot(DataSnapshot questionSnap) {
-        // (This logic is moved directly from the original Activity - unchanged)
         ReadingQuestion question = new ReadingQuestion();
         String questionIdFromDB = questionSnap.child("id").getValue(String.class);
         question.setId(questionIdFromDB != null ? questionIdFromDB : questionSnap.getKey());
@@ -198,8 +197,6 @@ public class ReadingController {
             }
         } else {
             Log.w(TAG, "'options' node missing or invalid format for question: " + questionSnap.getKey());
-            // Decide if a question without options is valid
-            // return null; // If options are mandatory
         }
 
         // Validate essential fields before returning the question object
@@ -238,8 +235,6 @@ public class ReadingController {
                             allExerciseTitles.add(title);
                         }
                     }
-                    // Simple alphabetical sort, adjust if specific order needed
-                    // Collections.sort(allExerciseTitles);
                     Log.i(TAG, "Loaded " + allExerciseTitles.size() + " titles for topic: " + topicTitle);
                 } else {
                     Log.w(TAG, "No exercises found under topic path: " + topicTitle);
@@ -249,9 +244,7 @@ public class ReadingController {
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Failed to load all exercise titles: " + error.getMessage());
-                // Decide if this is critical. Maybe proceed without "Next" functionality?
-                // For now, log the error and continue.
-                titlesLoaded = true; // Mark as loaded (with error state) to allow UI to proceed
+                titlesLoaded = true;
                 checkIfAllDataLoaded();
             }
         });
@@ -260,16 +253,12 @@ public class ReadingController {
     private void checkIfAllDataLoaded() {
         if (dataLoaded && titlesLoaded) {
             Log.d(TAG, "All initial data (exercise + titles) loaded.");
-            // Now that data is loaded, make the main UI visible
-            // Visibility check should depend on whether there is content to show
             boolean hasContentToShow = (passageText != null && !passageText.isEmpty()) || !questionsList.isEmpty();
             view.setUIElementsVisibility(hasContentToShow);
             if(questionsList.isEmpty()){
                 view.showToast("No questions available for this exercise.");
-                // Optionally disable submit button if no questions
-                setButtonState(STATE_SUBMIT, "Submit"); // Keep submit state, but it won't do anything if list is empty
+                setButtonState(STATE_SUBMIT, "Submit");
             } else {
-                // Set initial button state only if there are questions
                 resetSubmitButtonToSubmitState();
             }
         }
@@ -286,9 +275,9 @@ public class ReadingController {
             view.showToast("No questions to submit.");
             // Optionally handle 'Next' if passage exists but no questions
             if (hasNextExercise()) {
-                goToNextExercise(); // Or show a 'Continue' button?
+                goToNextExercise();
             } else {
-                finishExercise(); // Or show a 'Finish' button?
+                finishExercise();
             }
             return;
         }
@@ -301,7 +290,7 @@ public class ReadingController {
                 retryExercise();
                 break;
             case STATE_NEXT:
-            case STATE_FINISHED_HAS_NEXT: // Treat same as NEXT for button action
+            case STATE_FINISHED_HAS_NEXT:
                 goToNextExercise();
                 break;
             case STATE_FINISHED_NO_NEXT:
@@ -321,17 +310,14 @@ public class ReadingController {
         boolean allAnswered = true;
         int firstUnanswered = -1;
 
-        // Should not happen if button logic is correct, but check anyway
         if (totalQuestions == 0) {
             Log.w(TAG, "checkAnswers: No questions available.");
-            // Decide what to do - maybe show Next/Finish?
             updateButtonStateBasedOnResults(true); // Treat as 'all correct' to move on
             return;
         }
 
 
         for (int i = 0; i < totalQuestions; i++) {
-            // Check if the key exists and the value is not -1
             if (userAnswers.getOrDefault(i, -1) == -1) {
                 allAnswered = false;
                 firstUnanswered = i;
@@ -385,7 +371,7 @@ public class ReadingController {
             if (isCorrect) {
                 correctCount++;
             }
-            correctnessMap.put(i, isCorrect); // Store correctness for this question index
+            correctnessMap.put(i, isCorrect);
             Log.v(TAG, "Q" + (i + 1) + ": SelectedID=" + selectedRadioButtonId + " (Key='" + selectedAnswerKey + "'), CorrectKey='" + question.getCorrectAnswer() + "', Result=" + isCorrect);
         }
 
@@ -403,15 +389,12 @@ public class ReadingController {
         Log.d(TAG, "Submission process finished. Button state: " + currentButtonState);
     }
 
-    // Helper to map RadioButton Resource IDs to Answer Keys ("A", "B", "C", "D")
-    // This belongs in the Controller as it relates IDs (known at compile time) to logical keys.
     private String mapRadioButtonIdToKey(int selectedRadioButtonId) {
         if (selectedRadioButtonId == R.id.rbOptionA) return "A";
         if (selectedRadioButtonId == R.id.rbOptionB) return "B";
         if (selectedRadioButtonId == R.id.rbOptionC) return "C";
         if (selectedRadioButtonId == R.id.rbOptionD) return "D";
-        // Add more mappings if your item_question.xml has more options (e.g., rbOptionE)
-        return ""; // Return empty string if ID is -1 or not recognized
+        return "";
     }
 
 
@@ -516,7 +499,6 @@ public class ReadingController {
     // --- Lifecycle ---
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-        // Clean up resources if needed, e.g., remove Firebase listeners if they weren't single-value events
-        this.view = null; // Remove reference to View to prevent leaks
+        this.view = null;
     }
 }

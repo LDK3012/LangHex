@@ -93,7 +93,7 @@
                             android:textColor="@android:color/white"
                             android:textSize="20dp"
                             android:textStyle="bold"
-                            android:text="Ôn tập" />
+                            android:text="Practice" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -149,7 +149,7 @@
                             android:textColor="@android:color/white"
                             android:textSize="20dp"
                             android:textStyle="bold"
-                            android:text="Thi thử" />
+                            android:text="Test" />
 
                         <LinearLayout
                             android:layout_width="match_parent"

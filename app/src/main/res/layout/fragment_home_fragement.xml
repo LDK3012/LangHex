@@ -32,7 +32,7 @@
                     android:layout_gravity="left"
                     android:textSize="20dp"
                     android:textStyle="bold"
-                    android:text="Chào," />
+                    android:text="Hi," />
                 <TextView
                     android:id="@+id/txtName"
                     android:layout_width="wrap_content"
@@ -48,7 +48,7 @@
                     android:layout_height="26dp"
                     android:layout_marginTop="10dp"
                     android:background="@drawable/rounded_button"
-                    android:text="Thông báo"
+                    android:text="Notification"
                     android:textColor="@color/white"
                     android:textSize="12dp">
                 </androidx.appcompat.widget.AppCompatButton>
@@ -90,7 +90,7 @@
             android:textStyle="bold"
             android:textColor="@color/black"
             android:gravity="center"
-            android:text="Cấp độ ôn luyện" />
+            android:text="Practice Level" />
         <ListView
             android:id="@+id/lstLevels"
             android:layout_marginTop="10dp"

@@ -13,15 +13,12 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-import android.widget.Toast; // Có thể cần Toast ở đây để báo lỗi nếu context không đúng
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
-// Import trực tiếp Activity nếu bạn muốn cast tới nó
 import com.example.langhexx.View.ChooseTopicSpeakingActivity;
 
 import com.google.firebase.database.DataSnapshot;
@@ -36,7 +33,7 @@ import java.util.Locale;
 import java.util.Set;
 
 public class TopicAdapter extends BaseAdapter {
-    private Context context; // Context này sẽ được dùng để cast
+    private Context context;
     private int layoutId;
     private List<Topics> topicList;
     private String levelName;
@@ -44,8 +41,6 @@ public class TopicAdapter extends BaseAdapter {
     private DatabaseReference firebaseRootRef;
 
     private Set<String> highlightedTopicTitles;
-    // KHÔNG CÒN itemInteractionListener
-
     private static final String TAG = "TopicAdapter";
 
     public TopicAdapter(Context context, int layoutId, List<Topics> topicList, String levelName, String skillName) {
@@ -65,9 +60,6 @@ public class TopicAdapter extends BaseAdapter {
             this.highlightedTopicTitles = new HashSet<>();
         }
     }
-
-    // KHÔNG CÒN setTopicItemInteractionListener
-
     @Override
     public int getCount() {
         return topicList.size();
@@ -98,7 +90,6 @@ public class TopicAdapter extends BaseAdapter {
             LayoutInflater inflater = LayoutInflater.from(context);
             view = inflater.inflate(layoutId, viewGroup, false);
             holder = new ViewHolder();
-            // ... (khởi tạo holder views như cũ)
             holder.txtTopicTitle = view.findViewById(R.id.tvTopicName);
             holder.tvTopicTracker = view.findViewById(R.id.tvTopicTracker);
             holder.speakingCardViewContainer = view.findViewById(R.id.speakingCardView);
@@ -113,8 +104,6 @@ public class TopicAdapter extends BaseAdapter {
 
         boolean isSpeakingSkillCurrently = "Speaking".equalsIgnoreCase(currentSkillNameAdapter);
         boolean isTopicHighlighted = highlightedTopicTitles != null && highlightedTopicTitles.contains(topic.getTitle());
-
-        // ... (logic tô màu nền giữ nguyên)
         if (isTopicHighlighted) {
             Drawable background = holder.speakingCardViewContainer.getBackground();
             if (background != null) {
@@ -143,7 +132,6 @@ public class TopicAdapter extends BaseAdapter {
         }
 
         if (holder.imgTopicOptions != null) {
-            // Menu 3 chấm CHỈ hiển thị cho Speaking VÀ context là ChooseTopicSpeakingActivity VÀ topic đó đã được click/highlight
             if (isSpeakingSkillCurrently && (context instanceof ChooseTopicSpeakingActivity) && isTopicHighlighted) {
                 holder.imgTopicOptions.setVisibility(View.VISIBLE);
                 holder.imgTopicOptions.setOnClickListener(v -> showPopupMenu(v, topic.getTitle()));
@@ -156,7 +144,6 @@ public class TopicAdapter extends BaseAdapter {
     }
 
     private void loadExerciseCount(final ViewHolder holder, final String topicTitle, final String skillNameForFirebase) {
-        // ... (giữ nguyên hàm này)
         DatabaseReference exercisesRef = firebaseRootRef
                 .child("Lessons")
                 .child("Levels")
@@ -191,10 +178,8 @@ public class TopicAdapter extends BaseAdapter {
     }
 
     private void showPopupMenu(View anchorView, final String topicTitle) {
-        // Kiểm tra xem context có phải là instance của ChooseTopicSpeakingActivity không
         if (!(context instanceof ChooseTopicSpeakingActivity)) {
             Log.e(TAG, "Context không phải là instance của ChooseTopicSpeakingActivity, không thể hiển thị menu xóa lịch sử.");
-            // Hoặc Toast.makeText(context, "Không thể thực hiện hành động này.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -203,7 +188,6 @@ public class TopicAdapter extends BaseAdapter {
 
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.action_delete_history) {
-                // Cast context và gọi phương thức public
                 ((ChooseTopicSpeakingActivity) context).removeClickedTopicHistory(topicTitle);
                 return true;
             }

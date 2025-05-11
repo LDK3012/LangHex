@@ -9,6 +9,7 @@ import android.util.Log;
 
 import androidx.core.content.ContextCompat;
 
+import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.SpeakingContract;
 import com.example.langhexx.Model.SpeakingModel;
 
@@ -28,7 +29,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
 
     public SpeakingController(SpeakingContract.View view, Context context, String levelName, String topicTitle) {
         this.view = view;
-        this.model = new SpeakingModel(context); // Giả sử SpeakingModel có constructor nhận Context
+        this.model = new SpeakingModel(context);
         this.levelName = levelName;
         this.topicTitle = topicTitle;
 
@@ -46,15 +47,14 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
     public void viewDidLoad() {
         Log.d(TAG, "Controller: View did load.");
         if (view != null) {
-            view.setMicButtonEnabled(false); // Disable mic initially until data loads
+            view.setMicButtonEnabled(false);
         }
-        // Data loading will be triggered by onTtsReady()
     }
 
     public void onTtsReady() {
         Log.d(TAG,"Controller: TTS is ready.");
         ttsReady = true;
-        loadData(); // Now load data if level/topic are valid
+        loadData();
     }
 
     @Override
@@ -71,7 +71,6 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
             // Optionally, show a message to the user via view.showToast or similar
         } else {
             Log.e(TAG,"Controller: Cannot load data due to missing level/topic information.");
-            // This case should have been handled in constructor, but double check
             view.showError("Không thể tải dữ liệu do thiếu thông tin Level hoặc Topic.");
             view.setMicButtonEnabled(false);
         }
@@ -95,7 +94,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
             view.requestAudioPermission();
         } else {
             if (model != null && model.getCurrentQuestion() != null) {
-                view.startListening(); // Yêu cầu View bắt đầu lắng nghe nội bộ
+                view.startListening();
             } else {
                 view.showToast("Chưa có câu hỏi để trả lời hoặc model chưa sẵn sàng.");
             }
@@ -115,10 +114,10 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         Log.d(TAG, "Controller: Question speaker clicked.");
         if (view == null) return;
         if (ttsReady) {
-            view.stopListening(); // Dừng lắng nghe nếu đang diễn ra
+            view.stopListening();
             view.speakText(question, "question_manual_" + (model != null ? model.getCurrentQuestionIndex() : "unknown"));
         } else {
-            view.showToast("Chức năng nói chưa sẵn sàng.");
+            view.showToast("The speech function is not ready yet !");
         }
     }
 
@@ -127,10 +126,10 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         Log.d(TAG, "Controller: Response speaker clicked.");
         if (view == null) return;
         if (ttsReady) {
-            view.stopListening(); // Dừng lắng nghe nếu đang diễn ra
+            view.stopListening();
             view.speakText(response, "response_manual_" + (model != null ? model.getCurrentQuestionIndex() : "unknown"));
         } else {
-            view.showToast("Chức năng nói chưa sẵn sàng.");
+            view.showToast("The speech function is not ready yet !");
         }
     }
 
@@ -152,7 +151,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         }
         String currentQuestion = model.getCurrentQuestion();
         if (currentQuestion != null) {
-            view.setMicButtonEnabled(false); // Vô hiệu hóa mic trong khi đánh giá
+            view.setMicButtonEnabled(false);
             model.evaluateAnswer(currentQuestion, spokenText, this);
         } else {
             Log.e(TAG,"Controller: Cannot evaluate, current question is null.");
@@ -168,7 +167,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         if (errorReason != null) {
             view.showToast(errorReason);
         }
-        view.setMicButtonEnabled(true); // Cho phép thử lại
+        view.setMicButtonEnabled(true);
     }
 
     @Override
@@ -176,10 +175,10 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         Log.i(TAG,"Controller: Received permission result. Granted: " + granted);
         if (view == null) return;
         if (granted) {
-            view.showToast("Đã cấp quyền ghi âm. Bạn có thể nhấn nút micro.");
-            view.setMicButtonEnabled(true); // Kích hoạt nút micro sau khi có quyền
+            view.showToast("Microphone permission granted !");
+            view.setMicButtonEnabled(true);
         } else {
-            view.showToast("Cần quyền ghi âm để nhận dạng giọng nói.");
+            view.showToast("Microphone permission is required for speech recognition !");
             view.setMicButtonEnabled(false);
         }
     }
@@ -193,11 +192,10 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         if(handler != null) {
             handler.removeCallbacksAndMessages(null);
         }
-        view = null; // Giảm tham chiếu
+        view = null;
         model = null;
     }
 
-    // --- SpeakingContract.QuestionListener Implementation ---
     @Override
     public void onQuestionsLoaded(List<String> questions) {
         Log.i(TAG, "Controller: Questions loaded. Count: " + (questions != null ? questions.size() : "null"));
@@ -206,7 +204,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         String firstQuestion = model.getCurrentQuestion();
         if (firstQuestion != null) {
             view.displayQuestion(firstQuestion);
-            view.setMicButtonEnabled(true); // Kích hoạt mic khi câu hỏi đã sẵn sàng
+            view.setMicButtonEnabled(true);
         } else {
             Log.w(TAG, "Controller: No questions available or first question is null.");
             view.showError(questions != null && questions.isEmpty() ? "Không có câu hỏi nào trong bài tập này." : "Không thể hiển thị câu hỏi đầu tiên.");
@@ -222,7 +220,6 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         view.setMicButtonEnabled(false);
     }
 
-    // --- SpeakingContract.EvaluationListener Implementation ---
     @Override
     public void onEvaluationSuccess(String userAnswer, boolean isCorrect, String feedbackVi, String suggestionEn) {
         Log.i(TAG, "Controller: Evaluation success. Correct: " + isCorrect);
@@ -241,7 +238,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
                 handler.postDelayed(() -> {
                     if(view != null) {
                         view.displayQuestion(nextQuestion);
-                        view.setMicButtonEnabled(true); // Bật mic cho câu hỏi tiếp theo
+                        view.setMicButtonEnabled(true);
                     }
                 }, 2000);
             } else { // Hoàn thành tất cả câu hỏi
@@ -259,7 +256,7 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
             }
             view.showWarningIcon(true, combinedFeedback);
             view.showCustomToast(false, "Chưa đúng. Xem gợi ý và thử lại.");
-            view.setMicButtonEnabled(true); // Cho phép thử lại
+            view.setMicButtonEnabled(true);
         }
     }
 
@@ -268,9 +265,9 @@ public class SpeakingController implements SpeakingContract.Controller, Speaking
         Log.e(TAG, "Controller: Evaluation error: " + errorType + " for answer: " + userAnswer);
         if (view == null) return;
 
-        view.displayUserAnswer(userAnswer, false); // Hiển thị câu trả lời (sai)
-        view.showWarningIcon(false, null); // Ẩn icon warning
+        view.displayUserAnswer(userAnswer, false);
+        view.showWarningIcon(false, null);
         view.showToast("Lỗi đánh giá: " + errorType + ". Vui lòng thử lại.");
-        view.setMicButtonEnabled(true); // Cho phép thử lại
+        view.setMicButtonEnabled(true);
     }
 }

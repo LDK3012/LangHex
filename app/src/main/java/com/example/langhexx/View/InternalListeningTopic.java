@@ -1,10 +1,8 @@
 package com.example.langhexx.View;
 
-import android.content.Context; // Added for ViewInterface
+import android.content.Context;
 import android.content.Intent;
-// Removed MediaPlayer, TextToSpeech, UtteranceProgressListener imports as they are handled by Controller
 import android.os.Bundle;
-// Removed Handler import
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -15,31 +13,24 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull; // Keep for potential future use? (Not strictly needed now)
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.langhexx.Controller.ListeningController; // Import the Controller
+import com.example.langhexx.Controller.ListeningController;
 import com.example.langhexx.Controller.ListeningQuestionListAdapter;
 import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.ListeningQuestion;
 import com.example.langhexx.R;
-
-// Removed Firebase imports as they are handled by Controller
-// Removed File, IOException, Locale, UUID imports
-
-import java.util.ArrayList; // Keep for initializing list
-import java.util.HashMap; // Keep for getAdapterSelectedAnswers return type
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public class InternalListeningTopic extends AppCompatActivity implements
-        ListeningController.ViewInterface, // Implement the controller's interface
-        SeekBar.OnSeekBarChangeListener { // Keep for seekbar interaction delegation
+        ListeningController.ViewInterface,
+        SeekBar.OnSeekBarChangeListener {
 
-    private static final String TAG = "InternalListenTopicVIEW"; // Changed TAG for clarity
+    private static final String TAG = "InternalListenTopicVIEW";
 
     private ImageView imgClose, imgHome;
 
@@ -49,7 +40,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
     private ListView lvQuestions;
     private Button btnSubmit;
     private ProgressBar progressBarAudioLoading;
-    private TextView tvScreenTitle; // Renamed for clarity (was tvExerciseDisplayTitle previously often)
+    private TextView tvScreenTitle;
     private ListeningQuestionListAdapter questionListAdapter;
 
     // --- Controller ---
