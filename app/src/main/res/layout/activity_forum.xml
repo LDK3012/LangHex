@@ -35,7 +35,7 @@
             android:layout_gravity="center"
             android:layout_weight="10"
             android:gravity="center"
-            android:text="Diễn đàn"
+            android:text="Forum"
             android:textColor="#FFFFFF"
             android:textSize="20dp"
             android:textStyle="bold" />
@@ -92,7 +92,7 @@
                     android:background="@drawable/custom_edt_postandcomment"
                     android:editable="false"
                     android:gravity="top"
-                    android:hint="Bạn đang nghĩ gì?"
+                    android:hint="What's on your mind?"
                     android:padding="12dp"
                     android:textColorHint="#AAAAAA" />
             </LinearLayout>
@@ -136,7 +136,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_horizontal"
-                                android:text="Phản hồi gần đây"
+                                android:text="Recent post"
                                 android:textColor="#FFFFFF"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />

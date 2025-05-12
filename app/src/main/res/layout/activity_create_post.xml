@@ -36,7 +36,7 @@
             android:layout_gravity="center"
             android:layout_weight="10"
             android:gravity="center"
-            android:text="Tạo bài viết"
+            android:text="Create post"
             android:textColor="#FFFFFF"
             android:textSize="20dp"
             android:textStyle="bold" />
@@ -90,7 +90,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="30dp"
             android:background="@drawable/custom_edt_postandcomment"
-            android:hint="Tiêu đề"
+            android:hint="Title"
             android:padding="12dp"
             android:maxLength="60"
             android:textColorHint="#AAAAAA" />
@@ -103,7 +103,7 @@
             android:layout_marginTop="20dp"
             android:gravity="top"
             android:background="@drawable/custom_edt_postandcomment"
-            android:hint="Bạn đang nghĩ gì?"
+            android:hint="Content"
             android:padding="12dp"
             android:maxLength="500"
             android:textColorHint="#AAAAAA" />
@@ -126,7 +126,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:layout_marginLeft="5dp"
-                android:text="Tải lên ảnh"
+                android:text="Upload photo"
                 android:textSize="18sp"></TextView>
         </LinearLayout>
 
@@ -136,7 +136,7 @@
             android:layout_height="wrap_content"
             android:backgroundTint="#FF6C6C"
             android:layout_gravity="right"
-            android:text="Đăng bài">
+            android:text="Post">
 
         </Button>
     </LinearLayout>
