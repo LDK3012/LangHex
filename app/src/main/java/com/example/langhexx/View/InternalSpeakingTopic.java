@@ -42,12 +42,12 @@ import com.example.langhexx.Controller.SpeakingController;
 import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.SpeakingContract;
 import com.example.langhexx.Model.UsernamePasswordSessionManager;
-import com.example.langhexx.R; // Thay thế bằng R file của bạn
+import com.example.langhexx.R;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserInfo;
 
-// AZURE Speech SDK Imports
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.SpeechRecognizer;
 import com.microsoft.cognitiveservices.speech.ResultReason;
@@ -62,12 +62,12 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 public class InternalSpeakingTopic extends AppCompatActivity implements SpeakingContract.View {
 
     private static final String TAG = "InternalSpeakingTopicView";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
 
-    // --- UI Elements ---
     private LinearLayout questionContainer;
     private LayoutInflater inflater;
     private ImageButton btnMicro;
@@ -88,10 +88,8 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     private ImageView questionSpeaker;
     private TextView tvTitle;
 
-    // --- Controller ---
     private SpeakingContract.Controller controller;
 
-    // --- Firebase & Session ---
     private FirebaseAuth mAuth;
     private UsernamePasswordSessionManager sessionManager;
     private static final String MS_GRAPH_PREFS = "MSGraphPrefs";
@@ -99,15 +97,13 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     private static final String MICROSOFT_PROVIDER_ID = "microsoft.com";
     private ExecutorService avatarExecutorService;
 
-    // --- Azure Speech Recognizer ---
-    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK"; // THAY THẾ BẰNG KEY CỦA BẠN
+    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK";
     private static final String AZURE_SPEECH_REGION = "eastus";
     private SpeechConfig azureSpeechConfig;
     private SpeechRecognizer azureSpeechRecognizer;
     private AudioConfig azureAudioConfig;
     private StringBuilder continuousRecoTextBuilder = new StringBuilder();
 
-    // --- Dialog & State ---
     private boolean isCurrentlyListening = false;
     private AlertDialog speechConfirmationDialog;
     private TextView tvPartialSpeechTextInDialog;
@@ -125,13 +121,27 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         avatarExecutorService = Executors.newSingleThreadExecutor();
 
         String levelName = getIntent().getStringExtra("levelName");
-        String topicTitle = getIntent().getStringExtra("topicTitle");
+        String topicDisplayTitle = getIntent().getStringExtra("topicTitle");
+        String topicIdFromIntent = getIntent().getStringExtra("topicId");
+        String effectiveTopicIdForController = topicIdFromIntent;
+        if (effectiveTopicIdForController == null || effectiveTopicIdForController.isEmpty()) {
+            Log.w(TAG, "topicId is null from Intent, falling back to topicTitle as identifier for controller. This might be legacy.");
+            effectiveTopicIdForController = topicDisplayTitle;
+        }
 
-        controller = new SpeakingController(this, this, levelName, topicTitle);
+        if (levelName == null || effectiveTopicIdForController == null || levelName.isEmpty() || effectiveTopicIdForController.isEmpty()) {
+            showError("Critical error: Missing Level or Topic identifier.");
+            Log.e(TAG, "Missing levelName or effectiveTopicIdForController. Level: " + levelName + ", EffectiveID: " + effectiveTopicIdForController);
+            finish();
+            return;
+        }
+        controller = new SpeakingController(this, this, levelName, effectiveTopicIdForController);
 
         addControls();
-        if (topicTitle != null) {
-            tvTitle.setText(topicTitle);
+        if (topicDisplayTitle != null) {
+            tvTitle.setText(topicDisplayTitle);
+        } else {
+            tvTitle.setText(effectiveTopicIdForController);
         }
         addEvent();
         initializeSoundPool();
@@ -140,14 +150,16 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         try {
             azureSpeechConfig = SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
             azureSpeechConfig.setSpeechRecognitionLanguage("en-US");
-            azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput(); // Tạo một lần ở đây
+            azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput();
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize Azure SpeechConfig: " + e.getMessage(), e);
             showError("Azure Speech configuration error:" + e.getMessage());
             if (btnMicro != null) btnMicro.setEnabled(false);
         }
 
-        controller.viewDidLoad();
+        if (controller != null) {
+            controller.viewDidLoad();
+        }
     }
 
     private void addControls() {
@@ -161,29 +173,38 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     }
 
     private void addEvent() {
-        imgClose.setOnClickListener(v -> controller.onCloseButtonClicked());
-        btnMicro.setOnClickListener(v -> {
-            if (azureSpeechConfig == null) {
-                showToast("Cấu hình Azure Speech chưa sẵn sàng.");
-                return;
-            }
-            if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
-                Log.d(TAG, "Mic clicked: Dialog is showing.");
-                return;
-            }
-            if (!isCurrentlyListening) {
-                Log.d(TAG, "Mic clicked: Starting new Azure SR session.");
-                controller.onMicButtonClicked();
-            } else {
-                Log.d(TAG, "Mic clicked: Azure SR is active. Stopping current session.");
-                stopListening();
-            }
-        });
-        imgHome.setOnClickListener(view -> {
-            Intent intent = new Intent(InternalSpeakingTopic.this, MainActivity.class);
-            startActivity(intent);
-            finish();
-        });
+        if (imgClose != null) {
+            imgClose.setOnClickListener(v -> {
+                if(controller != null) controller.onCloseButtonClicked();
+            });
+        }
+        if (btnMicro != null) {
+            btnMicro.setOnClickListener(v -> {
+                if (azureSpeechConfig == null) {
+                    showToast("Azure Speech configuration is not ready.");
+                    return;
+                }
+                if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+                    Log.d(TAG, "Mic clicked: Dialog is showing. Ignoring.");
+                    return;
+                }
+                if (!isCurrentlyListening) {
+                    Log.d(TAG, "Mic clicked: Starting new Azure SR session.");
+                    if(controller != null) controller.onMicButtonClicked();
+                } else {
+                    Log.d(TAG, "Mic clicked: Azure SR is active. Requesting stop.");
+                    stopListening();
+                }
+            });
+        }
+        if (imgHome != null) {
+            imgHome.setOnClickListener(view -> {
+                Intent intent = new Intent(InternalSpeakingTopic.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            });
+        }
     }
 
     private void initTextToSpeech() {
@@ -192,9 +213,18 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                 int result = textToSpeech.setLanguage(Locale.US);
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                     showToast("Spoken language (U.S. English) is not supported!");
-                } else { Log.d(TAG, "TextToSpeech initialized successfully."); textToSpeech.setPitch(1.1f); textToSpeech.setSpeechRate(0.95f); }
-            } else { Log.e(TAG, "TextToSpeech initialization failed: " + status); showToast("Unable to initialize text-to-speech functionality!");}
-            if (controller instanceof SpeakingController) { ((SpeakingController) controller).onTtsReady(); }
+                } else {
+                    Log.d(TAG, "TextToSpeech initialized successfully.");
+                    textToSpeech.setPitch(1.1f);
+                    textToSpeech.setSpeechRate(0.95f);
+                }
+            } else {
+                Log.e(TAG, "TextToSpeech initialization failed: " + status);
+                showToast("Unable to initialize text-to-speech functionality!");
+            }
+            if (controller instanceof SpeakingController) {
+                ((SpeakingController) controller).onTtsReady();
+            }
         });
     }
 
@@ -202,11 +232,22 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         AudioAttributes audioAttributes = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
         soundPool = new SoundPool.Builder().setMaxStreams(2).setAudioAttributes(audioAttributes).build();
         soundPool.setOnLoadCompleteListener((sp, sampleId, status) -> {
-            if (status == 0) { Log.d(TAG, "Sound loaded: ID = " + sampleId); soundsLoaded = true; }
-            else { showToast("Failed to load sound effect ID." + sampleId + " status " + status); }
+            if (status == 0) {
+                Log.d(TAG, "Sound loaded: ID = " + sampleId);
+                soundsLoaded = true;
+            }
+            else {
+                showToast("Failed to load sound effect ID." + sampleId + " status " + status);
+            }
         });
-        try { correctSoundId = soundPool.load(this, R.raw.correct_answer, 1); incorrectSoundId = soundPool.load(this, R.raw.wrong_answer, 1); }
-        catch (Exception e) { showToast("Không tìm thấy file âm thanh trong res/raw"); Log.e(TAG, "Error loading sound files", e); }
+        try {
+            correctSoundId = soundPool.load(this, R.raw.correct_answer, 1);
+            incorrectSoundId = soundPool.load(this, R.raw.wrong_answer, 1);
+        }
+        catch (Exception e) {
+            showToast("Audio file not found in res/raw");
+            Log.e(TAG, "Error loading sound files", e);
+        }
     }
 
 
@@ -221,14 +262,17 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         if (isCurrentlyListening || (speechConfirmationDialog != null && speechConfirmationDialog.isShowing())) {
             Log.d(TAG, "onPause: Stopping active Azure speech recognition and dialog.");
             keepListeningActive = false;
+            isCurrentlyListening = false;
+
             if (azureSpeechRecognizer != null) {
                 try {
-                    azureSpeechRecognizer.stopContinuousRecognitionAsync(); // Không cần .get() ở onPause
+                    azureSpeechRecognizer.stopContinuousRecognitionAsync();
                 } catch (Exception e) {
                     Log.e(TAG, "Error stopping Azure recognizer in onPause: " + e.getMessage());
                 }
             }
-            dismissSpeechConfirmationDialog(); // Luôn đóng dialog khi pause
+            indicateListeningState(false);
+            dismissSpeechConfirmationDialog();
         }
     }
 
@@ -236,6 +280,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     protected void onDestroy() {
         Log.d(TAG, "onDestroy called.");
         keepListeningActive = false;
+        isCurrentlyListening = false;
         dismissSpeechConfirmationDialog();
 
         if (controller != null) { controller.onDestroy(); controller = null; }
@@ -245,7 +290,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
 
         if (azureSpeechRecognizer != null) {
             try {
-                azureSpeechRecognizer.stopContinuousRecognitionAsync().get(); // Chờ để đảm bảo dừng hẳn
+                azureSpeechRecognizer.stopContinuousRecognitionAsync().get();
             } catch (Exception e) { Log.w(TAG, "Exception stopping recognizer in onDestroy: " + e.getMessage()); }
             azureSpeechRecognizer.close();
             azureSpeechRecognizer = null;
@@ -261,33 +306,33 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     }
 
     @Override public void displayQuestion(String question) { updateUiForNewQuestion(question); setMicButtonEnabled(azureSpeechConfig != null); scrollDown(); }
-    @SuppressLint("InflateParams") @Override public void updateUiForNewQuestion(String question) { currentQaView = inflater.inflate(R.layout.custom_question_list, questionContainer, false); txtCurrentQuestion = currentQaView.findViewById(R.id.txtQuestion); questionSpeaker = currentQaView.findViewById(R.id.speaker); txtResponse = currentQaView.findViewById(R.id.tvResponse); responseSpeaker = currentQaView.findViewById(R.id.responseSpeaker); avatarUser = currentQaView.findViewById(R.id.userAvatar); iconWarning = currentQaView.findViewById(R.id.iconWarning); txtCurrentQuestion.setText(question); questionSpeaker.setOnClickListener(v -> controller.onQuestionSpeakerClicked(question)); hideResponseElements(); questionContainer.addView(currentQaView); }
+    @SuppressLint("InflateParams") @Override public void updateUiForNewQuestion(String question) { currentQaView = inflater.inflate(R.layout.custom_question_list, questionContainer, false); txtCurrentQuestion = currentQaView.findViewById(R.id.txtQuestion); questionSpeaker = currentQaView.findViewById(R.id.speaker); txtResponse = currentQaView.findViewById(R.id.tvResponse); responseSpeaker = currentQaView.findViewById(R.id.responseSpeaker); avatarUser = currentQaView.findViewById(R.id.userAvatar); iconWarning = currentQaView.findViewById(R.id.iconWarning); txtCurrentQuestion.setText(question); questionSpeaker.setOnClickListener(v -> {if(controller!=null)controller.onQuestionSpeakerClicked(question);}); hideResponseElements(); questionContainer.addView(currentQaView); }
     @Override public void hideResponseElements() { if (txtResponse != null) txtResponse.setVisibility(View.GONE); if (responseSpeaker != null) responseSpeaker.setVisibility(View.GONE); if (avatarUser != null) avatarUser.setVisibility(View.GONE); if (iconWarning != null) { iconWarning.setVisibility(View.GONE); iconWarning.setOnClickListener(null); } }
-    @Override public void displayUserAnswer(String userAnswer, boolean isCorrect) { if (currentQaView == null || txtResponse == null || responseSpeaker == null || avatarUser == null) return; txtResponse.setText(userAnswer); txtResponse.setTextColor(ContextCompat.getColor(this, isCorrect ? R.color.Lime : R.color.Red)); txtResponse.setVisibility(View.VISIBLE); responseSpeaker.setVisibility(View.VISIBLE); responseSpeaker.setOnClickListener(v -> controller.onResponseSpeakerClicked(userAnswer)); if (avatarUser.getVisibility() != View.VISIBLE) { loadAvatarBasedOnLogin(avatarUser); avatarUser.setVisibility(View.VISIBLE); } }
+    @Override public void displayUserAnswer(String userAnswer, boolean isCorrect) { if (currentQaView == null || txtResponse == null || responseSpeaker == null || avatarUser == null) return; txtResponse.setText(userAnswer); txtResponse.setTextColor(ContextCompat.getColor(this, isCorrect ? R.color.Lime : R.color.Red)); txtResponse.setVisibility(View.VISIBLE); responseSpeaker.setVisibility(View.VISIBLE); responseSpeaker.setOnClickListener(v -> {if(controller!=null)controller.onResponseSpeakerClicked(userAnswer);}); if (avatarUser.getVisibility() != View.VISIBLE) { loadAvatarBasedOnLogin(avatarUser); avatarUser.setVisibility(View.VISIBLE); } }
     private void loadAvatarBasedOnLogin(ImageView targetAvatarView) { FirebaseUser currentUser = mAuth.getCurrentUser(); if (currentUser != null) { boolean isMicrosoftUser = false; for (UserInfo profile : currentUser.getProviderData()) { if (MICROSOFT_PROVIDER_ID.equals(profile.getProviderId())) { isMicrosoftUser = true; break; } } if (isMicrosoftUser) { String msGraphToken = getMsGraphToken(); if (!TextUtils.isEmpty(msGraphToken)) fetchMicrosoftProfilePhoto(msGraphToken, targetAvatarView); else loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); } else { Uri photoUrl = currentUser.getPhotoUrl(); if (photoUrl != null) Glide.with(this).load(photoUrl).circleCrop().placeholder(R.drawable.unknown_avatar).error(R.drawable.unknown_avatar).into(targetAvatarView); else loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); } } else if (sessionManager.isLoggedIn()) { loadDefaultAvatar(targetAvatarView, R.drawable.avatar); } else { loadDefaultAvatar(targetAvatarView, R.drawable.unknown_avatar); } }
-    private void loadDefaultAvatar(ImageView targetImageView, int drawableResId) { if (isFinishing() || isDestroyed()) return; Glide.with(this).load(drawableResId).circleCrop().placeholder(drawableResId).error(R.drawable.unknown_avatar).into(targetImageView); }
+    private void loadDefaultAvatar(ImageView targetImageView, int drawableResId) { if (isFinishing() || isDestroyed() || targetImageView == null) return; Glide.with(this).load(drawableResId).circleCrop().placeholder(drawableResId).error(R.drawable.unknown_avatar).into(targetImageView); }
     private String getMsGraphToken() { SharedPreferences prefs = getApplicationContext().getSharedPreferences(MS_GRAPH_PREFS, Context.MODE_PRIVATE); return prefs.getString(MS_GRAPH_TOKEN_KEY, null); }
     private void fetchMicrosoftProfilePhoto(String accessToken, ImageView targetImageView) { if (avatarExecutorService == null || avatarExecutorService.isShutdown()) { runOnUiThread(() -> loadDefaultAvatar(targetImageView, R.drawable.unknown_avatar)); return; } avatarExecutorService.execute(() -> { HttpURLConnection urlConnection = null; InputStream inputStream = null; ByteArrayOutputStream buffer = null; byte[] photoData = null; try { URL url = new URL("https://graph.microsoft.com/v1.0/me/photo/$value"); urlConnection = (HttpURLConnection) url.openConnection(); urlConnection.setRequestProperty("Authorization", "Bearer " + accessToken); if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) { inputStream = new BufferedInputStream(urlConnection.getInputStream()); buffer = new ByteArrayOutputStream(); byte[] data = new byte[1024]; int nRead; while ((nRead = inputStream.read(data, 0, data.length)) != -1) buffer.write(data, 0, nRead); buffer.flush(); photoData = buffer.toByteArray(); } } catch (IOException e) { Log.e(TAG, "IOException fetching MS Photo", e); } finally { try { if (inputStream != null) inputStream.close(); if (buffer != null) buffer.close(); } catch (IOException ignored) {} if (urlConnection != null) urlConnection.disconnect(); } final byte[] finalPhotoData = photoData; if (!isFinishing() && !isDestroyed()) { runOnUiThread(() -> { String uid = (mAuth.getCurrentUser() != null && mAuth.getCurrentUser().getUid() != null) ? mAuth.getCurrentUser().getUid() : "default_ms_key"; if (finalPhotoData != null) Glide.with(InternalSpeakingTopic.this).load(finalPhotoData).circleCrop().signature(new ObjectKey(uid)).placeholder(R.drawable.unknown_avatar).error(R.drawable.unknown_avatar).into(targetImageView); else loadDefaultAvatar(targetImageView, R.drawable.unknown_avatar); }); } }); }
     @Override public void displayEvaluationFeedback(String feedbackVi, String suggestionEn) {}
     @Override public void showWarningIcon(boolean show, String feedbackMessage) { if (iconWarning == null) return; if (show) { iconWarning.setVisibility(View.VISIBLE); Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info); if (icon != null) { icon = DrawableCompat.wrap(icon).mutate(); DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); iconWarning.setImageDrawable(icon); } iconWarning.setOnClickListener(v -> { if (controller != null) controller.onWarningIconClicked(feedbackMessage); }); } else { iconWarning.setVisibility(View.GONE); iconWarning.setOnClickListener(null); } }
-    @Override public void showFeedbackDialog(String message) { if (isFinishing() || isDestroyed()) return; Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info); if (icon != null) { icon = DrawableCompat.wrap(icon).mutate(); DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); } new AlertDialog.Builder(this).setTitle("Gợi ý phản hồi").setMessage(message).setIcon(icon).setPositiveButton("OK", (dialog, which) -> dialog.dismiss()).show(); }
-    @Override public void showCompletionMessage() { if (questionContainer.findViewWithTag("completion_message") == null) { TextView completionText = new TextView(this); completionText.setText("Chúc mừng! Bạn đã hoàn thành tất cả câu hỏi!"); completionText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); completionText.setPadding(16, 32, 16, 32); completionText.setTag("completion_message"); questionContainer.addView(completionText); } setMicButtonEnabled(false); }
-    @Override public void showError(String message) { showToast("Lỗi: " + message); Log.e(TAG, "Displaying Error: " + message); if (questionContainer.getChildCount() == 0 && currentQaView == null && !isFinishing()) { questionContainer.removeAllViews(); TextView errorText = new TextView(this); errorText.setText("Đã xảy ra lỗi: " + message + "\nVui lòng thử lại hoặc kiểm tra kết nối."); errorText.setTextColor(Color.RED); errorText.setPadding(16, 16, 16, 16); errorText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); questionContainer.addView(errorText); } }
+    @Override public void showFeedbackDialog(String message) { if (isFinishing() || isDestroyed()) return; Drawable icon = ContextCompat.getDrawable(this, android.R.drawable.ic_dialog_info); if (icon != null) { icon = DrawableCompat.wrap(icon).mutate(); DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.Red)); } new AlertDialog.Builder(this).setTitle("Suggestion").setMessage(message).setIcon(icon).setPositiveButton("OK", (dialog, which) -> dialog.dismiss()).show(); }
+    @Override public void showCompletionMessage() { if (questionContainer.findViewWithTag("completion_message") == null) { TextView completionText = new TextView(this); completionText.setText("Congratulations! You have completed all questions!"); completionText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); completionText.setPadding(16, 32, 16, 32); completionText.setTag("completion_message"); questionContainer.addView(completionText); } setMicButtonEnabled(false); }
+    @Override public void showError(String message) { showToast("Error: " + message); Log.e(TAG, "Displaying Error: " + message); if (questionContainer != null && questionContainer.getChildCount() == 0 && currentQaView == null && !isFinishing()) { questionContainer.removeAllViews(); TextView errorText = new TextView(this); errorText.setText("An error occurred: " + message + "\nPlease try again or check connection."); errorText.setTextColor(Color.RED); errorText.setPadding(16, 16, 16, 16); errorText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); questionContainer.addView(errorText); } }
     @Override public void showToast(String message) { if (!isFinishing() && message != null) { Toast.makeText(this, message, Toast.LENGTH_SHORT).show(); } }
     @Override public void showCustomToast(boolean success, String message) { if (isFinishing()) return; if (success) { CustomToast.showSuccess(this, message, R.drawable.success); } else { CustomToast.showFail(this, message, R.drawable.fail_icon); } }
     @Override public void playSound(boolean isCorrect) { if (!soundsLoaded || soundPool == null) { Log.w(TAG, "Sound not played: soundsLoaded=" + soundsLoaded + ", soundPoolNull=" + (soundPool == null)); return; } int soundId = isCorrect ? correctSoundId : incorrectSoundId; if (soundId != 0) { soundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f); } else { Log.w(TAG, "Sound not played: soundId is 0 for isCorrect=" + isCorrect); } }
     @Override public Context getContext() { return this; }
-    @Override public void scrollDown() { uiHandler.post(() -> scrollViewContent.fullScroll(View.FOCUS_DOWN)); }
+    @Override public void scrollDown() { if (scrollViewContent != null) uiHandler.post(() -> scrollViewContent.fullScroll(View.FOCUS_DOWN)); }
     @Override public void finishActivity() { finish(); }
-
 
     @Override
     public void setMicButtonEnabled(boolean enabled) {
         if (btnMicro == null) return;
         boolean dialogIsOpen = (speechConfirmationDialog != null && speechConfirmationDialog.isShowing());
-        btnMicro.setEnabled(enabled && !dialogIsOpen && azureSpeechConfig != null);
-        btnMicro.setAlpha(btnMicro.isEnabled() ? 1.0f : 0.5f);
-        Log.d(TAG, "setMicButtonEnabled: " + enabled + ", DialogOpen: " + dialogIsOpen + ", AzureConfigReady: " + (azureSpeechConfig != null) + " -> MicEnabled: " + btnMicro.isEnabled());
+        final boolean actualEnabledState = enabled && !dialogIsOpen && azureSpeechConfig != null;
+        btnMicro.setEnabled(actualEnabledState);
+        btnMicro.setAlpha(actualEnabledState ? 1.0f : 0.5f);
+        Log.d(TAG, "setMicButtonEnabled: requested=" + enabled + ", DialogOpen=" + dialogIsOpen + ", AzureConfigReady=" + (azureSpeechConfig != null) + " -> FinalMicEnabled: " + actualEnabledState);
     }
 
     @Override
@@ -331,66 +376,33 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                 showToast("Recording permission is required to use this feature.");
                 setMicButtonEnabled(false);
             } else {
-                setMicButtonEnabled(azureSpeechConfig != null); // Bật mic nếu config đã sẵn sàng
+                setMicButtonEnabled(azureSpeechConfig != null);
             }
         }
     }
 
-    // --- AZURE Speech Recognition & Dialog Methods ---
     @Override
     public void startListening() {
-        if (azureSpeechConfig == null) {
-            showToast("Azure Speech configuration is not ready.");
-            Log.e(TAG, "Azure SpeechConfig is null. Cannot start listening.");
-            return;
-        }
-        if (azureAudioConfig == null) {
-            azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput();
-            if (azureAudioConfig == null) {
-                showToast("Unable to configure microphone input");
-                Log.e(TAG, "Azure AudioConfig is null after re-attempt. Cannot start listening.");
-                return;
-            }
-        }
+        if (azureSpeechConfig == null) { showToast("Azure Speech configuration is not ready."); Log.e(TAG, "Azure SpeechConfig is null. Cannot start listening."); return; }
+        if (azureAudioConfig == null) { azureAudioConfig = AudioConfig.fromDefaultMicrophoneInput(); if (azureAudioConfig == null) { showToast("Unable to configure microphone input"); Log.e(TAG, "Azure AudioConfig is null after re-attempt. Cannot start listening."); return; } }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { requestAudioPermission(); return; }
+        if (!isNetworkAvailable()) { showError("No internet connection! Try again"); return; }
+        if (isCurrentlyListening || (speechConfirmationDialog != null && speechConfirmationDialog.isShowing())) { Log.d(TAG, "Azure startListening: Ignored. Already listening or dialog is showing."); return; }
+        if (textToSpeech != null && textToSpeech.isSpeaking()) { textToSpeech.stop(); }
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            requestAudioPermission();
-            return;
-        }
-        if (!isNetworkAvailable()) {
-            showError("No internet connection! Try again");
-            return;
-        }
-
-        if (isCurrentlyListening || (speechConfirmationDialog != null && speechConfirmationDialog.isShowing())) {
-            Log.d(TAG, "Azure startListening: Ignored. Already listening or dialog is showing.");
-            return;
-        }
-
-        if (textToSpeech != null && textToSpeech.isSpeaking()) {
-            textToSpeech.stop();
-        }
-
-        if (azureSpeechRecognizer != null) { // Dọn dẹp instance cũ nếu có
-            try {
-                azureSpeechRecognizer.stopContinuousRecognitionAsync().get(); // Chờ dừng hẳn
-                azureSpeechRecognizer.close();
-                Log.d(TAG, "Closed previous Azure SpeechRecognizer instance.");
-            } catch (Exception e) { Log.w(TAG, "Exception closing previous recognizer: " + e.getMessage()); }
+        if (azureSpeechRecognizer != null) {
+            try { azureSpeechRecognizer.stopContinuousRecognitionAsync().get(); azureSpeechRecognizer.close(); Log.d(TAG, "Closed previous Azure SpeechRecognizer instance."); }
+            catch (Exception e) { Log.w(TAG, "Exception closing previous recognizer: " + e.getMessage()); }
             azureSpeechRecognizer = null;
         }
-
         azureSpeechRecognizer = new SpeechRecognizer(azureSpeechConfig, azureAudioConfig);
-
-        // Reset các cờ và buffer cho phiên mới
         speechConfirmedManually = false;
         keepListeningActive = true;
         continuousRecoTextBuilder.setLength(0);
 
-        // Đăng ký các event handlers
         azureSpeechRecognizer.sessionStarted.addEventListener((s, e) -> {
             Log.d(TAG, "Azure Session STARTED. SessionId: " + e.getSessionId());
-            continuousRecoTextBuilder.setLength(0); // Reset lại ở đây để chắc chắn
+            continuousRecoTextBuilder.setLength(0);
             runOnUiThread(() -> {
                 isCurrentlyListening = true;
                 indicateListeningState(true);
@@ -414,34 +426,31 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
             if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
                 String recognizedSegmentText = e.getResult().getText();
                 Log.d(TAG, "Azure RECOGNIZED segment: " + recognizedSegmentText);
-
                 if (keepListeningActive && !speechConfirmedManually) {
                     if (!TextUtils.isEmpty(recognizedSegmentText)) {
-                        if (continuousRecoTextBuilder.length() > 0) {
-                            continuousRecoTextBuilder.append(" ");
-                        }
+                        if (continuousRecoTextBuilder.length() > 0) { continuousRecoTextBuilder.append(" "); }
                         continuousRecoTextBuilder.append(recognizedSegmentText);
                     }
                     final String fullStableText = continuousRecoTextBuilder.toString().trim();
                     runOnUiThread(() -> {
                         if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
-                            updateSpeechConfirmationDialog(fullStableText.isEmpty() ? "Pending..." : fullStableText);
-                        } else if (keepListeningActive) { // Dialog bị đóng bất ngờ
-                            showSpeechConfirmationDialog(fullStableText.isEmpty() ? "Pending..." : fullStableText);
+                            updateSpeechConfirmationDialog(fullStableText.isEmpty() ? "Listening..." : fullStableText);
+                        } else if (keepListeningActive) {
+                            showSpeechConfirmationDialog(fullStableText.isEmpty() ? "Listening..." : fullStableText);
                         }
                     });
                 }
             } else if (e.getResult().getReason() == ResultReason.NoMatch) {
-                Log.d(TAG, "Azure NOMATCH: Speech could not be recognized for this segment. Details: " + e.getResult().getProperties().getProperty("CancellationDetails_ReasonDetailedText", ""));
+                Log.d(TAG, "Azure NOMATCH. Details: " + e.getResult().getProperties().getProperty("CancellationDetails_ReasonDetailedText", ""));
                 if (keepListeningActive && !speechConfirmedManually) {
                     runOnUiThread(() -> {
                         if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
-                            String currentDialogTextInView = tvPartialSpeechTextInDialog.getText().toString();
+                            String currentDialogTextInView = tvPartialSpeechTextInDialog != null ? tvPartialSpeechTextInDialog.getText().toString() : "";
                             String builtText = continuousRecoTextBuilder.toString().trim();
-                            if (builtText.isEmpty() && (currentDialogTextInView.equals("Listening...") || currentDialogTextInView.equals("Chuẩn bị thu âm...")) ) {
-                                updateSpeechConfirmationDialog("(Unknown)");
+                            if (builtText.isEmpty() && (currentDialogTextInView.equals("Listening...") || currentDialogTextInView.equals("Preparing to record...")) ) {
+                                updateSpeechConfirmationDialog("(No match)");
                             } else if (!builtText.isEmpty()){
-                                updateSpeechConfirmationDialog(builtText + " (Unknown)");
+                                updateSpeechConfirmationDialog(builtText + " (No further match)");
                             }
                         }
                     });
@@ -459,7 +468,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                 keepListeningActive = false;
                 dismissSpeechConfirmationDialog();
                 if (controller != null && !speechConfirmedManually) {
-                    controller.onSpeechError("Lỗi Azure: " + reason + (TextUtils.isEmpty(errorDetails) ? "" : " - " + errorDetails));
+                    controller.onSpeechError("Azure Error: " + reason + (TextUtils.isEmpty(errorDetails) ? "" : " - " + errorDetails));
                 }
             });
         });
@@ -471,18 +480,17 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
                 indicateListeningState(false);
                 if (keepListeningActive && !speechConfirmedManually) {
                     Log.w(TAG, "Azure session stopped unexpectedly while keepListeningActive was true.");
-                    if (tvPartialSpeechTextInDialog != null) {
+                    if (tvPartialSpeechTextInDialog != null && speechConfirmationDialog !=null && speechConfirmationDialog.isShowing()) {
                         String currentText = tvPartialSpeechTextInDialog.getText().toString();
-                        // Chỉ cập nhật nếu dialog đang ở trạng thái chờ hoặc không có nhiều text
-                        if (currentText.equals("Listening...") || currentText.equals("Getting ready to record...") || continuousRecoTextBuilder.length() < 5) {
-                            updateSpeechConfirmationDialog("Session ended. Retry ?");
+                        if (currentText.equals("Listening...") || currentText.equals("Preparing to record...") || continuousRecoTextBuilder.length() < 5) {
+                            updateSpeechConfirmationDialog("Session ended. Retry?");
                         }
                     }
                 }
             });
         });
 
-        showSpeechConfirmationDialog("Chuẩn bị thu âm...");
+        showSpeechConfirmationDialog("Preparing to record...");
         azureSpeechRecognizer.startContinuousRecognitionAsync();
         Log.d(TAG, "Azure SpeechRecognizer: startContinuousRecognitionAsync called.");
     }
@@ -491,15 +499,13 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     @Override
     public void stopListening() {
         Log.d(TAG, "Azure stopListening: User or controller requested stop.");
-        keepListeningActive = false; // Tắt cờ duy trì lắng nghe
+        keepListeningActive = false;
 
         if (azureSpeechRecognizer != null) {
             try {
                 azureSpeechRecognizer.stopContinuousRecognitionAsync();
-                // isCurrentlyListening và dialog sẽ được xử lý bởi sessionStopped/canceled events
             } catch (Exception e) {
                 Log.e(TAG, "Error stopping Azure recognizer in stopListening: " + e.getMessage());
-
                 isCurrentlyListening = false;
                 indicateListeningState(false);
                 dismissSpeechConfirmationDialog();
@@ -515,8 +521,9 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     public void indicateListeningState(boolean isSRListening) {
         if (btnMicro != null) {
             boolean dialogIsOpen = (speechConfirmationDialog != null && speechConfirmationDialog.isShowing());
-            btnMicro.setEnabled(!dialogIsOpen && azureSpeechConfig != null && !isSRListening);
-            btnMicro.setAlpha((isSRListening && !dialogIsOpen) ? 0.6f : (btnMicro.isEnabled() ? 1.0f : 0.5f) ); // Mờ đi nếu đang nghe (và không có dialog)
+            boolean micCanBeEnabled = !dialogIsOpen && azureSpeechConfig != null && !isSRListening;
+            btnMicro.setEnabled(micCanBeEnabled);
+            btnMicro.setAlpha(micCanBeEnabled ? 1.0f : 0.5f );
             Log.d(TAG, "IndicateListeningState (Azure): isSRListening=" + isSRListening +
                     ", dialogOpen=" + dialogIsOpen +
                     ", azureConfigNull=" + (azureSpeechConfig == null) +
@@ -527,20 +534,17 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     @SuppressLint("InflateParams")
     @Override
     public void showSpeechConfirmationDialog(String initialText) {
-        if (isFinishing() || isDestroyed()) {
-            Log.w(TAG, "showSpeechConfirmationDialog: Activity is finishing/destroyed.");
-            return;
-        }
+        if (isFinishing() || isDestroyed()) { Log.w(TAG, "showSpeechConfirmationDialog: Activity is finishing/destroyed."); return; }
         if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
-            // Nếu dialog đã hiển thị, chỉ cập nhật text nếu cần và đó không phải là text ban đầu
-            if (tvPartialSpeechTextInDialog != null && !TextUtils.equals(tvPartialSpeechTextInDialog.getText(), initialText) &&
-                    !(initialText.equals("Listening...") || initialText.equals("Getting ready to record...")) ) { // Không ghi đè lên prompt ban đầu
+            if (tvPartialSpeechTextInDialog != null &&
+                    !TextUtils.equals(tvPartialSpeechTextInDialog.getText(), initialText) &&
+                    !(initialText.equals("Listening...") || initialText.equals("Preparing to record..."))) {
                 tvPartialSpeechTextInDialog.setText(initialText);
             }
             return;
         }
         Log.d(TAG, "showSpeechConfirmationDialog: Creating new dialog with text: " + initialText);
-        continuousRecoTextBuilder.setLength(0); // Reset bộ đệm khi dialog mới được tạo
+        continuousRecoTextBuilder.setLength(0);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_speech_confirm, null);
@@ -550,8 +554,7 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         Button btnConfirmSpeech = dialogView.findViewById(R.id.btn_confirm_speech);
         Button btnCancelDialog = dialogView.findViewById(R.id.btn_cancel_speech_dialog);
 
-        if (tvPartialSpeechTextInDialog != null)
-            tvPartialSpeechTextInDialog.setText(initialText);
+        if (tvPartialSpeechTextInDialog != null) tvPartialSpeechTextInDialog.setText(initialText);
 
         speechConfirmationDialog = builder.create();
         speechConfirmationDialog.setCanceledOnTouchOutside(false);
@@ -560,40 +563,51 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
         btnConfirmSpeech.setOnClickListener(v -> {
             if (tvPartialSpeechTextInDialog == null) return;
             String finalTextToSubmit = tvPartialSpeechTextInDialog.getText().toString().trim();
-
-            Log.d(TAG, "Dialog: 'Xác nhận' clicked. Final Text: '" + finalTextToSubmit + "'. Stopping Azure session.");
+            Log.d(TAG, "Dialog: 'Confirm' clicked. Final Text: '" + finalTextToSubmit + "'. Requesting Azure stop.");
 
             keepListeningActive = false;
             speechConfirmedManually = true;
+            isCurrentlyListening = false;
 
             if (azureSpeechRecognizer != null) {
-                try { azureSpeechRecognizer.stopContinuousRecognitionAsync(); }
-                catch (Exception e) { Log.e(TAG, "Error stopping Azure from Confirm: " + e.getMessage()); }
+                try {
+                    azureSpeechRecognizer.stopContinuousRecognitionAsync();
+                } catch (Exception e) { Log.e(TAG, "Error stopping Azure from Confirm: " + e.getMessage()); }
             }
+
+            indicateListeningState(false);
+            dismissSpeechConfirmationDialog();
 
             if (controller != null) {
                 String formattedResponse = finalTextToSubmit;
-                if (!TextUtils.isEmpty(formattedResponse) && !(formattedResponse.equals("Listening...") || formattedResponse.equals("Chuẩn bị thu âm...") || formattedResponse.contains("Không nhận dạng"))) {
+                if (!TextUtils.isEmpty(formattedResponse) &&
+                        !(formattedResponse.equalsIgnoreCase("Listening...") ||
+                                formattedResponse.equalsIgnoreCase("Preparing to record...") ||
+                                formattedResponse.toLowerCase().contains("no match") ||
+                                formattedResponse.toLowerCase().contains("session ended") ||
+                                formattedResponse.equalsIgnoreCase("(unknown)"))) {
                     formattedResponse = formattedResponse.substring(0, 1).toUpperCase() + (formattedResponse.length() > 1 ? formattedResponse.substring(1) : "");
-                } else if (formattedResponse.contains("Không nhận dạng") || formattedResponse.contains("Đang xử lý") || formattedResponse.contains("Hết giờ") || formattedResponse.contains("Phiên kết thúc")) {
-                    formattedResponse = ""; // Gửi chuỗi rỗng nếu là thông báo hệ thống/lỗi
+                } else {
+                    formattedResponse = "";
                 }
                 controller.onSpeechResult(formattedResponse);
             }
-            dismissSpeechConfirmationDialog();
         });
 
         btnCancelDialog.setOnClickListener(v -> {
-            Log.d(TAG, "Dialog: 'Hủy' clicked. Stopping Azure session.");
+            Log.d(TAG, "Dialog: 'Cancel' clicked. Requesting Azure stop.");
             keepListeningActive = false;
             speechConfirmedManually = false;
+            isCurrentlyListening = false;
 
             if (azureSpeechRecognizer != null) {
-                try { azureSpeechRecognizer.stopContinuousRecognitionAsync(); }
-                catch (Exception e) { Log.e(TAG, "Error stopping Azure from Cancel: " + e.getMessage());}
+                try {
+                    azureSpeechRecognizer.stopContinuousRecognitionAsync();
+                } catch (Exception e) { Log.e(TAG, "Error stopping Azure from Cancel: " + e.getMessage());}
             }
+            indicateListeningState(false);
             dismissSpeechConfirmationDialog();
-            if (controller != null) {
+            if(controller != null) {
                 //
             }
         });
@@ -608,9 +622,8 @@ public class InternalSpeakingTopic extends AppCompatActivity implements Speaking
     public void updateSpeechConfirmationDialog(String newTextToDisplay) {
         if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing() && tvPartialSpeechTextInDialog != null) {
             if (TextUtils.isEmpty(newTextToDisplay) &&
-                    (tvPartialSpeechTextInDialog.getText().toString().equals("Listening") ||
-                            tvPartialSpeechTextInDialog.getText().toString().equals("Getting ready to record..."))) {
-                // Không làm gì
+                    (tvPartialSpeechTextInDialog.getText().toString().equals("Listening...") ||
+                            tvPartialSpeechTextInDialog.getText().toString().equals("Preparing to record..."))) {
             } else {
                 tvPartialSpeechTextInDialog.setText(newTextToDisplay);
             }
