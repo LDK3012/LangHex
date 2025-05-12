@@ -68,6 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="50dp"
+            android:layout_marginBottom="2dp"
             android:text="11 phút trước"
             android:textSize="14sp"
             android:textColor="@android:color/darker_gray" />
@@ -78,7 +79,7 @@
             android:orientation="vertical"
             android:layout_gravity="center">
             <TextView
-                android:id="@+id/txtAuthor"
+                android:id="@+id/txtTitle"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:paddingLeft="5dp"

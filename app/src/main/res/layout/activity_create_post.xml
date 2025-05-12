@@ -71,6 +71,7 @@
                 app:srcCompat="@drawable/avatar" />
 
             <TextView
+                android:id="@+id/txtAuthor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="30dp"
@@ -83,7 +84,7 @@
         </LinearLayout>
 
         <EditText
-            android:id="@+id/edtComment"
+            android:id="@+id/edtPostTitle"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_gravity="center_horizontal"
@@ -91,10 +92,11 @@
             android:background="@drawable/custom_edt_postandcomment"
             android:hint="Tiêu đề"
             android:padding="12dp"
+            android:maxLength="60"
             android:textColorHint="#AAAAAA" />
 
         <EditText
-            android:id="@+id/edtComment"
+            android:id="@+id/edtPostContent"
             android:layout_width="match_parent"
             android:layout_height="300dp"
             android:layout_gravity="center"
@@ -103,6 +105,7 @@
             android:background="@drawable/custom_edt_postandcomment"
             android:hint="Bạn đang nghĩ gì?"
             android:padding="12dp"
+            android:maxLength="500"
             android:textColorHint="#AAAAAA" />
 
         <LinearLayout
@@ -111,9 +114,9 @@
             android:layout_marginTop="10dp">
 
             <ImageButton
+                android:id="@+id/btnUploadPhoto"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginLeft="30dp"
                 android:background="@android:drawable/ic_menu_gallery"
                 android:backgroundTint="@color/black">
             </ImageButton>
@@ -128,6 +131,7 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/btnCreatePost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:backgroundTint="#FF6C6C"

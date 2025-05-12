@@ -1,44 +1,58 @@
 package com.example.langhexx.Model;
 
 public class Post {
-    String imgAvatar, txtPostTitle, txtAuthor, txtTime;
+    private Object imgAvatar;
+    private String txtPostTitle;
+    private String txtAuthor;
+    private String txtTime;
+    private String txtContent;
+    private int likeCountData;
+    private boolean likedByUser;
 
-    public Post(String imgAvatar, String txtPostTitle, String txtAuthor, String txtTime) {
+    // Constructor
+    public Post(Object imgAvatar, String txtPostTitle, String txtAuthor, String txtTime, String txtContent, int likeCountData, boolean likedByUser) {
         this.imgAvatar = imgAvatar;
         this.txtPostTitle = txtPostTitle;
         this.txtAuthor = txtAuthor;
         this.txtTime = txtTime;
+        this.txtContent = txtContent;
+        this.likeCountData = likeCountData;
+        this.likedByUser = likedByUser;
     }
 
-    public String getImgAvatar() {
+    public Object getImgAvatar() {
         return imgAvatar;
-    }
-
-    public void setImgAvatar(String imgAvatar) {
-        this.imgAvatar = imgAvatar;
     }
 
     public String getTxtPostTitle() {
         return txtPostTitle;
     }
 
-    public void setTxtPostTitle(String txtPostTitle) {
-        this.txtPostTitle = txtPostTitle;
-    }
-
     public String getTxtAuthor() {
         return txtAuthor;
-    }
-
-    public void setTxtAuthor(String txtAuthor) {
-        this.txtAuthor = txtAuthor;
     }
 
     public String getTxtTime() {
         return txtTime;
     }
 
-    public void setTxtTime(String txtTime) {
-        this.txtTime = txtTime;
+    public String getTxtContent() {
+        return txtContent;
+    }
+
+    public int getLikeCountData() {
+        return likeCountData;
+    }
+
+    public boolean isLikedByUser() {
+        return likedByUser;
+    }
+
+    public void setLikeCountData(int likeCountData) {
+        this.likeCountData = likeCountData;
+    }
+
+    public void setLikedByUser(boolean likedByUser) {
+        this.likedByUser = likedByUser;
     }
 }
