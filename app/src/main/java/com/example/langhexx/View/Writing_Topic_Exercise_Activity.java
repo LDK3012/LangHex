@@ -3,7 +3,6 @@ package com.example.langhexx.View;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -13,7 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.langhexx.Controller.WritingExerciseAdapter;
-import com.example.langhexx.Model.WritingExercise; // Import the WritingExercise model
+import com.example.langhexx.Model.WritingExercise;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -27,14 +26,14 @@ import java.util.List;
 public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
     private static final String TAG = "WritingExerciseActivity";
     private ImageView imgClose, imgHome;
-    private TextView tvScreenTitle; // This will show Topic Display Name
+    private TextView tvScreenTitle;
     private RecyclerView rvExercises;
     private WritingExerciseAdapter exerciseAdapter;
-    private List<WritingExercise> exerciseList; // Changed from List<String> to List<WritingExercise>
+    private List<WritingExercise> exerciseList;
 
     private String levelName;
-    private String topicId; // Received from previous activity
-    private String topicDisplayName; // Received from previous activity
+    private String topicId;
+    private String topicDisplayName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,16 +41,16 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
         setContentView(R.layout.activity_writing_topic_exercise);
 
         levelName = getIntent().getStringExtra("levelName");
-        topicId = getIntent().getStringExtra("TOPIC_ID"); // Get Topic ID
-        topicDisplayName = getIntent().getStringExtra("TOPIC_DISPLAY_NAME"); // Get Topic Display Name
+        topicId = getIntent().getStringExtra("TOPIC_ID");
+        topicDisplayName = getIntent().getStringExtra("TOPIC_DISPLAY_NAME");
 
         addControls();
 
         if (levelName != null && topicId != null) {
             if (topicDisplayName != null) {
-                tvScreenTitle.setText(topicDisplayName); // Set screen title to Topic Display Name
+                tvScreenTitle.setText(topicDisplayName);
             } else {
-                tvScreenTitle.setText("Exercises"); // Fallback title
+                tvScreenTitle.setText("Exercises");
             }
             loadExercisesFromFirebase(levelName, topicId);
         } else {
@@ -69,8 +68,6 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
         rvExercises = findViewById(R.id.rvExercises);
         rvExercises.setLayoutManager(new LinearLayoutManager(this));
         exerciseList = new ArrayList<>();
-
-        // Pass topicId and topicDisplayName to the adapter
         exerciseAdapter = new WritingExerciseAdapter(this, exerciseList, levelName, topicId, topicDisplayName);
         rvExercises.setAdapter(exerciseAdapter);
     }
@@ -82,7 +79,7 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
                 .child(levelName)
                 .child("Writing")
                 .child("Topics")
-                .child(currentTopicId) // Use Topic ID here
+                .child(currentTopicId)
                 .child("Exercises");
 
         Log.d(TAG, "Loading exercises from: " + exercisesRef.toString());
@@ -92,14 +89,11 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 exerciseList.clear();
                 if (snapshot.exists()){
-                    for (DataSnapshot exerciseNodeSnap : snapshot.getChildren()) { // Iterate through Exercise IDs
+                    for (DataSnapshot exerciseNodeSnap : snapshot.getChildren()) {
                         String exerciseId = exerciseNodeSnap.getKey();
                         String exerciseDisplayTitle = exerciseNodeSnap.child("title").getValue(String.class);
-                        // Script is not needed for the list display, can be fetched in InternalWritingTopic
-                        // String script = exerciseNodeSnap.child("script").getValue(String.class);
-
                         if (exerciseId != null && exerciseDisplayTitle != null) {
-                            exerciseList.add(new WritingExercise(exerciseId, exerciseDisplayTitle, null)); // Add WritingExercise object
+                            exerciseList.add(new WritingExercise(exerciseId, exerciseDisplayTitle, null));
                         } else {
                             Log.w(TAG, "Exercise ID or Title is null for a child under " + exercisesRef.toString());
                         }
@@ -112,7 +106,6 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
                 if (exerciseAdapter != null) {
                     exerciseAdapter.notifyDataSetChanged();
                 }
-                // Removed the "Fail!" toast for empty list, as it's handled by "No exercises found"
             }
 
             @Override
@@ -128,7 +121,6 @@ public class Writing_Topic_Exercise_Activity extends AppCompatActivity {
 
         imgHome.setOnClickListener(view -> {
             Intent intent = new Intent(Writing_Topic_Exercise_Activity.this, MainActivity.class);
-            // Consider FLAG_ACTIVITY_CLEAR_TOP or similar if you want to clear back stack
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();

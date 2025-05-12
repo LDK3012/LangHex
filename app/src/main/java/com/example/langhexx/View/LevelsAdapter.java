@@ -33,8 +33,6 @@ public class LevelsAdapter extends ArrayAdapter<Levels> {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             convertView = inflater.inflate(resource, null);
         }
-
-        // Liên kết dữ liệu với view
         Levels level = levelsList.get(position);
 
         TextView txtLevelName = convertView.findViewById(R.id.txtLevels);

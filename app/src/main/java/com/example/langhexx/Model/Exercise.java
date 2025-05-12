@@ -1,18 +1,16 @@
 package com.example.langhexx.Model;
 
-public class WritingExercise {
+public class Exercise {
     private String id;
     private String title;
-    private String script;
 
-    public WritingExercise() {
-        //
+    public Exercise() {
+    //
     }
 
-    public WritingExercise(String id, String title, String script) {
+    public Exercise(String id, String title) {
         this.id = id;
         this.title = title;
-        this.script = script;
     }
 
     public String getId() {
@@ -29,13 +27,5 @@ public class WritingExercise {
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    public String getScript() {
-        return script;
-    }
-
-    public void setScript(String script) {
-        this.script = script;
     }
 }

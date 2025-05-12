@@ -17,8 +17,6 @@ import java.util.List;
 public class MicrosoftAuthModel {
     private static final String TAG = "MicrosoftAuthModel";
     private FirebaseAuth firebaseAuth;
-
-    // Constants for SharedPreferences
     private static final String MS_GRAPH_PREFS = "MSGraphPrefs";
     private static final String MS_GRAPH_TOKEN_KEY = "ms_graph_token";
 
@@ -95,7 +93,7 @@ public class MicrosoftAuthModel {
         SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(MS_GRAPH_PREFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(MS_GRAPH_TOKEN_KEY, token);
-        editor.apply(); // Use apply() for asynchronous saving
+        editor.apply();
         Log.i(TAG, "Microsoft Graph Access Token saved to SharedPreferences.");
     }
 }

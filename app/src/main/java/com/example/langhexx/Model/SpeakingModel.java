@@ -148,12 +148,10 @@ public class SpeakingModel implements SpeakingContract.Model{
                 response -> {
                     Log.d(TAG, "Gemini API Full Response: " + response.toString());
                     try {
-                        // --- Start Parsing Gemini Response (Similar to original code) ---
+                        // --- Start Parsing Gemini Response
                         JSONArray candidates = response.optJSONArray("candidates");
                         if (candidates != null && candidates.length() > 0) {
                             JSONObject firstCandidate = candidates.getJSONObject(0);
-
-                            // Safety Ratings Check (Simplified)
                             JSONArray safetyRatings = firstCandidate.optJSONArray("safetyRatings");
                             if (safetyRatings != null) {
                                 for (int i = 0; i < safetyRatings.length(); i++) {
@@ -291,7 +289,7 @@ public class SpeakingModel implements SpeakingContract.Model{
     public void cleanup() {
         if (requestQueue != null) {
             Log.d(TAG, "Cancelling requests with tag: " + TAG);
-            requestQueue.cancelAll(TAG); // Cancel requests associated with this model
+            requestQueue.cancelAll(TAG);
         }
     }
 }

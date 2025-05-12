@@ -78,7 +78,6 @@ public class ProfileDetail extends AppCompatActivity {
         txtEmail = findViewById(R.id.txtEmail); // Label "Email"
         edtEmail = findViewById(R.id.edtEmail); // EditText Email
         txtNameLabel = findViewById(R.id.txtDisplay);
-        // --- Vô hiệu hóa chỉnh sửa cho EditText ---
         edtProfileName.setEnabled(false);
         edtEmail.setEnabled(false);
     }
@@ -172,7 +171,7 @@ public class ProfileDetail extends AppCompatActivity {
         Glide.with(this)
                 .load(drawableId)
                 .circleCrop()
-                .placeholder(R.drawable.avatar) // Có thể thêm placeholder ở đây
+                .placeholder(R.drawable.avatar)
                 .error(R.drawable.unknown_avatar) // Ảnh nếu lỗi khi load drawable
                 .into(imgAvatar);
     }

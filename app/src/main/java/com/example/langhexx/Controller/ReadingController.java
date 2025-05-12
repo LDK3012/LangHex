@@ -5,6 +5,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.langhexx.Model.Exercise;
 import com.example.langhexx.Model.ReadingQuestion;
 import com.example.langhexx.R;
 
@@ -24,7 +25,6 @@ public class ReadingController {
 
     private static final String TAG = "ReadingController";
 
-    // --- View Interface ---
     public interface ViewInterface {
         void displayExerciseTitle(String title);
         void displayPassage(String text);
@@ -33,68 +33,69 @@ public class ReadingController {
         void resetAdapterState();
         void setButtonState(int state, String text);
         Map<Integer, Integer> getAdapterSelectedAnswers();
-        boolean areAdapterAnswersAllCorrect(); // Ask adapter via View
+        boolean areAdapterAnswersAllCorrect();
         void showToast(String message);
         void showFailToast(String message);
         void showConfirmationDialog(String title, String message, Runnable onConfirm);
-        void navigateToNextExercise(String levelName, String topicTitle, String nextExerciseTitle);
+        void navigateToNextExercise(String levelName, String topicId, String nextExerciseId, String topicDisplayTitle, String nextExerciseDisplayTitle);
         void finishActivity();
         void scrollToQuestion(int index);
-        void setUIElementsVisibility(boolean visible); // Control overall visibility
+        void setUIElementsVisibility(boolean visible);
     }
 
-    // --- State Constants ---
     public static final int STATE_SUBMIT = 0;
     public static final int STATE_RETRY = 1;
     public static final int STATE_NEXT = 2;
-    public static final int STATE_FINISHED_HAS_NEXT = 3;
     public static final int STATE_FINISHED_NO_NEXT = -1;
     private int currentButtonState = STATE_SUBMIT;
 
-    // --- Data Members ---
     private ViewInterface view;
     private String levelName;
-    private String topicTitle;
-    private String exerciseTitle;
+    private String topicId;
+    private String exerciseId;
+    private String topicDisplayTitle;
+    private String exerciseDisplayTitle;
+
     private String passageText;
     private List<ReadingQuestion> questionsList;
-    private ArrayList<String> allExerciseTitles;
+    private ArrayList<Exercise> allExercisesInTopic;
     private boolean dataLoaded = false;
-    private boolean titlesLoaded = false;
+    private boolean allExercisesLoaded = false;
 
-    // --- Firebase ---
     private DatabaseReference databaseReference;
 
     public ReadingController(ViewInterface view, Intent intent) {
         this.view = view;
         this.questionsList = new ArrayList<>();
-        this.allExerciseTitles = new ArrayList<>();
+        this.allExercisesInTopic = new ArrayList<>();
         this.databaseReference = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
 
-        // Extract data from Intent
         if (intent != null) {
             levelName = intent.getStringExtra("LEVEL_NAME");
-            topicTitle = intent.getStringExtra("TOPIC_TITLE");
-            exerciseTitle = intent.getStringExtra("EXERCISE_TITLE");
-            Log.d(TAG, "Intent data: Level=" + levelName + ", Topic=" + topicTitle + ", Exercise=" + exerciseTitle);
+            topicId = intent.getStringExtra("TOPIC_ID");
+            exerciseId = intent.getStringExtra("EXERCISE_ID");
+            topicDisplayTitle = intent.getStringExtra("TOPIC_TITLE");
+            exerciseDisplayTitle = intent.getStringExtra("EXERCISE_TITLE");
+
+            Log.d(TAG, "Intent data: Level=" + levelName + ", TopicID=" + topicId + ", ExerciseID=" + exerciseId +
+                    ", TopicTitle=" + topicDisplayTitle + ", ExerciseTitle=" + exerciseDisplayTitle);
         } else {
             handleInitializationError("Error: Intent is null.");
             return;
         }
 
-        if (levelName == null || topicTitle == null || exerciseTitle == null) {
-            handleInitializationError("Error: Missing exercise identifiers in Intent.");
+        if (levelName == null || topicId == null || exerciseId == null || topicDisplayTitle == null || exerciseDisplayTitle == null) {
+            handleInitializationError("Error: Missing identifiers in Intent.");
             return;
         }
     }
 
-    // Called by View after setup
     public void initialize() {
         Log.d(TAG, "Initializing Controller...");
-        view.setUIElementsVisibility(false); // Hide UI initially
-        view.displayExerciseTitle(exerciseTitle); // Show title early
+        view.setUIElementsVisibility(false);
+        view.displayExerciseTitle(exerciseDisplayTitle); // Hiển thị tên bài tập
         loadExerciseDataFromFirebase();
-        loadAllExerciseTitlesFromFirebase();
+        loadAllExercisesInTopicFromFirebase();
     }
 
     private void handleInitializationError(String errorMessage) {
@@ -105,18 +106,17 @@ public class ReadingController {
         }
     }
 
-
     private void loadExerciseDataFromFirebase() {
-        if (levelName == null || topicTitle == null || exerciseTitle == null) {
+        if (levelName == null || topicId == null || exerciseId == null) {
             Log.e(TAG, "Cannot load exercise data: Identifiers are null.");
-            return; // Already handled in constructor, but double-check
+            return;
         }
         DatabaseReference exerciseRef = databaseReference
                 .child("Lessons").child("Levels").child(levelName)
-                .child("Reading").child("Topics").child(topicTitle).child("Exercises").child(exerciseTitle);
+                .child("Reading").child("Topics").child(topicId) // Sử dụng topicId
+                .child("Exercises").child(exerciseId);          // Sử dụng exerciseId
 
         Log.i(TAG, "Loading exercise data from: " + exerciseRef.toString());
-
         exerciseRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -127,7 +127,6 @@ public class ReadingController {
                     return;
                 }
 
-                // Load script (passage)
                 passageText = snapshot.child("script").getValue(String.class);
                 if (passageText != null && !passageText.isEmpty()) {
                     view.displayPassage(passageText);
@@ -135,10 +134,8 @@ public class ReadingController {
                 } else {
                     Log.w(TAG, "'script' field missing or empty.");
                     view.displayPassage(null);
-
                 }
 
-                // Load questions
                 DataSnapshot questionsSnapshot = snapshot.child("questions");
                 List<ReadingQuestion> loadedQuestions = new ArrayList<>();
                 if (questionsSnapshot.exists()) {
@@ -154,24 +151,22 @@ public class ReadingController {
                 } else {
                     Log.w(TAG, "No 'questions' node found.");
                 }
-
-                // Update the controller's list and then the view's adapter
                 questionsList.clear();
                 questionsList.addAll(loadedQuestions);
-                view.updateAdapterData(questionsList); // Update adapter via View Interface
+                view.updateAdapterData(questionsList);
 
                 dataLoaded = true;
-                checkIfAllDataLoaded(); // Check if both data and titles are loaded
+                checkIfAllDataLoaded();
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Firebase loading cancelled/failed: " + error.getMessage(), error.toException());
                 view.showToast("Error loading data: " + error.getMessage());
-                view.finishActivity(); // Finish if essential data fails to load
+                view.finishActivity();
             }
         });
     }
+
 
     private ReadingQuestion parseReadingQuestionSnapshot(DataSnapshot questionSnap) {
         ReadingQuestion question = new ReadingQuestion();
@@ -192,91 +187,103 @@ public class ReadingController {
                 }
             } catch (ClassCastException e) {
                 Log.e(TAG, "Error casting options for question: " + questionSnap.getKey(), e);
-                // Return null or empty question if options are critical and failed to parse
                 return null;
             }
         } else {
             Log.w(TAG, "'options' node missing or invalid format for question: " + questionSnap.getKey());
         }
 
-        // Validate essential fields before returning the question object
         if (text != null && !text.isEmpty() && answer != null && !answer.isEmpty() && !stringOptionsMap.isEmpty()) {
             question.setQuestionText(text);
             question.setOptions(stringOptionsMap);
             question.setCorrectAnswer(answer);
             return question;
         } else {
-            Log.w(TAG, "Skipping question due to missing essential data: Key=" + questionSnap.getKey() +
-                    ", Text=" + (text != null && !text.isEmpty()) +
-                    ", Answer=" + (answer != null && !answer.isEmpty()) +
-                    ", Options=" + !stringOptionsMap.isEmpty());
-            return null; // Return null if essential data is missing
+            Log.w(TAG, "Skipping question due to missing essential data: Key=" + questionSnap.getKey());
+            return null;
         }
     }
 
-
-    private void loadAllExerciseTitlesFromFirebase() {
-        if (levelName == null || topicTitle == null) {
-            Log.e(TAG, "Cannot load titles: Level/Topic null.");
-            return; // Should have been caught earlier
+    private void loadAllExercisesInTopicFromFirebase() {
+        if (levelName == null || topicId == null) {
+            Log.e(TAG, "Cannot load all exercises: LevelName or TopicID null.");
+            return;
         }
-        DatabaseReference exercisesRef = databaseReference
+        // Đường dẫn sử dụng topicId
+        DatabaseReference exercisesPathRef = databaseReference
                 .child("Lessons").child("Levels").child(levelName)
-                .child("Reading").child("Topics").child(topicTitle).child("Exercises");
+                .child("Reading").child("Topics").child(topicId) // Sử dụng topicId
+                .child("Exercises");
 
-        Log.d(TAG, "Loading all titles from: " + exercisesRef.toString());
-        exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        Log.d(TAG, "Loading all exercises from: " + exercisesPathRef.toString());
+        exercisesPathRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                allExerciseTitles.clear(); // Clear previous titles
+                allExercisesInTopic.clear();
                 if (snapshot.exists()) {
                     for (DataSnapshot exSnap : snapshot.getChildren()) {
-                        String title = exSnap.getKey();
-                        if (title != null && !title.isEmpty()) {
-                            allExerciseTitles.add(title);
+                        String exId = exSnap.getKey(); // ID của exercise
+                        String exTitle = exSnap.child("title").getValue(String.class); // Tên hiển thị của exercise
+
+                        if (exTitle == null || exTitle.isEmpty()) {
+                            exTitle = exId; // Fallback
+                            Log.w(TAG, "Exercise ID " + exId + " in topic " + topicId + " is missing a title. Using ID as title.");
+                        }
+                        if (exId != null) {
+                            allExercisesInTopic.add(new Exercise(exId, exTitle));
                         }
                     }
-                    Log.i(TAG, "Loaded " + allExerciseTitles.size() + " titles for topic: " + topicTitle);
+                    Log.i(TAG, "Loaded " + allExercisesInTopic.size() + " exercises for topic ID: " + topicId);
                 } else {
-                    Log.w(TAG, "No exercises found under topic path: " + topicTitle);
+                    Log.w(TAG, "No exercises found under topic ID: " + topicId);
                 }
-                titlesLoaded = true;
-                checkIfAllDataLoaded(); // Check if both data and titles are loaded
+                allExercisesLoaded = true;
+                checkIfAllDataLoaded();
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Failed to load all exercise titles: " + error.getMessage());
-                titlesLoaded = true;
+                Log.e(TAG, "Failed to load all exercise identifiers: " + error.getMessage());
+                allExercisesLoaded = true;
                 checkIfAllDataLoaded();
             }
         });
     }
 
     private void checkIfAllDataLoaded() {
-        if (dataLoaded && titlesLoaded) {
-            Log.d(TAG, "All initial data (exercise + titles) loaded.");
+        if (dataLoaded && allExercisesLoaded) {
+            Log.d(TAG, "All initial data (exercise details + all exercises in topic) loaded.");
             boolean hasContentToShow = (passageText != null && !passageText.isEmpty()) || !questionsList.isEmpty();
             view.setUIElementsVisibility(hasContentToShow);
-            if(questionsList.isEmpty()){
-                view.showToast("No questions available for this exercise.");
-                setButtonState(STATE_SUBMIT, "Submit");
-            } else {
+            if(questionsList.isEmpty() && (passageText == null || passageText.isEmpty())){
+                view.showToast("No content available for this exercise.");
+                // Dù không có content, vẫn có thể có bài tập tiếp theo
+                if(hasNextExercise()){
+                    setButtonState(STATE_NEXT, "Next Exercise");
+                } else {
+                    setButtonState(STATE_FINISHED_NO_NEXT, "Finish ! Back Now");
+                }
+            } else if (questionsList.isEmpty() && passageText != null && !passageText.isEmpty()) {
+                view.showToast("No questions for this passage. Click Next if available.");
+                if(hasNextExercise()){
+                    setButtonState(STATE_NEXT, "Next Exercise");
+                } else {
+                    setButtonState(STATE_FINISHED_NO_NEXT, "Finish ! Back Now");
+                }
+            }
+            else {
                 resetSubmitButtonToSubmitState();
             }
         }
     }
 
 
-    // --- Button Actions ---
-
     public void onSubmitButtonClicked() {
         Log.d(TAG, "Submit button clicked. Current state: " + currentButtonState);
-        // Prevent action if no questions loaded
+
         if (questionsList.isEmpty()) {
             Log.w(TAG, "Submit button clicked, but no questions are loaded.");
-            view.showToast("No questions to submit.");
-            // Optionally handle 'Next' if passage exists but no questions
             if (hasNextExercise()) {
                 goToNextExercise();
             } else {
+                view.showToast("No questions to submit and no next exercise.");
                 finishExercise();
             }
             return;
@@ -290,7 +297,7 @@ public class ReadingController {
                 retryExercise();
                 break;
             case STATE_NEXT:
-            case STATE_FINISHED_HAS_NEXT:
+                // case STATE_FINISHED_HAS_NEXT: // Gộp vào STATE_NEXT
                 goToNextExercise();
                 break;
             case STATE_FINISHED_NO_NEXT:
@@ -312,10 +319,9 @@ public class ReadingController {
 
         if (totalQuestions == 0) {
             Log.w(TAG, "checkAnswers: No questions available.");
-            updateButtonStateBasedOnResults(true); // Treat as 'all correct' to move on
+            updateButtonStateBasedOnResults(true);
             return;
         }
-
 
         for (int i = 0; i < totalQuestions; i++) {
             if (userAnswers.getOrDefault(i, -1) == -1) {
@@ -327,17 +333,15 @@ public class ReadingController {
 
         if (allAnswered) {
             Log.d(TAG, "Check: All questions answered. Showing confirmation dialog.");
-            // Use lambda for the confirmation action
             view.showConfirmationDialog("Confirm", "Are you sure want to submit ?", this::proceedWithSubmission);
         } else {
             Log.d(TAG, "Check: Not all questions answered. First unanswered: " + firstUnanswered);
             view.showFailToast("Please answer all questions!");
             if (firstUnanswered != -1) {
-                view.scrollToQuestion(firstUnanswered); // Ask view to scroll
+                view.scrollToQuestion(firstUnanswered);
             }
         }
     }
-
 
     private void proceedWithSubmission() {
         Log.i(TAG, "Proceeding with submission...");
@@ -346,10 +350,9 @@ public class ReadingController {
 
         if (totalQuestions == 0) {
             Log.w(TAG, "Proceeding with submission, but no questions exist.");
-            updateButtonStateBasedOnResults(true); // Treat as all correct if no questions
+            updateButtonStateBasedOnResults(true);
             return;
         }
-
 
         Log.d(TAG, "Scoring " + totalQuestions + " questions.");
         int correctCount = 0;
@@ -358,11 +361,11 @@ public class ReadingController {
         for (int i = 0; i < totalQuestions; i++) {
             if (i >= questionsList.size()) {
                 Log.w(TAG,"Index out of bounds during submission: " + i);
-                continue; // Should not happen if logic is sound
+                continue;
             }
             ReadingQuestion question = questionsList.get(i);
-            int selectedRadioButtonId = userAnswers.getOrDefault(i, -1); // Get the ID or -1
-            String selectedAnswerKey = mapRadioButtonIdToKey(selectedRadioButtonId); // Map ID to "A", "B", etc.
+            int selectedRadioButtonId = userAnswers.getOrDefault(i, -1);
+            String selectedAnswerKey = mapRadioButtonIdToKey(selectedRadioButtonId);
 
             boolean isCorrect = question.getCorrectAnswer() != null &&
                     !selectedAnswerKey.isEmpty() &&
@@ -378,14 +381,9 @@ public class ReadingController {
         String resultMessage = String.format(Locale.getDefault(), "Result: %d / %d correct!", correctCount, totalQuestions);
         view.showToast(resultMessage);
         Log.i(TAG, "Final Score: " + correctCount + "/" + totalQuestions);
-
-        // Tell the View to update the adapter to show results
         view.showResultsInAdapter(userAnswers, correctnessMap);
-
-        // Update button state based on results and whether there's a next exercise
         boolean allCorrect = (correctCount == totalQuestions);
         updateButtonStateBasedOnResults(allCorrect);
-
         Log.d(TAG, "Submission process finished. Button state: " + currentButtonState);
     }
 
@@ -398,24 +396,19 @@ public class ReadingController {
     }
 
 
-    // Logic to determine button state AFTER submission
     private void updateButtonStateBasedOnResults(boolean allCorrect) {
         boolean hasNext = hasNextExercise();
         Log.d(TAG,"updateButtonStateBasedOnResults: AllCorrect=" + allCorrect + ", HasNext=" + hasNext);
 
         if (allCorrect) {
-            // All answers are correct
             if (hasNext) {
-                // Correct and there's a next exercise -> NEXT
                 Log.i(TAG,"All correct. Has next exercise. Setting state to NEXT.");
-                setButtonState(STATE_NEXT, "Next");
+                setButtonState(STATE_NEXT, "Next Exercise"); // Thay đổi text
             } else {
-                // Correct and it's the last exercise -> FINISHED (no next)
                 Log.i(TAG,"All correct. Last exercise. Setting state to FINISHED_NO_NEXT.");
                 setButtonState(STATE_FINISHED_NO_NEXT, "Finish ! Back Now");
             }
         } else {
-            // At least one answer is incorrect -> RETRY
             Log.i(TAG,"Some answers incorrect. Setting state to RETRY.");
             setButtonState(STATE_RETRY, "Retry");
         }
@@ -424,65 +417,66 @@ public class ReadingController {
 
     private void retryExercise() {
         Log.i(TAG, "Retry button clicked. Resetting state.");
-
-        // 1. Ask the View to reset the adapter's state
         view.resetAdapterState();
-
-        // 2. Reset the Controller's and View's button state back to SUBMIT
         resetSubmitButtonToSubmitState();
-
-        // 3. Ask the View to scroll to the top question (optional)
         view.scrollToQuestion(0);
-
         Log.d(TAG,"Exercise state reset for retry. Button state: SUBMIT");
     }
 
     private void goToNextExercise() {
         Log.i(TAG, "Attempting to go to next exercise.");
-        if (!titlesLoaded || allExerciseTitles == null || allExerciseTitles.isEmpty()) {
-            Log.e(TAG, "Cannot go to next: Titles list not loaded or empty.");
+        if (!allExercisesLoaded || allExercisesInTopic == null || allExercisesInTopic.isEmpty()) {
+            Log.e(TAG, "Cannot go to next: All exercises list not loaded or empty.");
             view.showToast("Could not determine the next exercise.");
-            // Fallback: Maybe set to Finish? Or retry loading titles?
             setButtonState(STATE_FINISHED_NO_NEXT, "Error - Finish");
             return;
         }
 
-        int currentIndex = allExerciseTitles.indexOf(exerciseTitle);
-        if (currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1) {
-            String nextExerciseTitle = allExerciseTitles.get(currentIndex + 1);
-            Log.i(TAG, "Navigating to next exercise: " + nextExerciseTitle);
-            // Tell the View to navigate
-            view.navigateToNextExercise(levelName, topicTitle, nextExerciseTitle);
+        int currentIndex = -1;
+        for (int i = 0; i < allExercisesInTopic.size(); i++) {
+            if (allExercisesInTopic.get(i).getId().equals(exerciseId)) { // So sánh bằng ID
+                currentIndex = i;
+                break;
+            }
+        }
+
+        if (currentIndex >= 0 && currentIndex < allExercisesInTopic.size() - 1) {
+            Exercise nextExercise = allExercisesInTopic.get(currentIndex + 1); // Lấy object Exercise
+            Log.i(TAG, "Navigating to next exercise: ID=" + nextExercise.getId() + ", Title=" + nextExercise.getTitle());
+            // Truyền ID và Title của exercise tiếp theo, cùng với topicId và topicDisplayTitle
+            view.navigateToNextExercise(levelName, topicId, nextExercise.getId(), topicDisplayTitle, nextExercise.getTitle());
         } else {
-            // This case should ideally be handled by setting STATE_FINISHED_NO_NEXT earlier,
-            // but handle defensively here too.
-            Log.w(TAG, "goToNext called, but no next exercise found. CurrentIndex=" + currentIndex + ", ListSize=" + allExerciseTitles.size());
+            Log.w(TAG, "goToNext called, but no next exercise found. CurrentIndex=" + currentIndex + ", ListSize=" + allExercisesInTopic.size());
             view.showToast("You have completed all exercises in this topic!");
             setButtonState(STATE_FINISHED_NO_NEXT, "Finish ! Back Now");
-            // Optionally call finishActivity directly?
-            // finishExercise();
         }
     }
 
     private void finishExercise() {
         Log.i(TAG, "finishExercise called.");
-        view.finishActivity(); // Tell the view to close itself
+        view.finishActivity();
     }
 
     // --- State and Helper Methods ---
 
     private boolean hasNextExercise() {
-        if (titlesLoaded && allExerciseTitles != null && !allExerciseTitles.isEmpty() && exerciseTitle != null) {
-            int currentIndex = allExerciseTitles.indexOf(exerciseTitle);
-            boolean hasNext = currentIndex >= 0 && currentIndex < allExerciseTitles.size() - 1;
-            Log.d(TAG, "hasNextExercise Check: CurrentIndex=" + currentIndex + ", ListSize=" + allExerciseTitles.size() + ", HasNext=" + hasNext);
+        if (allExercisesLoaded && allExercisesInTopic != null && !allExercisesInTopic.isEmpty() && exerciseId != null) {
+            int currentIndex = -1;
+            for (int i = 0; i < allExercisesInTopic.size(); i++) {
+                if (allExercisesInTopic.get(i).getId().equals(exerciseId)) { // So sánh bằng ID
+                    currentIndex = i;
+                    break;
+                }
+            }
+            boolean hasNext = currentIndex >= 0 && currentIndex < allExercisesInTopic.size() - 1;
+            Log.d(TAG, "hasNextExercise Check: CurrentExerciseID=" + exerciseId + ", CurrentIndex=" + currentIndex + ", ListSize=" + allExercisesInTopic.size() + ", HasNext=" + hasNext);
             return hasNext;
         }
-        Log.d(TAG, "hasNextExercise Check: Titles loaded=" + titlesLoaded + ", List empty=" + (allExerciseTitles == null || allExerciseTitles.isEmpty()));
-        return false; // Cannot determine if titles aren't loaded or list is empty
+        Log.d(TAG, "hasNextExercise Check: AllExercisesLoaded=" + allExercisesLoaded + ", List empty or null=" + (allExercisesInTopic == null || allExercisesInTopic.isEmpty()));
+        return false;
     }
 
-    // Sets the internal state and tells the View to update the button
+
     private void setButtonState(int state, String text) {
         Log.d(TAG, "Setting button state: " + state + " (" + text + ")");
         currentButtonState = state;
@@ -495,10 +489,8 @@ public class ReadingController {
         setButtonState(STATE_SUBMIT, "Submit");
     }
 
-
-    // --- Lifecycle ---
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-        this.view = null;
+        this.view = null; // Prevent memory leaks
     }
 }

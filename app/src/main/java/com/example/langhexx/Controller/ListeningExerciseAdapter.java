@@ -10,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.langhexx.Model.Exercise;
 import com.example.langhexx.R;
 import com.example.langhexx.View.InternalListeningTopic;
 import java.util.List;
@@ -17,15 +18,17 @@ import java.util.List;
 public class ListeningExerciseAdapter extends RecyclerView.Adapter<ListeningExerciseAdapter.ViewHolder> {
 
     private Context context;
-    private List<String> exerciseTitlesList;
+    private List<Exercise> exerciseList;
     private String levelName;
-    private String topicTitle;
+    private String topicId;
+    private String topicDisplayTitle;
 
-    public ListeningExerciseAdapter(Context context, List<String> exerciseTitlesList, String levelName, String topicTitle) {
+    public ListeningExerciseAdapter(Context context, List<Exercise> exerciseList, String levelName, String topicId, String topicDisplayTitle) {
         this.context = context;
-        this.exerciseTitlesList = exerciseTitlesList;
-        this.levelName = levelName;   // Lưu lại
-        this.topicTitle = topicTitle; // Lưu lại
+        this.exerciseList = exerciseList;
+        this.levelName = levelName;
+        this.topicId = topicId;
+        this.topicDisplayTitle = topicDisplayTitle;
     }
 
     @NonNull
@@ -37,23 +40,25 @@ public class ListeningExerciseAdapter extends RecyclerView.Adapter<ListeningExer
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        String originalExerciseTitle = exerciseTitlesList.get(position);
+        Exercise exercise = exerciseList.get(position); // Lấy object Exercise
         int displayPosition = position + 1;
-        String numberedExerciseTitle = displayPosition + ". " + originalExerciseTitle;
+        String numberedExerciseTitle = displayPosition + ". " + exercise.getTitle();
         holder.tvExerciseItemTitle.setText(numberedExerciseTitle);
+
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, InternalListeningTopic.class);
-            // Đóng gói dữ liệu cần gửi
             intent.putExtra("LEVEL_NAME", levelName);
-            intent.putExtra("TOPIC_TITLE", topicTitle);
-            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle);
+            intent.putExtra("TOPIC_ID", topicId);
+            intent.putExtra("EXERCISE_ID", exercise.getId());
+            intent.putExtra("TOPIC_TITLE", topicDisplayTitle);
+            intent.putExtra("EXERCISE_TITLE", exercise.getTitle());
             context.startActivity(intent);
         });
     }
 
     @Override
     public int getItemCount() {
-        return exerciseTitlesList.size();
+        return exerciseList.size();
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

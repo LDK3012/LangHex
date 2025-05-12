@@ -83,7 +83,6 @@ public class ListeningPracticeActivity extends AppCompatActivity {
     }
 
     private void startVideo() {
-        // Lấy đường dẫn video trong thư mục raw
         Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.demo_practice_listening);
         videoView.setVideoURI(videoUri);
         videoView.start();

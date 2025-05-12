@@ -1,19 +1,35 @@
 package com.example.langhexx.Model;
 
 public class Topics {
-    private String title ;
+    private String id;
+    private String topicName;
+
     public Topics() {
+        //
     }
-    public Topics(String title) {
-        this.title = title;
+
+    public Topics(String id, String topicName) {
+        this.id = id;
+        this.topicName = topicName;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getTopicName() {
+        return topicName;
+    }
+
+    public void setTopicName(String topicName) {
+        this.topicName = topicName;
     }
 
     public String getTitle() {
-        return title;
+        return topicName;
     }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
 }

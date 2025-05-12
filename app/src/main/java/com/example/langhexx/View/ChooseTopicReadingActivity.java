@@ -1,3 +1,4 @@
+
 package com.example.langhexx.View;
 
 import androidx.annotation.NonNull;
@@ -29,8 +30,8 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
     private TopicAdapter topicAdapter;
     private String levelName;
     private ImageView imgBack, imgHome;
-    private static final String ACTIVITY_TAG = "ChooseTopicReading"; // Thẻ log cho Activity
-    private final String CURRENT_SKILL_NAME = "Reading"; // <-- Định nghĩa tên kỹ năng
+    private static final String ACTIVITY_TAG = "ChooseTopicReading";
+    private final String CURRENT_SKILL_NAME = "Reading";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,84 +45,84 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
             return;
         }
         Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
-        addControls(); // Gọi sau khi đã có levelName
+        addControls();
         loadTopicsFromFirebase(levelName);
-
         addEvents();
     }
 
     private void addControls() {
-        lvTopics = findViewById(R.id.lvTopics); // Đảm bảo ID này tồn tại trong layout
+        lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
-        lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
-        imgBack = findViewById(R.id.imgBackward); // Đảm bảo ID này tồn tại trong layout
+        lvTopics.setAdapter(topicAdapter);
+        imgBack = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
+        DatabaseReference topicsPathRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME) // Đảm bảo đây là "Reading"
+                .child(CURRENT_SKILL_NAME) // "Reading"
                 .child("Topics");
-        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
-        topicRef.addValueEventListener(new ValueEventListener() {
+        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicsPathRef.toString());
+
+        topicsPathRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 topicsArrayList.clear();
                 if (snapshot.exists()) {
                     for (DataSnapshot topicSnap : snapshot.getChildren()) {
-                        String topicTitle = topicSnap.getKey();
-                        if (topicTitle != null) {
-                            topicsArrayList.add(new Topics(topicTitle));
+                        String topicId = topicSnap.getKey();
+                        String topicNameDisplay = topicSnap.child("topicName").getValue(String.class);
+
+                        if (topicNameDisplay == null || topicNameDisplay.isEmpty()) {
+                            topicNameDisplay = topicId;
+                            Log.w(ACTIVITY_TAG, "Topic ID " + topicId + " thiếu topicName, sử dụng ID làm tên hiển thị.");
+                        }
+
+                        if (topicId != null) {
+                            topicsArrayList.add(new Topics(topicId, topicNameDisplay));
                         }
                     }
                     Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
                 } else {
                     Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
-                    Toast.makeText(ChooseTopicReadingActivity.this, "No Topic" + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ChooseTopicReadingActivity.this, "No " + CURRENT_SKILL_NAME + " topics for this level.", Toast.LENGTH_SHORT).show();
                 }
                 topicAdapter.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicReadingActivity.this, "Fail" + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseTopicReadingActivity.this, "Failed to load " + CURRENT_SKILL_NAME + " topics: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
             }
         });
     }
 
     private void addEvents() {
-        if (imgBack != null) { // Kiểm tra null cho imgBack
-            imgBack.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    finish();
-                }
+        if (imgBack != null) {
+            imgBack.setOnClickListener(v -> finish());
+        }
+
+        if (imgHome != null) {
+            imgHome.setOnClickListener(view -> {
+                Intent intent = new Intent(ChooseTopicReadingActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK); // Xóa các activity trên cùng
+                startActivity(intent);
+                finish();
             });
         }
 
-        imgHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(ChooseTopicReadingActivity.this, MainActivity.class);
-                startActivity(intent);
-                finish();
-            }
-        });
-
-        lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Topics selectedTopic = topicsArrayList.get(position);
-                Intent intent = new Intent(ChooseTopicReadingActivity.this, Reading_Topic_Exercise_Activity.class); // <--- THAY ĐỔI Activity ĐÍCH nếu cần
-                intent.putExtra("levelName", levelName);
-                intent.putExtra("topicTitle", selectedTopic.getTitle());
-                startActivity(intent);
-            }
+        lvTopics.setOnItemClickListener((parent, view, position, id) -> {
+            Topics selectedTopic = topicsArrayList.get(position);
+            Intent intent = new Intent(ChooseTopicReadingActivity.this, Reading_Topic_Exercise_Activity.class);
+            intent.putExtra("levelName", levelName);
+            intent.putExtra("topicId", selectedTopic.getId());
+            intent.putExtra("topicTitle", selectedTopic.getTopicName());
+            startActivity(intent);
         });
     }
 }

@@ -38,7 +38,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "TopicPrefs";
     private String clickedTopicsKey;
-    private Set<String> clickedTopicTitlesForSpeaking;
+    private Set<String> clickedTopicDisplayNamesForSpeaking;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,61 +47,60 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
         levelName = getIntent().getStringExtra("levelName");
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Unknown", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Lỗi: Không nhận dạng được Level", Toast.LENGTH_LONG).show(); // Sửa lỗi chính tả
             Log.e(ACTIVITY_TAG, "levelName là null hoặc rỗng!");
             finish();
             return;
         }
         Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME + " (Thời gian hiện tại: " + Calendar.getInstance().getTime() + ")");
 
-
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        clickedTopicsKey = levelName + "_" + CURRENT_SKILL_NAME + "_clickedTopics";
-        loadClickedTopicsForSpeaking();
+        clickedTopicsKey = levelName + "_" + CURRENT_SKILL_NAME + "_clickedTopicDisplayNames"; // Cập nhật key
+        loadClickedTopicDisplayNamesForSpeaking();
 
         addControls();
         loadTopicsFromFirebase(levelName);
         addEvents();
     }
 
-    private void loadClickedTopicsForSpeaking() {
+    private void loadClickedTopicDisplayNamesForSpeaking() {
         Set<String> loadedSet = sharedPreferences.getStringSet(clickedTopicsKey, null);
         if (loadedSet != null) {
-            clickedTopicTitlesForSpeaking = new HashSet<>(loadedSet);
+            clickedTopicDisplayNamesForSpeaking = new HashSet<>(loadedSet);
         } else {
-            clickedTopicTitlesForSpeaking = new HashSet<>();
+            clickedTopicDisplayNamesForSpeaking = new HashSet<>();
         }
-        Log.d(ACTIVITY_TAG, "Đã tải " + clickedTopicTitlesForSpeaking.size() + " chủ đề đã click (Speaking) từ SharedPreferences.");
+        Log.d(ACTIVITY_TAG, "Đã tải " + clickedTopicDisplayNamesForSpeaking.size() + " chủ đề đã click (Speaking) từ SharedPreferences.");
     }
 
-    private void saveClickedTopicForSpeaking(String topicTitle) {
-        if (clickedTopicTitlesForSpeaking == null) {
-            clickedTopicTitlesForSpeaking = new HashSet<>();
+    private void saveClickedTopicDisplayNameForSpeaking(String topicDisplayName) {
+        if (clickedTopicDisplayNamesForSpeaking == null) {
+            clickedTopicDisplayNamesForSpeaking = new HashSet<>();
         }
-        boolean added = clickedTopicTitlesForSpeaking.add(topicTitle);
+        boolean added = clickedTopicDisplayNamesForSpeaking.add(topicDisplayName);
 
         if (added) {
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putStringSet(clickedTopicsKey, clickedTopicTitlesForSpeaking);
+            editor.putStringSet(clickedTopicsKey, clickedTopicDisplayNamesForSpeaking);
             editor.apply();
-            Log.d(ACTIVITY_TAG, "Đã lưu chủ đề '" + topicTitle + "' (Speaking) vào SharedPreferences.");
+            Log.d(ACTIVITY_TAG, "Đã lưu chủ đề '" + topicDisplayName + "' (Speaking) vào SharedPreferences.");
         }
     }
 
-    // Phương thức này phải là public để Adapter có thể gọi
-    public void removeClickedTopicHistory(String topicTitle) {
-        if (clickedTopicTitlesForSpeaking == null) return;
+    public void removeClickedTopicHistory(String topicDisplayName) {
+        if (clickedTopicDisplayNamesForSpeaking == null) return;
 
-        boolean removed = clickedTopicTitlesForSpeaking.remove(topicTitle);
+        boolean removed = clickedTopicDisplayNamesForSpeaking.remove(topicDisplayName);
         if (removed) {
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putStringSet(clickedTopicsKey, clickedTopicTitlesForSpeaking);
+            editor.putStringSet(clickedTopicsKey, clickedTopicDisplayNamesForSpeaking);
             editor.apply();
-            Log.d(ACTIVITY_TAG, "Topic history has been deleted '" + topicTitle + "' (Speaking) from SharedPreferences.");
-            Toast.makeText(this, "Đã xóa lịch sử cho '" + topicTitle + "'.", Toast.LENGTH_SHORT).show();
+            Log.d(ACTIVITY_TAG, "Topic history has been deleted '" + topicDisplayName + "' (Speaking) from SharedPreferences.");
+            Toast.makeText(this, "Đã xóa lịch sử cho '" + topicDisplayName + "'.", Toast.LENGTH_SHORT).show();
 
             if (topicAdapter != null) {
-                topicAdapter.setHighlightedTopicTitles(clickedTopicTitlesForSpeaking); // Vẫn cần cập nhật set trong adapter
+
+                topicAdapter.setHighlightedTopicDisplayNames(clickedTopicDisplayNamesForSpeaking);
                 topicAdapter.notifyDataSetChanged();
             }
         }
@@ -112,7 +111,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         topicsArrayList = new ArrayList<>();
 
         topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
-        topicAdapter.setHighlightedTopicTitles(this.clickedTopicTitlesForSpeaking);
+        topicAdapter.setHighlightedTopicDisplayNames(this.clickedTopicDisplayNamesForSpeaking);
         lvTopics.setAdapter(topicAdapter);
 
         imgBack = findViewById(R.id.imgBackward);
@@ -120,30 +119,40 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     }
 
     private void loadTopicsFromFirebase(String levelName) {
-        DatabaseReference topicRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
+        DatabaseReference topicsPathRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME)
+                .child(CURRENT_SKILL_NAME) // "Speaking"
                 .child("Topics");
 
-        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
+        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicsPathRef.toString());
 
-        topicRef.addValueEventListener(new ValueEventListener() {
+        topicsPathRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 topicsArrayList.clear();
                 if (snapshot.exists()) {
                     for (DataSnapshot topicSnap : snapshot.getChildren()) {
-                        String topicTitle = topicSnap.getKey();
-                        if (topicTitle != null) {
-                            topicsArrayList.add(new Topics(topicTitle));
+                        String topicId = topicSnap.getKey();
+                        String topicNameDisplay = topicSnap.child("topicName").getValue(String.class);
+
+                        if (topicNameDisplay == null || topicNameDisplay.isEmpty()) {
+                            topicNameDisplay = topicId;
+                            Log.w(ACTIVITY_TAG, "Topic ID " + topicId + " thiếu topicName, sử dụng ID làm tên hiển thị.");
+                        }
+
+                        if (topicId != null) {
+                            topicsArrayList.add(new Topics(topicId, topicNameDisplay));
                         }
                     }
+                    Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
                 } else {
                     Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
+                    Toast.makeText(ChooseTopicSpeakingActivity.this, "No " + CURRENT_SKILL_NAME + " topics for this level.", Toast.LENGTH_SHORT).show();
                 }
                 if (topicAdapter != null) {
+                    topicAdapter.setHighlightedTopicDisplayNames(clickedTopicDisplayNamesForSpeaking);
                     topicAdapter.notifyDataSetChanged();
                 }
             }
@@ -172,18 +181,20 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
         lvTopics.setOnItemClickListener((parent, view, position, id) -> {
             Topics selectedTopic = topicsArrayList.get(position);
-            String topicTitle = selectedTopic.getTitle();
+            String topicId = selectedTopic.getId();
+            String topicDisplayName = selectedTopic.getTopicName();
 
-            saveClickedTopicForSpeaking(topicTitle);
+            saveClickedTopicDisplayNameForSpeaking(topicDisplayName);
 
             if (topicAdapter != null) {
-                topicAdapter.setHighlightedTopicTitles(clickedTopicTitlesForSpeaking);
+                topicAdapter.setHighlightedTopicDisplayNames(clickedTopicDisplayNamesForSpeaking);
                 topicAdapter.notifyDataSetChanged();
             }
 
             Intent intent = new Intent(ChooseTopicSpeakingActivity.this, InternalSpeakingTopic.class);
             intent.putExtra("levelName", levelName);
-            intent.putExtra("topicTitle", topicTitle);
+            intent.putExtra("topicId", topicId);
+            intent.putExtra("topicTitle", topicDisplayName);
             startActivity(intent);
         });
     }

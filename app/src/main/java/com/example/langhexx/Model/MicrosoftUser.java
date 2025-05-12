@@ -7,8 +7,6 @@ public class MicrosoftUser {
     private String userId;
     private String email;
     private String displayName;
-
-    // Fields migrated from UserWritingAnswer, specific to a writing exercise context
     private String writingExerciseId;
     private String writingLevelName;
     private String writingTopicTitle;
@@ -17,7 +15,7 @@ public class MicrosoftUser {
     private String writingFeedbackSummary;
 
     public MicrosoftUser() {
-        // Default constructor required for Firebase
+        //
     }
 
     public MicrosoftUser(String userId, String email, String displayName) {
@@ -103,12 +101,7 @@ public class MicrosoftUser {
     // Method to generate a map for saving writing answer data to Firebase
     public Map<String, Object> toMapForWritingAnswer() {
         HashMap<String, Object> result = new HashMap<>();
-        // Note: exerciseId for the path is usually determined by the controller (e.g. exerciseTitle)
-        // The writingExerciseId stored here is for record-keeping within the object if needed.
-        // When saving to Firebase path like .../WritingAnswers/{exerciseTitle},
-        // the exerciseTitle itself acts as the key.
-        // The map should contain the fields as they are expected in the DB node.
-        result.put("exerciseId", this.writingExerciseId); // or a more specific context like currentWritingExercise.getId()
+        result.put("exerciseId", this.writingExerciseId);
         result.put("levelName", this.writingLevelName);
         result.put("topicTitle", this.writingTopicTitle);
         result.put("userAnswer", this.writingUserAnswer);

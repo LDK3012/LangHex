@@ -9,7 +9,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.langhexx.Model.MicrosoftUser;
-import com.example.langhexx.Model.WritingExercise; // Ensure this model has id, title, script
+import com.example.langhexx.Model.WritingExercise;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -36,7 +36,6 @@ import java.util.concurrent.Executors;
 public class WritingController {
 
     private static final String TAG = "WritingController";
-    // IMPORTANT: Replace with your actual Gemini API Key or load it securely
     private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc";
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
 
@@ -91,11 +90,11 @@ public class WritingController {
     private ViewInterface view;
     private String levelName;
 
-    private String topicId; // Firebase key for the Topic in Lessons
-    private String exerciseId; // Firebase key for the Exercise in Lessons
+    private String topicId;
+    private String exerciseId;
 
-    private String topicDisplayName; // Human-readable name of the topic
-    private String exerciseDisplayTitle; // Human-readable title of the exercise
+    private String topicDisplayName;
+    private String exerciseDisplayTitle;
 
     private WritingExercise currentWritingExercise;
     private ArrayList<WritingExercise> allExercisesInTopic;
@@ -342,7 +341,6 @@ public class WritingController {
             checkIfAllDataLoadedAndReady();
             return;
         }
-        // User progress is NOW keyed by exerciseId (Firebase key of the exercise)
         if (exerciseId == null) {
             Log.w(TAG, "Cannot load saved answer: exerciseId (key for user progress) is null.");
             hasLoadedSavedAnswer = true;
@@ -651,8 +649,6 @@ public class WritingController {
 
                         updateSubmitButtonBasedOnState();
                         if (isFeedbackPanelVisible) view.focusOnFeedbackPanel();
-
-                        // Update feedback summary in Firebase using exerciseId as key
                         if (finalUserIdForFeedbackUpdate != null && WritingController.this.exerciseId != null && currentMicrosoftUser != null) {
                             updateUserWritingAnswerFeedback(
                                     finalUserIdForFeedbackUpdate,
@@ -684,7 +680,6 @@ public class WritingController {
     }
 
     private void saveUserWritingAnswerToFirebase(String userId, MicrosoftUser userWithWritingData) {
-        // userWithWritingData.getWritingExerciseId() should now return the actual exerciseId (Firebase key)
         if (userId == null || userWithWritingData == null || userWithWritingData.getWritingExerciseId() == null) {
             Log.w(TAG, "Cannot save user writing answer: userId, userWithWritingData, or getWritingExerciseId() (actual exerciseId) is null.");
             return;
@@ -694,10 +689,6 @@ public class WritingController {
         DatabaseReference userAnswersRef = databaseReference
                 .child("Users").child("MicrosoftUsers").child(userId)
                 .child("Progress").child("WritingAnswers").child(exerciseKeyForUserProgress); // Keyed by actual exerciseId
-
-        // The toMapForWritingAnswer() in MicrosoftUser should ensure that the "exerciseId" field
-        // within the map also contains this actual exerciseId for consistency if needed.
-        // And "topicTitle" field within the map should contain topicDisplayName.
         userWithWritingData.setWritingTimestamp(System.currentTimeMillis());
         userAnswersRef.setValue(userWithWritingData.toMapForWritingAnswer())
                 .addOnSuccessListener(aVoid -> Log.i(TAG, "User writing answer saved successfully for user: " + userId + ", exerciseId_key: " + exerciseKeyForUserProgress))

@@ -1,4 +1,4 @@
-//gemini key
+
 package com.example.langhexx.View;
 
 import android.content.Context;
@@ -43,9 +43,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class ChatFragment extends Fragment {
-    private View rootView; // View gốc của Fragment
+    private View rootView;
     private ViewTreeObserver.OnGlobalLayoutListener globalLayoutListener;
-    private boolean isKeyboardVisible = false; // Biến theo dõi trạng thái
+    private boolean isKeyboardVisible = false;
     public interface KeyboardVisibilityListener {
         void onKeyboardVisibilityChanged(boolean isVisible);
     }
@@ -63,10 +63,7 @@ public class ChatFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-//        rootView = view;
-//        rootView = requireActivity().findViewById(android.R.id.content);
-//        setupKeyboardListener();
-        rootView = requireActivity().getWindow().getDecorView(); // *** THỬ DÙNG DÒNG NÀY ***
+        rootView = requireActivity().getWindow().getDecorView();
         setupKeyboardListener();
     }
 
@@ -94,7 +91,6 @@ public class ChatFragment extends Fragment {
         btnSend.setOnClickListener(v -> {
             String userMessage = edtMessage.getText().toString().trim();
             if (!TextUtils.isEmpty(userMessage)) {
-                // Hide the sample questions when the user sends a message
                 if (sampleQuestionsContainer.getVisibility() == View.VISIBLE) {
                     sampleQuestionsContainer.setVisibility(View.GONE);
                 }
@@ -113,21 +109,15 @@ public class ChatFragment extends Fragment {
     private void setupKeyboardListener() {
         globalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
             private final Rect r = new Rect();
-            private final int threshold = calculateThreshold(); // Ngưỡng để xác định bàn phím
+            private final int threshold = calculateThreshold();
 
             @Override
             public void onGlobalLayout() {
-                if (rootView == null || keyboardVisibilityListener == null) return; // Kiểm tra null
-
-                // Lấy kích thước hiển thị hiện tại
+                if (rootView == null || keyboardVisibilityListener == null) return;
                 rootView.getWindowVisibleDisplayFrame(r);
-
-                int screenHeight = rootView.getRootView().getHeight(); // Chiều cao toàn màn hình
-                int keypadHeight = screenHeight - r.bottom; // Chiều cao phần bị che (bàn phím + nav bar nếu có)
-
+                int screenHeight = rootView.getRootView().getHeight();
+                int keypadHeight = screenHeight - r.bottom;
                 boolean currentlyVisible = keypadHeight > threshold;
-
-                // Chỉ gọi callback nếu trạng thái thay đổi
                 if (currentlyVisible != isKeyboardVisible) {
                     isKeyboardVisible = currentlyVisible;
                     keyboardVisibilityListener.onKeyboardVisibilityChanged(isKeyboardVisible);
@@ -138,18 +128,15 @@ public class ChatFragment extends Fragment {
 
 
     private int calculateThreshold() {
-        // Chuyển đổi 100dp sang pixel làm ngưỡng (có thể điều chỉnh)
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50, getResources().getDisplayMetrics());
-        // Hoặc tính theo % chiều cao màn hình nếu muốn linh hoạt hơn
-        // return (int) (getResources().getDisplayMetrics().heightPixels * 0.15);
     }
 
     private void setupSampleQuestionClickListener(TextView sampleQuestion) {
         sampleQuestion.setOnClickListener(v -> {
             String questionText = sampleQuestion.getText().toString();
             edtMessage.setText(questionText);
-            edtMessage.setSelection(questionText.length()); // Move cursor to end
-            btnSend.performClick(); // Simulate send button click
+            edtMessage.setSelection(questionText.length());
+            btnSend.performClick();
             sampleQuestionsContainer.setVisibility(View.GONE);
         });
     }
@@ -196,19 +183,16 @@ public class ChatFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (!isAdded() || getActivity() == null) {
-                    if (response.body() != null) response.body().close(); // Đóng body nếu không dùng
+                    if (response.body() != null) response.body().close();
                     return;
                 }
 
                 final String responseBodyString = response.body() != null ? response.body().string() : null;
-                // --- Đóng response body sau khi đọc ---
                 if (response.body() != null) response.body().close();
 
                 if (response.isSuccessful() && responseBodyString != null) {
                     try {
                         JSONObject jsonResponse = new JSONObject(responseBodyString);
-
-                        // --- Thêm kiểm tra các key và mảng tồn tại trước khi truy cập ---
                         if (!jsonResponse.has("candidates") || jsonResponse.getJSONArray("candidates").length() == 0) {
                             handleApiResponseError("Invalid response structure: Missing or empty 'candidates'");
                             return;
@@ -235,15 +219,8 @@ public class ChatFragment extends Fragment {
                         }
 
                         String rawReply = firstPart.getString("text"); // Lấy phản hồi gốc
-
-                        // *** XỬ LÝ LOẠI BỎ DẤU HOA THỊ (*) VÀ KHOẢNG TRẮNG THỪA ***
                         String processedReply = rawReply.replace("*", "").trim();
-                        // Bạn có thể thêm các .replace() khác nếu muốn loại bỏ thêm ký tự (ví dụ: .replace("#", ""))
-
-
-                        // Sử dụng processedReply đã được xử lý để hiển thị
                         requireActivity().runOnUiThread(() -> {
-                            // Kiểm tra lại isAdded() phòng trường hợp detach ngay trước khi chạy runOnUiThread
                             if (isAdded() && getActivity() != null) {
                                 ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
                                 messages.add(botMsg);
@@ -256,10 +233,8 @@ public class ChatFragment extends Fragment {
                         handleApiResponseError("Lỗi xử lý JSON phản hồi Gemini");
                     }
                 } else {
-                    // Đọc nội dung lỗi nếu có thể
                     String errorBody = "";
                     try {
-                        // Chỉ đọc lại nếu chưa đọc ở trên (trường hợp responseBodyString là null)
                         if (responseBodyString == null && response.body() != null) {
                             errorBody = response.body().string(); // Đọc body lỗi
                             response.body().close(); // Đóng body lỗi
@@ -275,7 +250,7 @@ public class ChatFragment extends Fragment {
     }
 
     private void handleApiResponseError(String logMessage) {
-        if (isAdded() && getActivity() != null) { // Kiểm tra fragment/activity state
+        if (isAdded() && getActivity() != null) {
             requireActivity().runOnUiThread(() ->
                     Toast.makeText(getContext(), "Lỗi xử lý phản hồi Gemini", Toast.LENGTH_SHORT).show() // Thông báo chung cho người dùng
             );

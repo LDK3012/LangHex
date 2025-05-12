@@ -33,8 +33,6 @@ public class InternalListeningTopic extends AppCompatActivity implements
     private static final String TAG = "InternalListenTopicVIEW";
 
     private ImageView imgClose, imgHome;
-
-    // --- UI Elements ---
     private ImageButton btnPlayAudio;
     private SeekBar seekBarAudio;
     private ListView lvQuestions;
@@ -42,8 +40,6 @@ public class InternalListeningTopic extends AppCompatActivity implements
     private ProgressBar progressBarAudioLoading;
     private TextView tvScreenTitle;
     private ListeningQuestionListAdapter questionListAdapter;
-
-    // --- Controller ---
     private ListeningController controller;
 
     @Override
@@ -52,11 +48,11 @@ public class InternalListeningTopic extends AppCompatActivity implements
         setContentView(R.layout.activity_internal_listening_topic);
         Log.d(TAG, "onCreate");
 
-        addControls(); // Find UI elements
-        setupListView(); // Setup adapter (initially empty)
+        addControls();
+        setupListView();
 
         controller = new ListeningController(this, getIntent());
-        controller.initialize(); // Start loading data, TTS init, etc.
+        controller.initialize();
 
         addEvents();
     }
@@ -68,15 +64,13 @@ public class InternalListeningTopic extends AppCompatActivity implements
         lvQuestions = findViewById(R.id.lvQuestions);
         btnSubmit = findViewById(R.id.btnSubmit);
         progressBarAudioLoading = findViewById(R.id.progressBarAudioLoading);
-        tvScreenTitle = findViewById(R.id.tvScreenTitle); // Make sure ID is correct in layout
+        tvScreenTitle = findViewById(R.id.tvScreenTitle);
         imgClose = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
-
     }
 
     private void setupListView() {
         Log.d(TAG, "setupListView");
-        // Adapter needs an initial empty list
         questionListAdapter = new ListeningQuestionListAdapter(this, new ArrayList<>());
         lvQuestions.setAdapter(questionListAdapter);
     }
@@ -86,43 +80,38 @@ public class InternalListeningTopic extends AppCompatActivity implements
         if (btnPlayAudio != null) {
             btnPlayAudio.setOnClickListener(v -> {
                 if (controller != null) {
-                    controller.togglePlayPause(); // Delegate to controller
+                    controller.togglePlayPause();
                 }
             });
         }
         if (btnSubmit != null) {
             btnSubmit.setOnClickListener(v -> {
                 if (controller != null) {
-                    controller.onSubmitButtonClicked(); // Delegate to controller
+                    controller.onSubmitButtonClicked();
                 }
             });
         }
         if (seekBarAudio != null) {
-            seekBarAudio.setOnSeekBarChangeListener(this); // Keep 'this' as listener initially
+            seekBarAudio.setOnSeekBarChangeListener(this);
         }
 
-        imgClose.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                finish();
-            }
-        });
+        if (imgClose != null) {
+            imgClose.setOnClickListener(view -> finish());
+        }
 
-        imgHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        if (imgHome != null) {
+            imgHome.setOnClickListener(view -> {
                 Intent intent = new Intent(InternalListeningTopic.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 finish();
-            }
-        });
+            });
+        }
     }
-
-    // --- Implementation of ListeningController.ViewInterface ---
 
     @Override
     public Context getContext() {
-        return this; // Provide activity context when controller needs it
+        return this;
     }
 
     @Override
@@ -130,7 +119,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
         Log.d(TAG, "displayExerciseTitle: " + title);
         runOnUiThread(() -> {
             if (tvScreenTitle != null) {
-                tvScreenTitle.setText(title != null ? title : "Exercise"); // Set title, provide default
+                tvScreenTitle.setText(title != null ? title : "Exercise");
             }
         });
     }
@@ -140,13 +129,12 @@ public class InternalListeningTopic extends AppCompatActivity implements
         Log.d(TAG, "updateAdapterData: Received " + (newQuestions != null ? newQuestions.size() : 0) + " questions.");
         runOnUiThread(() -> {
             if (questionListAdapter != null && newQuestions != null) {
-                questionListAdapter.updateData(newQuestions); // Update adapter's data
+                questionListAdapter.updateData(newQuestions);
                 Log.d(TAG, "Adapter notified with " + newQuestions.size() + " questions.");
-                // Visibility of list itself is handled by setUIElementsVisibility
             } else {
                 Log.w(TAG, "Adapter is null or newQuestions is null, cannot update UI.");
                 if (questionListAdapter != null) {
-                    questionListAdapter.updateData(new ArrayList<>()); // Clear adapter if null data
+                    questionListAdapter.updateData(new ArrayList<>());
                 }
             }
         });
@@ -178,14 +166,12 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void setSubmitButtonState(int state, String text, boolean enabled) {
-        Log.d(TAG, "setSubmitButtonState: State=" + state + ", Text=" + text);
+        Log.d(TAG, "setSubmitButtonState: State=" + state + ", Text=" + text + ", Enabled=" + enabled);
         runOnUiThread(() -> {
             if (btnSubmit != null) {
                 btnSubmit.setText(text);
-                // Determine enabled state based on common patterns (adjust if controller needs more fine-grained control)
-                // More robust: Controller could pass enabled flag separately if needed
                 btnSubmit.setEnabled(enabled);
-                btnSubmit.setAlpha(enabled ? 1.0f : 0.5f); // Visual cue for disabled
+                btnSubmit.setAlpha(enabled ? 1.0f : 0.5f);
             }
         });
     }
@@ -196,14 +182,11 @@ public class InternalListeningTopic extends AppCompatActivity implements
             return questionListAdapter.getSelectedAnswers();
         }
         Log.e(TAG, "getAdapterSelectedAnswers: Adapter is null");
-        return new HashMap<>(); // Return empty map if adapter is null
+        return new HashMap<>();
     }
 
     @Override
     public boolean areAdapterAnswersAllCorrect() {
-        // This method might not be needed if the adapter's internal check isn't used by the controller
-        // If controller relies on its own scoring, this could be removed from interface/activity.
-        // Keeping it for now as it was in Reading example.
         if (questionListAdapter != null) {
             return questionListAdapter.areAllAnswersCorrect();
         }
@@ -220,7 +203,6 @@ public class InternalListeningTopic extends AppCompatActivity implements
     @Override
     public void showFailToast(String message) {
         Log.d(TAG, "showFailToast: " + message);
-        // Ensure you have the CustomToast class and fail_icon drawable
         runOnUiThread(() -> CustomToast.showFail(InternalListeningTopic.this, message, R.drawable.fail_icon));
     }
 
@@ -230,21 +212,25 @@ public class InternalListeningTopic extends AppCompatActivity implements
         runOnUiThread(() -> new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
-                .setPositiveButton("Submit", (dialog, which) -> onConfirm.run()) // Execute Runnable on confirm
+                .setPositiveButton("Submit", (dialog, which) -> onConfirm.run())
                 .setNegativeButton("Cancel", (dialog, which) -> Log.d(TAG, "Submission cancelled."))
-                .setCancelable(false) // Prevent dismissing by tapping outside
+                .setCancelable(false)
                 .show());
     }
 
     @Override
-    public void navigateToNextExercise(String levelName, String topicTitle, String nextExerciseTitle) {
-        Log.i(TAG, "navigateToNextExercise: " + nextExerciseTitle);
-        Intent nextIntent = new Intent(InternalListeningTopic.this, InternalListeningTopic.class); // Navigate to self
+    public void navigateToNextExercise(String levelName, String topicId, String nextExerciseId, String topicDisplayTitle, String nextExerciseDisplayTitle) {
+        Log.i(TAG, "Navigating to next Listening exercise: Level=" + levelName +
+                ", TopicID=" + topicId + ", NextExerciseID=" + nextExerciseId +
+                ", TopicTitle=" + topicDisplayTitle + ", NextExerciseTitle=" + nextExerciseDisplayTitle);
+        Intent nextIntent = new Intent(InternalListeningTopic.this, InternalListeningTopic.class);
         nextIntent.putExtra("LEVEL_NAME", levelName);
-        nextIntent.putExtra("TOPIC_TITLE", topicTitle);
-        nextIntent.putExtra("EXERCISE_TITLE", nextExerciseTitle);
+        nextIntent.putExtra("TOPIC_ID", topicId);
+        nextIntent.putExtra("EXERCISE_ID", nextExerciseId);
+        nextIntent.putExtra("TOPIC_TITLE", topicDisplayTitle);
+        nextIntent.putExtra("EXERCISE_TITLE", nextExerciseDisplayTitle);
         startActivity(nextIntent);
-        finish(); // Finish current activity
+        finish();
     }
 
     @Override
@@ -257,8 +243,13 @@ public class InternalListeningTopic extends AppCompatActivity implements
     public void scrollToQuestion(int index) {
         Log.d(TAG, "scrollToQuestion: " + index);
         if (lvQuestions != null) {
-            // Use post to ensure scrolling happens after layout calculation
-            lvQuestions.post(() -> lvQuestions.smoothScrollToPosition(index));
+            lvQuestions.post(() -> {
+                if (questionListAdapter != null && index >= 0 && index < questionListAdapter.getCount()) {
+                    lvQuestions.smoothScrollToPosition(index);
+                } else {
+                    Log.w(TAG, "Invalid index for scrollToQuestion or adapter not ready: " + index);
+                }
+            });
         }
     }
 
@@ -266,11 +257,8 @@ public class InternalListeningTopic extends AppCompatActivity implements
     public void setUIElementsVisibility(boolean visible) {
         Log.d(TAG, "setUIElementsVisibility: " + visible);
         runOnUiThread(() -> {
-            int visibility = visible ? View.VISIBLE : View.INVISIBLE; // Use INVISIBLE to keep layout space
-            // Only control elements related to the questions/submit flow here
-            // Audio controls visibility is handled by showAudioLoading/Ready/Reset
+            int visibility = visible ? View.VISIBLE : View.INVISIBLE;
             if (lvQuestions != null) {
-                // Show list only if visible AND adapter has items
                 boolean hasItems = questionListAdapter != null && questionListAdapter.getCount() > 0;
                 lvQuestions.setVisibility(visible && hasItems ? View.VISIBLE : View.INVISIBLE);
             }
@@ -280,9 +268,6 @@ public class InternalListeningTopic extends AppCompatActivity implements
             }
         });
     }
-
-
-    // --- Audio Control Specific Interface Methods ---
 
     @Override
     public void showAudioLoading() {
@@ -302,26 +287,25 @@ public class InternalListeningTopic extends AppCompatActivity implements
             if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.GONE);
             if (btnPlayAudio != null) {
                 btnPlayAudio.setVisibility(View.VISIBLE);
-                btnPlayAudio.setImageResource(R.drawable.icon_play_audio); // Default to Play icon
+                btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
                 btnPlayAudio.setEnabled(true);
             }
             if (seekBarAudio != null) {
                 seekBarAudio.setEnabled(true);
                 seekBarAudio.setMax(duration);
-                seekBarAudio.setProgress(0); // Start at beginning
+                seekBarAudio.setProgress(0);
             }
         });
     }
 
     @Override
     public void updateAudioProgress(int progress, int max) {
-        // No Log here as it's called frequently
         runOnUiThread(() -> {
-            if (seekBarAudio != null && seekBarAudio.isEnabled()) { // Check if enabled
-                // Update max just in case duration wasn't ready initially (unlikely but safe)
-                if(seekBarAudio.getMax() != max) seekBarAudio.setMax(max);
-                // Ensure progress doesn't exceed max visually
-                seekBarAudio.setProgress(Math.min(progress, max));
+            if (seekBarAudio != null && seekBarAudio.isEnabled()) {
+                if(seekBarAudio.getMax() != max && max > 0) seekBarAudio.setMax(max); // Ensure max is set and valid
+                if (progress >= 0 && progress <= seekBarAudio.getMax()) { // Ensure progress is valid
+                    seekBarAudio.setProgress(progress);
+                }
             }
         });
     }
@@ -344,12 +328,12 @@ public class InternalListeningTopic extends AppCompatActivity implements
             if (btnPlayAudio != null) {
                 btnPlayAudio.setVisibility(View.VISIBLE);
                 btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
-                btnPlayAudio.setEnabled(false); // Disabled initially
+                btnPlayAudio.setEnabled(false);
             }
             if (seekBarAudio != null) {
                 seekBarAudio.setEnabled(false);
                 seekBarAudio.setProgress(0);
-                seekBarAudio.setMax(100); // Reset max to default or 0
+                seekBarAudio.setMax(100);
             }
         });
     }
@@ -357,33 +341,27 @@ public class InternalListeningTopic extends AppCompatActivity implements
     @Override
     public void showAudioError(String errorMessage) {
         Log.e(TAG, "showAudioError: " + errorMessage);
-        // Show toast AND reset controls typically
-        showToast("Audio Error: " + errorMessage); // Use regular toast for errors
-        resetAudioControls(); // Put controls back into a safe, disabled state
+        showToast("Audio Error: " + errorMessage);
+        resetAudioControls();
     }
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        // Can be used for displaying time dynamically if needed, but seeking action is onStopTrackingTouch
     }
 
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
         Log.d(TAG, "SeekBar tracking started by user.");
-        // No direct action needed on controller here, stopSeekBarUpdate is handled internally by controller if playing
     }
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
         Log.d(TAG, "SeekBar tracking stopped by user at: " + seekBar.getProgress());
         if (controller != null) {
-            controller.seekAudio(seekBar.getProgress()); // Delegate seek action to controller
+            controller.seekAudio(seekBar.getProgress());
         }
     }
-    // --- End SeekBar.OnSeekBarChangeListener ---
 
-
-    // --- Lifecycle Methods (Forwarding to Controller) ---
     @Override
     protected void onPause() {
         super.onPause();
@@ -422,5 +400,4 @@ public class InternalListeningTopic extends AppCompatActivity implements
         Log.d(TAG, "onBackPressed.");
         super.onBackPressed();
     }
-
 }

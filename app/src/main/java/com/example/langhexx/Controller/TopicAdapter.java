@@ -1,3 +1,4 @@
+
 package com.example.langhexx.Controller;
 
 import android.content.Context;
@@ -5,7 +6,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -39,27 +39,23 @@ public class TopicAdapter extends BaseAdapter {
     private String levelName;
     private String currentSkillNameAdapter;
     private DatabaseReference firebaseRootRef;
-
-    private Set<String> highlightedTopicTitles;
+    private Set<String> highlightedTopicDisplayNames;
     private static final String TAG = "TopicAdapter";
 
     public TopicAdapter(Context context, int layoutId, List<Topics> topicList, String levelName, String skillName) {
-        this.context = context; // Lưu context
+        this.context = context;
         this.layoutId = layoutId;
         this.topicList = topicList;
         this.levelName = levelName;
         this.currentSkillNameAdapter = skillName;
         this.firebaseRootRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
-        this.highlightedTopicTitles = new HashSet<>();
+        this.highlightedTopicDisplayNames = new HashSet<>();
     }
 
-    public void setHighlightedTopicTitles(@Nullable Set<String> titles) {
-        if (titles != null) {
-            this.highlightedTopicTitles = titles;
-        } else {
-            this.highlightedTopicTitles = new HashSet<>();
-        }
+    public void setHighlightedTopicDisplayNames(@Nullable Set<String> names) {
+        this.highlightedTopicDisplayNames = (names != null) ? names : new HashSet<>();
     }
+
     @Override
     public int getCount() {
         return topicList.size();
@@ -72,7 +68,8 @@ public class TopicAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int i) {
-        return i;
+        Topics topic = topicList.get(i);
+        return topic.getId() != null ? topic.getId().hashCode() : i;
     }
 
     static class ViewHolder {
@@ -100,10 +97,11 @@ public class TopicAdapter extends BaseAdapter {
         }
 
         final Topics topic = topicList.get(i);
-        holder.txtTopicTitle.setText(topic.getTitle());
+        holder.txtTopicTitle.setText(topic.getTopicName());
 
         boolean isSpeakingSkillCurrently = "Speaking".equalsIgnoreCase(currentSkillNameAdapter);
-        boolean isTopicHighlighted = highlightedTopicTitles != null && highlightedTopicTitles.contains(topic.getTitle());
+        boolean isTopicHighlighted = highlightedTopicDisplayNames != null && highlightedTopicDisplayNames.contains(topic.getTopicName());
+
         if (isTopicHighlighted) {
             Drawable background = holder.speakingCardViewContainer.getBackground();
             if (background != null) {
@@ -120,21 +118,20 @@ public class TopicAdapter extends BaseAdapter {
             holder.speakingCardViewContainer.setBackground(ContextCompat.getDrawable(context, R.drawable.custom_card_background));
         }
 
-
         if (holder.tvTopicTracker != null) {
             if (isSpeakingSkillCurrently) {
                 holder.tvTopicTracker.setVisibility(View.GONE);
-            } else {
+            } else { // Cho Reading, Writing, Listening
                 holder.tvTopicTracker.setVisibility(View.VISIBLE);
                 holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%s", "..."));
-                loadExerciseCount(holder, topic.getTitle(), currentSkillNameAdapter);
+                loadExerciseCount(holder, topic.getId(), topic.getTopicName(), currentSkillNameAdapter);
             }
         }
 
         if (holder.imgTopicOptions != null) {
             if (isSpeakingSkillCurrently && (context instanceof ChooseTopicSpeakingActivity) && isTopicHighlighted) {
                 holder.imgTopicOptions.setVisibility(View.VISIBLE);
-                holder.imgTopicOptions.setOnClickListener(v -> showPopupMenu(v, topic.getTitle()));
+                holder.imgTopicOptions.setOnClickListener(v -> showPopupMenu(v, topic.getTopicName()));
             } else {
                 holder.imgTopicOptions.setVisibility(View.GONE);
                 holder.imgTopicOptions.setOnClickListener(null);
@@ -143,14 +140,14 @@ public class TopicAdapter extends BaseAdapter {
         return view;
     }
 
-    private void loadExerciseCount(final ViewHolder holder, final String topicTitle, final String skillNameForFirebase) {
+    private void loadExerciseCount(final ViewHolder holder, final String topicId, final String topicDisplayName, final String skillNameForFirebase) {
         DatabaseReference exercisesRef = firebaseRootRef
                 .child("Lessons")
                 .child("Levels")
                 .child(levelName)
                 .child(skillNameForFirebase)
                 .child("Topics")
-                .child(topicTitle)
+                .child(topicId) // Sử dụng Topic ID
                 .child("Exercises");
 
         exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -160,7 +157,8 @@ public class TopicAdapter extends BaseAdapter {
                 if (dataSnapshot.exists()) {
                     exerciseCount = dataSnapshot.getChildrenCount();
                 }
-                if (holder.txtTopicTitle.getText().toString().equals(topicTitle) &&
+                if (holder.txtTopicTitle.getText().toString().equals(topicDisplayName) &&
+                        holder.tvTopicTracker != null && // Thêm kiểm tra null
                         holder.tvTopicTracker.getVisibility() == View.VISIBLE) {
                     holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%d", exerciseCount));
                 }
@@ -168,8 +166,9 @@ public class TopicAdapter extends BaseAdapter {
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Error loading exercise count for [" + skillNameForFirebase + "] " + topicTitle + ": " + databaseError.getMessage());
-                if (holder.txtTopicTitle.getText().toString().equals(topicTitle) &&
+                Log.e(TAG, "Error loading exercise count for [" + skillNameForFirebase + "] Topic ID " + topicId + ": " + databaseError.getMessage());
+                if (holder.txtTopicTitle.getText().toString().equals(topicDisplayName) &&
+                        holder.tvTopicTracker != null && // Thêm kiểm tra null
                         holder.tvTopicTracker.getVisibility() == View.VISIBLE) {
                     holder.tvTopicTracker.setText("Done: 0/N/A");
                 }
@@ -177,18 +176,16 @@ public class TopicAdapter extends BaseAdapter {
         });
     }
 
-    private void showPopupMenu(View anchorView, final String topicTitle) {
+    private void showPopupMenu(View anchorView, final String topicDisplayName) {
         if (!(context instanceof ChooseTopicSpeakingActivity)) {
-            Log.e(TAG, "Context không phải là instance của ChooseTopicSpeakingActivity, không thể hiển thị menu xóa lịch sử.");
+            Log.e(TAG, "Context not ChooseTopicSpeakingActivity, cannot show delete history menu.");
             return;
         }
-
         PopupMenu popup = new PopupMenu(context, anchorView);
         popup.getMenuInflater().inflate(R.menu.topic_options_menu, popup.getMenu());
-
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.action_delete_history) {
-                ((ChooseTopicSpeakingActivity) context).removeClickedTopicHistory(topicTitle);
+                ((ChooseTopicSpeakingActivity) context).removeClickedTopicHistory(topicDisplayName);
                 return true;
             }
             return false;
