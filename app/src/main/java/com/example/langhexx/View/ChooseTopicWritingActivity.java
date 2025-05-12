@@ -2,7 +2,7 @@ package com.example.langhexx.View;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log; // Thêm Log
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
@@ -11,7 +11,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.langhexx.Controller.TopicAdapter;
-import com.example.langhexx.Model.Topics;
+import com.example.langhexx.Controller.WritingTopicAdapter;
+import com.example.langhexx.Model.Topics; // Ensure this is your updated Topics model
+import com.example.langhexx.Model.WritingTopics;
 import com.example.langhexx.R;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -23,12 +25,13 @@ import java.util.ArrayList;
 
 public class ChooseTopicWritingActivity extends AppCompatActivity {
     private ListView lvTopics;
-    private ArrayList<Topics> topicsArrayList;
-    private TopicAdapter topicAdapter;
+    private ArrayList<WritingTopics> topicsArrayList;
+    private WritingTopicAdapter topicAdapter;
     private String levelName;
     private ImageView imgBack, imgHome;
     private static final String ACTIVITY_TAG = "ChooseTopicWriting";
     private final String CURRENT_SKILL_NAME = "Writing";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,25 +40,24 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
         levelName = getIntent().getStringExtra("levelName");
 
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Error: Level not identified.", Toast.LENGTH_LONG).show();
             Log.e(ACTIVITY_TAG, "levelName is null or empty!");
             finish();
             return;
         }
-        Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME);
+        Log.d(ACTIVITY_TAG, "Level received: " + levelName + " for skill " + CURRENT_SKILL_NAME);
 
         addControls();
-
         loadTopicsFromFirebase(levelName);
-
         addEvents();
     }
 
     private void addControls() {
         lvTopics = findViewById(R.id.lvTopics);
         topicsArrayList = new ArrayList<>();
-        topicAdapter = new TopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
-        lvTopics.setAdapter(topicAdapter); // Không cần ép kiểu (ListAdapter)
+        // Pass the updated Topics model to the adapter
+        topicAdapter = new WritingTopicAdapter(this, R.layout.list_speaking_topic, topicsArrayList, levelName, CURRENT_SKILL_NAME);
+        lvTopics.setAdapter(topicAdapter);
         imgBack = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
     }
@@ -65,67 +67,66 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME) // Đảm bảo đây là "Writing"
+                .child(CURRENT_SKILL_NAME)
                 .child("Topics");
 
-        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicRef.toString());
+        Log.d(ACTIVITY_TAG, "Loading topics from: " + topicRef.toString());
 
         topicRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 topicsArrayList.clear();
                 if (snapshot.exists()) {
-                    for (DataSnapshot topicSnap : snapshot.getChildren()) {
-                        String topicTitle = topicSnap.getKey();
-                        if (topicTitle != null) {
-                            topicsArrayList.add(new Topics(topicTitle));
+                    for (DataSnapshot topicNodeSnap : snapshot.getChildren()) { // Iterate through Topic IDs
+                        String topicId = topicNodeSnap.getKey();
+                        // Get topicName from the child "topicName" or "title"
+                        String topicDisplayName = topicNodeSnap.child("topicName").getValue(String.class);
+                        if (topicDisplayName == null) { // Fallback if "topicName" doesn't exist, try "title"
+                            topicDisplayName = topicNodeSnap.child("title").getValue(String.class);
+                        }
+
+                        if (topicId != null && topicDisplayName != null) {
+                            topicsArrayList.add(new WritingTopics(topicId, topicDisplayName));
+                        } else {
+                            Log.w(ACTIVITY_TAG, "Topic ID or Name is null for a child under " + topicRef.toString());
                         }
                     }
-                    Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
+                    Log.d(ACTIVITY_TAG, "Loaded " + topicsArrayList.size() + " " + CURRENT_SKILL_NAME + " topics.");
                 } else {
-                    Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
-                    Toast.makeText(ChooseTopicWritingActivity.this, "Không có chủ đề " + CURRENT_SKILL_NAME + " nào cho cấp độ này.", Toast.LENGTH_SHORT).show();
+                    Log.d(ACTIVITY_TAG, "No " + CURRENT_SKILL_NAME + " topics found for level: " + levelName);
+                    Toast.makeText(ChooseTopicWritingActivity.this, "No " + CURRENT_SKILL_NAME + " topics for this level.", Toast.LENGTH_SHORT).show();
                 }
                 topicAdapter.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicWritingActivity.this, "Lỗi tải chủ đề " + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
+                Toast.makeText(ChooseTopicWritingActivity.this, "Error loading " + CURRENT_SKILL_NAME + " topics: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e(ACTIVITY_TAG, "Firebase Error: " + error.getMessage());
             }
         });
     }
 
     private void addEvents() {
         if (imgBack != null) {
-            imgBack.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    finish();
-                }
-            });
+            imgBack.setOnClickListener(v -> finish());
         }
 
-        imgHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        if (imgHome != null) {
+            imgHome.setOnClickListener(view -> {
                 Intent intent = new Intent(ChooseTopicWritingActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
-            }
-        });
+            });
+        }
 
-        lvTopics.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Topics selectedTopic = topicsArrayList.get(position);
-                // Điều hướng đến Writing_Topic_Exercise_Activity (đã đúng trong code bạn cung cấp)
-                Intent intent = new Intent(ChooseTopicWritingActivity.this, Writing_Topic_Exercise_Activity.class);
-                intent.putExtra("levelName", levelName);
-                intent.putExtra("topicTitle", selectedTopic.getTitle());
-                startActivity(intent);
-            }
+        lvTopics.setOnItemClickListener((parent, view, position, id) -> {
+            WritingTopics selectedTopic = topicsArrayList.get(position);
+            Intent intent = new Intent(ChooseTopicWritingActivity.this, Writing_Topic_Exercise_Activity.class);
+            intent.putExtra("levelName", levelName);
+            intent.putExtra("TOPIC_ID", selectedTopic.getId()); // Pass Topic ID
+            intent.putExtra("TOPIC_DISPLAY_NAME", selectedTopic.getTopicName()); // Pass Topic Display Name
+            startActivity(intent);
         });
     }
 }

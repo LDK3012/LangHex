@@ -9,8 +9,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.langhexx.Model.MicrosoftUser;
-// import com.example.langhexx.Model.UserWritingAnswer; // REMOVE THIS IMPORT
-import com.example.langhexx.Model.WritingExercise;
+import com.example.langhexx.Model.WritingExercise; // Ensure this model has id, title, script
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -37,7 +36,8 @@ import java.util.concurrent.Executors;
 public class WritingController {
 
     private static final String TAG = "WritingController";
-    private static final String GEMINI_API_KEY = "AIzaSyCf-9jplfin2aWdFAdxWcCdzox5wzIkBbQ"; // Replace with your actual key if needed
+    // IMPORTANT: Replace with your actual Gemini API Key or load it securely
+    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc";
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -46,6 +46,7 @@ public class WritingController {
     private final Handler inlineAnalysisHandler = new Handler(Looper.getMainLooper());
     private Runnable inlineAnalysisRunnable;
     private static final long INLINE_ANALYSIS_DEBOUNCE_MS = 1500;
+
 
     private MicrosoftUser currentMicrosoftUser;
     private FirebaseAuth mAuth;
@@ -60,7 +61,6 @@ public class WritingController {
         void showToast(String message);
         void showFailToast(String message);
         void showConfirmationDialog(String title, String message, Runnable onConfirm);
-        void navigateToNextExercise(String levelName, String topicTitle, String nextExerciseTitle);
         void finishActivity();
         void setSubmitButtonState(String text, boolean enabled);
         void setUIElementsVisibility(boolean visible);
@@ -90,13 +90,18 @@ public class WritingController {
 
     private ViewInterface view;
     private String levelName;
-    private String topicTitle;
-    private String exerciseTitle; // This is typically the ID/key for the exercise
+
+    private String topicId; // Firebase key for the Topic in Lessons
+    private String exerciseId; // Firebase key for the Exercise in Lessons
+
+    private String topicDisplayName; // Human-readable name of the topic
+    private String exerciseDisplayTitle; // Human-readable title of the exercise
+
     private WritingExercise currentWritingExercise;
-    private ArrayList<String> allExerciseTitles;
+    private ArrayList<WritingExercise> allExercisesInTopic;
 
     private boolean exerciseDataLoaded = false;
-    private boolean titlesLoaded = false;
+    private boolean allExercisesLoaded = false;
     private boolean isUserEditingAfterFeedback = false;
     private boolean allCriteriaSuccess = false;
     private String submittedTextForCurrentFeedback = "";
@@ -105,30 +110,43 @@ public class WritingController {
 
     public WritingController(ViewInterface view, Intent intent) {
         this.view = view;
-        this.allExerciseTitles = new ArrayList<>();
+        this.allExercisesInTopic = new ArrayList<>();
         this.databaseReference = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
         this.mAuth = FirebaseAuth.getInstance();
 
         if (intent != null) {
             levelName = intent.getStringExtra("LEVEL_NAME");
-            topicTitle = intent.getStringExtra("TOPIC_TITLE");
-            exerciseTitle = intent.getStringExtra("EXERCISE_TITLE"); // This is the KEY for the exercise
+            topicId = intent.getStringExtra("TOPIC_ID");
+            topicDisplayName = intent.getStringExtra("TOPIC_DISPLAY_NAME");
+            exerciseId = intent.getStringExtra("EXERCISE_ID");
+            exerciseDisplayTitle = intent.getStringExtra("EXERCISE_DISPLAY_TITLE");
+
+            Log.d(TAG, "Intent received: Level=" + levelName +
+                    ", TopicID=" + topicId + ", TopicDisplay=" + topicDisplayName +
+                    ", ExerciseID=" + exerciseId + ", ExerciseDisplay=" + exerciseDisplayTitle);
         } else {
             handleInitializationError("Error: Intent is null.");
             return;
         }
-        if (levelName == null || topicTitle == null || exerciseTitle == null) {
-            handleInitializationError("Error: Missing exercise identifiers in Intent.");
+
+        if (levelName == null || topicId == null || exerciseId == null) {
+            handleInitializationError("Error: Missing Level, Topic ID, or Exercise ID in Intent.");
             return;
         }
+
+        if (topicDisplayName == null) Log.w(TAG, "Topic Display Name is null from Intent.");
+        if (exerciseDisplayTitle == null) Log.w(TAG, "Exercise Display Title is null from Intent.");
+
+
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser != null) {
             loadMicrosoftUserData(firebaseUser.getUid());
         } else {
-            Log.w(TAG, "No Firebase user logged in at controller initialization.");
-            // Even if no user, we might still want to load exercise content if public
-            // but loadSavedUserAnswerFromFirebase() will not find anything.
-            // For this refactor, assuming user context is usually present for progress.
+            Log.w(TAG, "No Firebase user logged in. Loading public content only.");
+            loadExerciseDataFromFirebase();
+            loadAllExercisesInTopicFromFirebase();
+            hasLoadedSavedAnswer = true;
+            checkIfAllDataLoadedAndReady();
         }
     }
 
@@ -146,44 +164,48 @@ public class WritingController {
                         currentMicrosoftUser = new MicrosoftUser(msUserId, email, displayName);
                         Log.d(TAG, "Microsoft user data loaded: " + displayName + " (MS ID: " + msUserId + ")");
                     } else {
-                        Log.d(TAG, "User " + firebaseUid + " is not a Microsoft Graph linked user or microsoftGraphId is missing/empty.");
                         currentMicrosoftUser = new MicrosoftUser(firebaseUid, email, displayName);
-                        Log.d(TAG, "Using Firebase UID as key for user data: " + firebaseUid);
+                        Log.d(TAG, "User " + firebaseUid + " not MS Graph linked. Using Firebase UID: " + firebaseUid);
                     }
                 } else {
                     Log.w(TAG, "User data node not found for UID: " + firebaseUid);
-                    // Create a shell MicrosoftUser object if main user node doesn't exist but we have UID
-                    // This might happen for a new user who hasn't had their /Users/{uid} node created yet
-                    // but has authenticated. For saving progress, we need a currentMicrosoftUser object.
                     FirebaseUser fbUser = mAuth.getCurrentUser();
                     if (fbUser != null) {
                         currentMicrosoftUser = new MicrosoftUser(firebaseUid, fbUser.getEmail(), fbUser.getDisplayName());
-                        Log.d(TAG, "Created a shell MicrosoftUser for UID: " + firebaseUid);
+                        Log.d(TAG, "Created shell MicrosoftUser for UID: " + firebaseUid);
+                    } else {
+                        Log.e(TAG, "Critical: FirebaseUser became null during loadMicrosoftUserData for missing node.");
                     }
                 }
-                loadSavedUserAnswerFromFirebase(); // Load saved answer after user identity is established
+                loadExerciseDataFromFirebase();
+                loadAllExercisesInTopicFromFirebase();
+                if (currentMicrosoftUser != null) {
+                    loadSavedUserAnswerFromFirebase();
+                } else {
+                    hasLoadedSavedAnswer = true;
+                    checkIfAllDataLoadedAndReady();
+                }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Failed to load Microsoft user data.", error.toException());
-                // Still try to load saved answer, though it might not find user-specific path correctly
-                // if currentMicrosoftUser is null.
-                loadSavedUserAnswerFromFirebase();
+                loadExerciseDataFromFirebase();
+                loadAllExercisesInTopicFromFirebase();
+                hasLoadedSavedAnswer = true;
+                checkIfAllDataLoadedAndReady();
             }
         });
     }
 
-
     public void initialize() {
-        Log.d(TAG, "Initializing Controller for: L-" + levelName + ", T-" + topicTitle + ", E-" + exerciseTitle);
+        Log.d(TAG, "Initializing Controller for: L-" + levelName + ", TopicID-" + topicId + ", ExerciseID-" + exerciseId);
         if (view == null) { Log.e(TAG, "View is null in initialize"); return; }
 
         currentButtonState = STATE_SUBMIT_WRITING;
         isUserEditingAfterFeedback = false;
         allCriteriaSuccess = false;
         submittedTextForCurrentFeedback = "";
-        hasLoadedSavedAnswer = false;
         isFeedbackPanelVisible = false;
         editButtonForcedByLoad = false;
 
@@ -191,10 +213,6 @@ public class WritingController {
         view.setFeedbackPanelVisibility(false);
         view.setFeedbackTriggerVisibility(false);
         view.setAnswerEditTextEnabled(true);
-
-        loadExerciseDataFromFirebase();
-        loadAllExerciseTitlesFromFirebase();
-        // loadSavedUserAnswerFromFirebase() is now called after loadMicrosoftUserData()
     }
 
     private void handleInitializationError(String errorMessage) {
@@ -203,42 +221,57 @@ public class WritingController {
     }
 
     private void loadExerciseDataFromFirebase() {
-        if (levelName == null || topicTitle == null || exerciseTitle == null) {
-            if(view != null) { Log.e(TAG, "Cannot load exercise data: Level/Topic/ExerciseTitle is null."); view.showFailToast("Error: Missing data to load exercise."); view.finishActivity(); }
+        if (levelName == null || topicId == null || exerciseId == null) {
+            Log.e(TAG, "Cannot load exercise data: LevelName, TopicID, or ExerciseID is null.");
+            if(view != null) { view.showFailToast("Error: Missing data to load exercise."); view.finishActivity(); }
             exerciseDataLoaded = true;
             checkIfAllDataLoadedAndReady();
             return;
         }
-        DatabaseReference exerciseRef = databaseReference.child("Lessons").child("Levels").child(levelName).child("Writing").child("Topics").child(topicTitle).child("Exercises").child(exerciseTitle);
+        DatabaseReference exerciseRef = databaseReference
+                .child("Lessons").child("Levels").child(levelName)
+                .child("Writing").child("Topics").child(topicId)
+                .child("Exercises").child(exerciseId);
+
+        Log.d(TAG, "Attempting to load exercise data from: " + exerciseRef.toString());
         exerciseRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
-                    Log.e(TAG, "Writing exercise data not found at path: " + exerciseRef);
+                    Log.e(TAG, "Writing exercise data NOT FOUND at path: " + exerciseRef);
                     if (view != null) {
                         view.displayQuestionPrompt("Content not available for this exercise.");
-                        view.displayExerciseTitle(exerciseTitle != null ? exerciseTitle : "Exercise");
+                        view.displayExerciseTitle(exerciseDisplayTitle != null ? exerciseDisplayTitle : exerciseId);
                     }
                     currentWritingExercise = null;
                 } else {
+                    Log.d(TAG, "Exercise data FOUND at path: " + exerciseRef);
                     String scriptPrompt = snapshot.child("script").getValue(String.class);
                     String titleFromDb = snapshot.child("title").getValue(String.class);
-                    String currentExKey = snapshot.getKey(); // This should be == exerciseTitle
 
-                    // Use titleFromDb for display, but currentExKey (==exerciseTitle) for identification
-                    String displayTitle = titleFromDb != null ? titleFromDb : exerciseTitle;
+                    Log.d(TAG, "Fetched script: " + (scriptPrompt != null ? "Present, length " + scriptPrompt.length() : "NULL") +
+                            ", Fetched title from DB: " + titleFromDb);
 
+                    String finalDisplayTitle = titleFromDb;
+                    if (finalDisplayTitle == null || finalDisplayTitle.trim().isEmpty()) {
+                        finalDisplayTitle = exerciseDisplayTitle;
+                    }
+                    if (finalDisplayTitle == null || finalDisplayTitle.trim().isEmpty()) {
+                        finalDisplayTitle = exerciseId;
+                    }
 
-                    if (scriptPrompt != null && !scriptPrompt.isEmpty()) {
-                        currentWritingExercise = new WritingExercise(currentExKey, displayTitle, scriptPrompt);
+                    if (scriptPrompt != null && !scriptPrompt.trim().isEmpty()) {
+                        currentWritingExercise = new WritingExercise(exerciseId, finalDisplayTitle, scriptPrompt);
                         if (view != null) {
                             view.displayExerciseTitle(currentWritingExercise.getTitle());
                             view.displayQuestionPrompt(currentWritingExercise.getScript());
                         }
+                        Log.d(TAG, "currentWritingExercise populated. Title: " + currentWritingExercise.getTitle() + ", Script loaded.");
                     } else {
-                        currentWritingExercise = new WritingExercise(currentExKey, displayTitle, "Writing prompt not available for this exercise.");
+                        Log.w(TAG, "Script is null or empty for exerciseId: " + exerciseId + " at path " + exerciseRef);
+                        currentWritingExercise = new WritingExercise(exerciseId, finalDisplayTitle, "Writing prompt not available for this exercise.");
                         if (view != null) {
-                            view.displayExerciseTitle(displayTitle);
+                            view.displayExerciseTitle(finalDisplayTitle);
                             view.displayQuestionPrompt("Writing prompt not available for this exercise.");
                         }
                     }
@@ -251,7 +284,7 @@ public class WritingController {
                 Log.e(TAG, "Firebase loading exercise cancelled/failed: " + error.getMessage(), error.toException());
                 if (view != null) {
                     view.showFailToast("Error loading exercise: " + error.getMessage());
-                    view.displayExerciseTitle(exerciseTitle != null ? exerciseTitle : "Exercise");
+                    view.displayExerciseTitle(exerciseDisplayTitle != null ? exerciseDisplayTitle : exerciseId);
                     view.displayQuestionPrompt("Content loading error.");
                 }
                 currentWritingExercise = null;
@@ -261,28 +294,42 @@ public class WritingController {
         });
     }
 
-    private void loadAllExerciseTitlesFromFirebase() {
-        if (levelName == null || topicTitle == null) {
-            Log.w(TAG, "Cannot load all exercise titles: Level or Topic is null.");
-            titlesLoaded = true;
+    private void loadAllExercisesInTopicFromFirebase() {
+        if (levelName == null || topicId == null) {
+            Log.w(TAG, "Cannot load all exercises in topic: Level or Topic ID is null.");
+            allExercisesLoaded = true;
             checkIfAllDataLoadedAndReady();
             return;
         }
-        DatabaseReference exercisesRef = databaseReference.child("Lessons").child("Levels").child(levelName).child("Writing").child("Topics").child(topicTitle).child("Exercises");
-        exercisesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference exercisesNodeRef = databaseReference
+                .child("Lessons").child("Levels").child(levelName)
+                .child("Writing").child("Topics").child(topicId)
+                .child("Exercises");
+
+        Log.d(TAG, "Loading all exercises from: " + exercisesNodeRef.toString());
+        exercisesNodeRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                allExerciseTitles.clear();
+                allExercisesInTopic.clear();
                 if (snapshot.exists()) {
                     for (DataSnapshot exSnap : snapshot.getChildren()) {
-                        allExerciseTitles.add(exSnap.getKey());
+                        String exId = exSnap.getKey();
+                        String exDisplayTitleFromDb = exSnap.child("title").getValue(String.class);
+                        if (exId != null && exDisplayTitleFromDb != null) {
+                            allExercisesInTopic.add(new WritingExercise(exId, exDisplayTitleFromDb, null));
+                        } else {
+                            Log.w(TAG, "Exercise ID or display title is null for a child under " + exercisesNodeRef + ". Child key: " + exId);
+                        }
                     }
+                    Log.d(TAG, "Loaded " + allExercisesInTopic.size() + " exercises for topicId: " + topicId);
+                } else {
+                    Log.d(TAG, "No exercises found for topicId: " + topicId + " at path " + exercisesNodeRef);
                 }
-                titlesLoaded = true;
+                allExercisesLoaded = true;
                 checkIfAllDataLoadedAndReady();
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Firebase loading titles cancelled/failed: " + error.getMessage());
-                titlesLoaded = true;
+                Log.e(TAG, "Firebase loading exercises in topic cancelled/failed: " + error.getMessage());
+                allExercisesLoaded = true;
                 checkIfAllDataLoadedAndReady();
             }
         });
@@ -291,27 +338,23 @@ public class WritingController {
     private void loadSavedUserAnswerFromFirebase() {
         if (currentMicrosoftUser == null || currentMicrosoftUser.getUserId() == null || currentMicrosoftUser.getUserId().isEmpty()) {
             Log.w(TAG, "Cannot load saved answer: MicrosoftUser or UserId is null/empty.");
-            hasLoadedSavedAnswer = false;
+            hasLoadedSavedAnswer = true;
             checkIfAllDataLoadedAndReady();
             return;
         }
-        if (levelName == null || topicTitle == null || exerciseTitle == null) {
-            Log.w(TAG, "Cannot load saved answer: Missing exercise identifiers.");
-            hasLoadedSavedAnswer = false;
+        // User progress is NOW keyed by exerciseId (Firebase key of the exercise)
+        if (exerciseId == null) {
+            Log.w(TAG, "Cannot load saved answer: exerciseId (key for user progress) is null.");
+            hasLoadedSavedAnswer = true;
             checkIfAllDataLoadedAndReady();
             return;
         }
 
         final String userIdForPath = currentMicrosoftUser.getUserId();
-        Log.d(TAG, "Loading saved answer for user: " + userIdForPath + ", exercise: " + exerciseTitle);
-
+        Log.d(TAG, "Loading saved answer for user: " + userIdForPath + ", exercise_firebase_key: " + exerciseId);
         DatabaseReference answerRef = databaseReference
-                .child("Users")
-                .child("MicrosoftUsers")
-                .child(userIdForPath)
-                .child("Progress")
-                .child("WritingAnswers")
-                .child(exerciseTitle); // exerciseTitle is the key for the answer
+                .child("Users").child("MicrosoftUsers").child(userIdForPath)
+                .child("Progress").child("WritingAnswers").child(exerciseId); // Use actual exerciseId as key
 
         answerRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -320,131 +363,108 @@ public class WritingController {
                     String savedAnswer = snapshot.child("userAnswer").getValue(String.class);
                     String feedbackSummary = snapshot.child("feedbackSummary").getValue(String.class);
                     Long timestamp = snapshot.child("timestamp").getValue(Long.class);
-                    // String dbExerciseId = snapshot.child("exerciseId").getValue(String.class); // This should match exerciseTitle
-                    // String dbLevelName = snapshot.child("levelName").getValue(String.class); // Match levelName
-                    // String dbTopicTitle = snapshot.child("topicTitle").getValue(String.class); // Match topicTitle
+                    // These fields inside the saved node are for record-keeping/context
+                    String recordExerciseId = snapshot.child("exerciseId").getValue(String.class); // Should match this.exerciseId
+                    String recordTopicTitle = snapshot.child("topicTitle").getValue(String.class); // Should be topicDisplayName
 
-                    // Populate the writing-specific fields in currentMicrosoftUser
-                    currentMicrosoftUser.setWritingExerciseId(exerciseTitle); // The key of the exercise itself
+                    currentMicrosoftUser.setWritingExerciseId(exerciseId); // Store the actual exerciseId
                     currentMicrosoftUser.setWritingLevelName(levelName);
-                    currentMicrosoftUser.setWritingTopicTitle(topicTitle);
+                    currentMicrosoftUser.setWritingTopicTitle(topicDisplayName != null ? topicDisplayName : topicId);
                     currentMicrosoftUser.setWritingUserAnswer(savedAnswer != null ? savedAnswer : "");
                     currentMicrosoftUser.setWritingFeedbackSummary(feedbackSummary != null ? feedbackSummary : "");
                     currentMicrosoftUser.setWritingTimestamp(timestamp != null ? timestamp : 0L);
 
                     if (savedAnswer != null && !savedAnswer.trim().isEmpty()) {
-                        if (view != null) {
-                            view.displaySavedAnswer(savedAnswer);
-                        }
-                        hasLoadedSavedAnswer = true;
-                        Log.d(TAG, "Loaded saved answer for user " + userIdForPath + ", exercise " + exerciseTitle);
+                        if (view != null) view.displaySavedAnswer(savedAnswer);
+                        Log.d(TAG, "Loaded saved answer for user " + userIdForPath + ", exercise_key " + exerciseId);
                     } else {
-                        hasLoadedSavedAnswer = false;
-                        Log.d(TAG, "No saved answer text found for user " + userIdForPath + ", exercise " + exerciseTitle);
+                        Log.d(TAG, "No saved answer TEXT found for user " + userIdForPath + ", exercise_key " + exerciseId);
                     }
                 } else {
-                    hasLoadedSavedAnswer = false;
-                    Log.d(TAG, "No saved answer node found for user " + userIdForPath + ", exercise " + exerciseTitle);
+                    Log.d(TAG, "No saved answer NODE found for user " + userIdForPath + ", exercise_key " + exerciseId);
                 }
+                hasLoadedSavedAnswer = true;
                 checkIfAllDataLoadedAndReady();
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Failed to load saved user answer.", error.toException());
-                hasLoadedSavedAnswer = false;
+                Log.e(TAG, "Failed to load saved user answer for exercise_key " + exerciseId, error.toException());
+                hasLoadedSavedAnswer = true;
                 checkIfAllDataLoadedAndReady();
             }
         });
     }
 
-
     private void checkIfAllDataLoadedAndReady() {
+        boolean userRelatedDataProcessed = (mAuth.getCurrentUser() != null && currentMicrosoftUser != null && hasLoadedSavedAnswer) ||
+                (mAuth.getCurrentUser() == null && hasLoadedSavedAnswer);
+
         Log.d(TAG, "checkIfAllDataLoadedAndReady: exerciseDataLoaded=" + exerciseDataLoaded +
-                ", titlesLoaded=" + titlesLoaded + ". Saved answer status known (hasLoadedSavedAnswer=" + hasLoadedSavedAnswer +")");
-        if (exerciseDataLoaded && titlesLoaded && currentMicrosoftUser != null) { // Ensure currentMicrosoftUser is also available
-            Log.d(TAG, "All initial data (exercise, titles, user context) confirmed loaded.");
-            if (view == null) return;
+                ", allExercisesLoaded=" + allExercisesLoaded + ", userRelatedDataProcessed=" + userRelatedDataProcessed);
+
+        if (exerciseDataLoaded && allExercisesLoaded && userRelatedDataProcessed) {
+            Log.i(TAG, "All initial data dependencies met. Proceeding with UI setup.");
+            if (view == null) { Log.e(TAG, "View is null in checkIfAllDataLoadedAndReady after data load."); return; }
 
             view.setUIElementsVisibility(true);
             view.setAnswerInputVisibility(true);
 
             boolean isContentEffectivelyUnavailable = currentWritingExercise == null ||
                     currentWritingExercise.getScript() == null ||
-                    currentWritingExercise.getScript().isEmpty() ||
-                    currentWritingExercise.getScript().contains("not available") ||
-                    currentWritingExercise.getScript().contains("not found") ||
+                    currentWritingExercise.getScript().trim().isEmpty() ||
+                    currentWritingExercise.getScript().toLowerCase().contains("not available") ||
+                    currentWritingExercise.getScript().toLowerCase().contains("not found") ||
                     currentWritingExercise.getScript().equals("Content loading error.");
 
-
             if (isContentEffectivelyUnavailable) {
-                Log.d(TAG, "Content is unavailable for the exercise.");
+                Log.w(TAG, "Content is effectively unavailable. Script: " + (currentWritingExercise != null ? currentWritingExercise.getScript() : "exercise is null"));
                 currentButtonState = STATE_SUBMIT_WRITING;
-            } else if (hasLoadedSavedAnswer) {
+                if (view != null) view.displayQuestionPrompt("Content not available for this exercise.");
+            } else if (hasLoadedSavedAnswer && currentMicrosoftUser != null && !TextUtils.isEmpty(currentMicrosoftUser.getWritingUserAnswer())) {
                 Log.d(TAG, "Content available AND saved answer loaded. Setting state to RETRY_WRITING.");
                 currentButtonState = STATE_RETRY_WRITING;
-                // User's answer already loaded into currentMicrosoftUser.writingUserAnswer
-                // and view.displaySavedAnswer called from loadSavedUserAnswerFromFirebase
-                submittedTextForCurrentFeedback = currentMicrosoftUser.getWritingUserAnswer() != null ? currentMicrosoftUser.getWritingUserAnswer() : "";
-
-                // Check feedback summary directly from the populated currentMicrosoftUser or fetch again if needed
-                // For this refactor, assume currentMicrosoftUser.getWritingFeedbackSummary() is sufficient.
-                if (currentMicrosoftUser.getWritingFeedbackSummary() != null &&
-                        currentMicrosoftUser.getWritingFeedbackSummary().equalsIgnoreCase("All criteria success")) {
-                    allCriteriaSuccess = true;
-                } else {
-                    allCriteriaSuccess = false;
-                }
-                Log.d(TAG, "Retrieved feedbackSummary for loaded answer: " + currentMicrosoftUser.getWritingFeedbackSummary() + ", allCriteriaSuccess: " + allCriteriaSuccess);
+                submittedTextForCurrentFeedback = currentMicrosoftUser.getWritingUserAnswer();
+                allCriteriaSuccess = "All criteria success".equalsIgnoreCase(currentMicrosoftUser.getWritingFeedbackSummary());
                 editButtonForcedByLoad = true;
-                updateSubmitButtonBasedOnState();
-                // No need to return for async here as data is already in currentMicrosoftUser.
             } else {
                 Log.d(TAG, "Content available, NO saved answer. Setting state to SUBMIT_WRITING.");
                 currentButtonState = STATE_SUBMIT_WRITING;
                 isUserEditingAfterFeedback = false;
                 allCriteriaSuccess = false;
                 editButtonForcedByLoad = false;
-                // Clear any previous writing data in currentMicrosoftUser for this context
                 if(currentMicrosoftUser != null) {
                     currentMicrosoftUser.setWritingUserAnswer("");
                     currentMicrosoftUser.setWritingFeedbackSummary("");
                     currentMicrosoftUser.setWritingTimestamp(0L);
-                    // exerciseId, levelName, topicTitle for writing context are already set or will be set on save
-                    currentMicrosoftUser.setWritingExerciseId(exerciseTitle);
+                    // For the MicrosoftUser object's internal record for this session:
+                    currentMicrosoftUser.setWritingExerciseId(this.exerciseId); // Store actual ID
                     currentMicrosoftUser.setWritingLevelName(levelName);
-                    currentMicrosoftUser.setWritingTopicTitle(topicTitle);
+                    currentMicrosoftUser.setWritingTopicTitle(topicDisplayName != null ? topicDisplayName : topicId); // Store display name or topic ID
                 }
             }
             updateSubmitButtonBasedOnState();
         } else {
-            Log.d(TAG, "Still waiting for some initial data (exercise/titles/user context) to load before full UI setup. CurrentMicrosoftUser null? " + (currentMicrosoftUser == null));
+            Log.d(TAG, "Still waiting for some initial data to load.");
         }
     }
-
 
     private void updateSubmitButtonBasedOnState() {
         if (view == null) return;
         Log.d(TAG, "updateSubmitButtonBasedOnState - CurrentState: " + currentButtonState +
-                ", isEditingAfterFeedback: " + isUserEditingAfterFeedback +
-                ", allSuccess: " + allCriteriaSuccess +
-                ", isFeedbackPanelVisible (flag): " + isFeedbackPanelVisible +
-                ", editButtonForcedByLoad (flag): " + editButtonForcedByLoad);
-
+                ", editButtonForcedByLoad: " + editButtonForcedByLoad + ", allSuccess: " + allCriteriaSuccess);
 
         boolean contentNotAvailable = currentWritingExercise == null || currentWritingExercise.getScript() == null ||
-                currentWritingExercise.getScript().equals("Writing prompt not available for this exercise.") ||
-                currentWritingExercise.getScript().equals("Writing prompt not found.") ||
-                currentWritingExercise.getScript().equals("Content not available for this exercise.") ||
+                currentWritingExercise.getScript().trim().isEmpty() ||
+                currentWritingExercise.getScript().toLowerCase().contains("not available") ||
+                currentWritingExercise.getScript().toLowerCase().contains("not found") ||
                 currentWritingExercise.getScript().equals("Content loading error.");
-
 
         if (contentNotAvailable) {
             view.setSubmitButtonState("N/A", false);
             view.setFeedbackPanelVisibility(false);
             view.setFeedbackTriggerVisibility(false);
             view.setAnswerEditTextEnabled(false);
-            if (currentWritingExercise == null && exerciseDataLoaded) {
+            if (view != null && (currentWritingExercise == null || currentWritingExercise.getScript() == null || currentWritingExercise.getScript().trim().isEmpty())) {
                 view.displayQuestionPrompt("Content not available for this exercise.");
             }
             isFeedbackPanelVisible = false;
@@ -460,26 +480,18 @@ public class WritingController {
             isFeedbackPanelVisible = false;
         } else if (currentButtonState == STATE_RETRY_WRITING) {
             view.setAnswerEditTextEnabled(false);
-
             if (editButtonForcedByLoad) {
-                Log.d(TAG, "STATE_RETRY_WRITING (Post-Load/editButtonForcedByLoad=true): Setting button to 'Edit'.");
                 view.setSubmitButtonState("Edit", true);
                 view.setFeedbackPanelVisibility(false);
                 view.setFeedbackTriggerVisibility(false);
                 isFeedbackPanelVisible = false;
             } else {
-                Log.d(TAG, "STATE_RETRY_WRITING (Post-Submit/editButtonForcedByLoad=false): Setting button based on allCriteriaSuccess.");
-                if (allCriteriaSuccess) {
-                    view.setSubmitButtonState("Done", true);
-                } else {
-                    view.setSubmitButtonState("Edit", true);
-                }
+                view.setSubmitButtonState(allCriteriaSuccess ? "Done" : "Edit", true);
                 view.setFeedbackTriggerVisibility(true);
                 view.setFeedbackPanelVisibility(isFeedbackPanelVisible);
             }
         }
     }
-
 
     public void onAnswerTextChanged(String currentText) {
         if (view == null) return;
@@ -494,11 +506,15 @@ public class WritingController {
         }
     }
 
-
     public void onSubmitButtonClicked(String userAnswerFromView) {
-        if (view == null) return;
-        Log.d(TAG, "Submit button clicked. State: " + currentButtonState + ", AllSuccess: " + allCriteriaSuccess +
-                ", EditingAfterFeedback: " + isUserEditingAfterFeedback + ", editButtonForcedByLoad: " + editButtonForcedByLoad);
+        if (view == null) {
+            Log.e(TAG, "onSubmitButtonClicked: View is null!");
+            return;
+        }
+        Log.d(TAG, "Submit button clicked. State: " + currentButtonState +
+                ", AllSuccess: " + allCriteriaSuccess +
+                ", EditingAfterFeedback: " + isUserEditingAfterFeedback +
+                ", editButtonForcedByLoad: " + editButtonForcedByLoad);
 
         if (inlineAnalysisRunnable != null) {
             inlineAnalysisHandler.removeCallbacks(inlineAnalysisRunnable);
@@ -512,8 +528,14 @@ public class WritingController {
                     view.showFailToast("Please write something before submitting.");
                     return;
                 }
-                if (currentWritingExercise == null || currentWritingExercise.getScript() == null || currentWritingExercise.getScript().isEmpty() ||
-                        currentWritingExercise.getScript().contains("not available") || currentWritingExercise.getScript().contains("not found")) {
+
+                if (currentWritingExercise == null || currentWritingExercise.getScript() == null ||
+                        currentWritingExercise.getScript().trim().isEmpty() ||
+                        currentWritingExercise.getScript().toLowerCase().contains("not available") ||
+                        currentWritingExercise.getScript().toLowerCase().contains("not found") ||
+                        currentWritingExercise.getScript().equals("Content loading error.")) {
+                    Log.e(TAG, "onSubmitButtonClicked: Cannot submit. Invalid/empty script. Script: " +
+                            (currentWritingExercise != null ? currentWritingExercise.getScript() : "currentWritingExercise is null"));
                     view.showFailToast("Cannot submit without a valid writing prompt.");
                     return;
                 }
@@ -531,22 +553,21 @@ public class WritingController {
                     currentButtonState = STATE_SUBMIT_WRITING;
                     isUserEditingAfterFeedback = true;
                     isFeedbackPanelVisible = false;
-                    if(editButtonForcedByLoad && currentMicrosoftUser != null) {
-                        // Ensure submittedTextForCurrentFeedback is from the loaded answer
-                        submittedTextForCurrentFeedback = currentMicrosoftUser.getWritingUserAnswer() !=null ? currentMicrosoftUser.getWritingUserAnswer().trim() : "";
+
+                    if(editButtonForcedByLoad && currentMicrosoftUser != null && currentMicrosoftUser.getWritingUserAnswer() != null) {
+                        submittedTextForCurrentFeedback = currentMicrosoftUser.getWritingUserAnswer().trim();
                     }
+
                     editButtonForcedByLoad = false;
 
                     updateSubmitButtonBasedOnState();
-
                     String currentAnswerInView = view.getCurrentAnswerText();
                     onAnswerTextChanged(currentAnswerInView != null ? currentAnswerInView : userAnswerFromView);
-
                     view.requestFocusOnAnswerInput();
                 }
                 break;
             default:
-                Log.w(TAG, "Unknown button state clicked: " + currentButtonState);
+                Log.w(TAG, "Unknown button state clicked: " + currentButtonState + ". Resetting state.");
                 currentButtonState = STATE_SUBMIT_WRITING;
                 isUserEditingAfterFeedback = false;
                 allCriteriaSuccess = false;
@@ -562,37 +583,34 @@ public class WritingController {
         if (view == null) return;
         Log.i(TAG, "Proceeding with writing submission for text: " + userAnswer);
         view.showLoading("Getting feedback...");
-        final String textBeingSubmitted = userAnswer;
+        final String textBeingSubmitted = userAnswer.trim();
 
-        String userIdToUseForSaving = null;
-        if (currentMicrosoftUser != null && currentMicrosoftUser.getUserId() != null && !currentMicrosoftUser.getUserId().isEmpty()) {
-            userIdToUseForSaving = currentMicrosoftUser.getUserId();
-        } else {
-            Log.w(TAG, "Cannot save user answer: User ID from currentMicrosoftUser is missing.");
-            // Attempt to get from FirebaseAuth directly as a last resort, though currentMicrosoftUser should be source of truth
-            FirebaseUser firebaseUser = mAuth.getCurrentUser();
-            if (firebaseUser != null) {
-                userIdToUseForSaving = firebaseUser.getUid();
-                Log.w(TAG, "Falling back to FirebaseAuth UID for saving: " + userIdToUseForSaving);
-            }
+        String userIdToUseForSaving = (currentMicrosoftUser != null && currentMicrosoftUser.getUserId() != null) ? currentMicrosoftUser.getUserId() : null;
+        if (userIdToUseForSaving == null && mAuth.getCurrentUser() != null) {
+            userIdToUseForSaving = mAuth.getCurrentUser().getUid();
+            Log.w(TAG, "Falling back to FirebaseAuth UID for saving: " + userIdToUseForSaving);
         }
 
-
-        if (userIdToUseForSaving != null && currentWritingExercise != null && currentMicrosoftUser != null) {
-            // Populate currentMicrosoftUser with the data to be saved
-            currentMicrosoftUser.setWritingExerciseId(currentWritingExercise.getId()); // Actual ID of the exercise
-            currentMicrosoftUser.setWritingLevelName(levelName);
-            currentMicrosoftUser.setWritingTopicTitle(topicTitle);
-            currentMicrosoftUser.setWritingUserAnswer(textBeingSubmitted);
-            currentMicrosoftUser.setWritingTimestamp(System.currentTimeMillis());
-            currentMicrosoftUser.setWritingFeedbackSummary("Feedback pending...");
-
-            saveUserWritingAnswerToFirebase(userIdToUseForSaving, currentMicrosoftUser);
+        // For saving user progress, use exerciseId (Firebase key)
+        if (userIdToUseForSaving != null && this.exerciseId != null && (this.topicDisplayName != null || this.topicId != null) ) {
+            if (currentMicrosoftUser == null && mAuth.getCurrentUser() != null) {
+                FirebaseUser fbUser = mAuth.getCurrentUser();
+                currentMicrosoftUser = new MicrosoftUser(fbUser.getUid(), fbUser.getEmail(), fbUser.getDisplayName());
+                Log.d(TAG, "Created shell MicrosoftUser for saving progress.");
+            }
+            if (currentMicrosoftUser != null) {
+                currentMicrosoftUser.setWritingExerciseId(this.exerciseId); // Use actual exerciseId for the record's key
+                currentMicrosoftUser.setWritingLevelName(levelName);
+                currentMicrosoftUser.setWritingTopicTitle(this.topicDisplayName != null ? this.topicDisplayName : this.topicId); // Context for User's Progress
+                currentMicrosoftUser.setWritingUserAnswer(textBeingSubmitted);
+                currentMicrosoftUser.setWritingTimestamp(System.currentTimeMillis());
+                currentMicrosoftUser.setWritingFeedbackSummary("Feedback pending...");
+                saveUserWritingAnswerToFirebase(userIdToUseForSaving, currentMicrosoftUser);
+            } else {
+                Log.w(TAG, "currentMicrosoftUser is null, cannot save user-specific progress.");
+            }
         } else {
-            Log.w(TAG, "Cannot save user answer: User ID, Exercise context, or currentMicrosoftUser is missing.");
-            if (currentWritingExercise == null) Log.w(TAG, "currentWritingExercise is null");
-            if (userIdToUseForSaving == null) Log.w(TAG, "userIdToUseForSaving is null");
-            if (currentMicrosoftUser == null) Log.w(TAG, "currentMicrosoftUser is null");
+            Log.w(TAG, "Cannot save user answer: User ID, exerciseId, or topic context is missing.");
         }
 
         final String finalUserIdForFeedbackUpdate = userIdToUseForSaving;
@@ -615,10 +633,9 @@ public class WritingController {
                                 length.getInt("iconType") == 1;
                         Log.d(TAG, "All criteria success after Gemini: " + allCriteriaSuccess);
 
-                        if (currentMicrosoftUser != null) { // Update feedback summary in our model
+                        if (currentMicrosoftUser != null) {
                             currentMicrosoftUser.setWritingFeedbackSummary(allCriteriaSuccess ? "All criteria success" : "Needs improvement");
                         }
-
 
                         view.displayStructuredAIFeedback(
                                 taskResponse.getString("feedback"), taskResponse.getInt("iconType"),
@@ -635,14 +652,14 @@ public class WritingController {
                         updateSubmitButtonBasedOnState();
                         if (isFeedbackPanelVisible) view.focusOnFeedbackPanel();
 
-                        if (finalUserIdForFeedbackUpdate != null && currentWritingExercise != null && currentMicrosoftUser != null) {
+                        // Update feedback summary in Firebase using exerciseId as key
+                        if (finalUserIdForFeedbackUpdate != null && WritingController.this.exerciseId != null && currentMicrosoftUser != null) {
                             updateUserWritingAnswerFeedback(
                                     finalUserIdForFeedbackUpdate,
-                                    currentWritingExercise.getId(),
-                                    currentMicrosoftUser.getWritingFeedbackSummary() // Use summary from model
+                                    WritingController.this.exerciseId, // Use actual exerciseId for User's Progress key
+                                    currentMicrosoftUser.getWritingFeedbackSummary()
                             );
                         }
-
                     } catch (JSONException e) {
                         Log.e(TAG, "Error parsing overall feedback JSON from Gemini", e);
                         if (view != null) view.showFailToast("Error processing feedback: " + e.getMessage());
@@ -667,49 +684,43 @@ public class WritingController {
     }
 
     private void saveUserWritingAnswerToFirebase(String userId, MicrosoftUser userWithWritingData) {
+        // userWithWritingData.getWritingExerciseId() should now return the actual exerciseId (Firebase key)
         if (userId == null || userWithWritingData == null || userWithWritingData.getWritingExerciseId() == null) {
-            Log.w(TAG, "Cannot save user writing answer: userId, userWithWritingData, or writingExerciseId is null.");
+            Log.w(TAG, "Cannot save user writing answer: userId, userWithWritingData, or getWritingExerciseId() (actual exerciseId) is null.");
             return;
         }
-        String exerciseKeyForPath = userWithWritingData.getWritingExerciseId();
+        String exerciseKeyForUserProgress = userWithWritingData.getWritingExerciseId(); // This is the actual exerciseId
 
         DatabaseReference userAnswersRef = databaseReference
-                .child("Users")
-                .child("MicrosoftUsers")
-                .child(userId)
-                .child("Progress")
-                .child("WritingAnswers")
-                .child(exerciseKeyForPath);
+                .child("Users").child("MicrosoftUsers").child(userId)
+                .child("Progress").child("WritingAnswers").child(exerciseKeyForUserProgress); // Keyed by actual exerciseId
 
-        // Ensure timestamp is current for this save operation
+        // The toMapForWritingAnswer() in MicrosoftUser should ensure that the "exerciseId" field
+        // within the map also contains this actual exerciseId for consistency if needed.
+        // And "topicTitle" field within the map should contain topicDisplayName.
         userWithWritingData.setWritingTimestamp(System.currentTimeMillis());
-
         userAnswersRef.setValue(userWithWritingData.toMapForWritingAnswer())
-                .addOnSuccessListener(aVoid -> Log.i(TAG, "User writing answer saved successfully for user: " + userId + ", exercise: " + exerciseKeyForPath))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to save user writing answer for user: " + userId + ", exercise: " + exerciseKeyForPath, e));
+                .addOnSuccessListener(aVoid -> Log.i(TAG, "User writing answer saved successfully for user: " + userId + ", exerciseId_key: " + exerciseKeyForUserProgress))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to save user writing answer for user: " + userId + ", exerciseId_key: " + exerciseKeyForUserProgress, e));
     }
 
-    private void updateUserWritingAnswerFeedback(String userId, String exerciseId, String feedbackSummary) {
-        if (userId == null || exerciseId == null) {
-            Log.w(TAG, "Cannot update feedback summary: userId or exerciseId is null.");
+    private void updateUserWritingAnswerFeedback(String userId, String exerciseIdKey, String feedbackSummary) {
+        // exerciseIdKey is the actual Firebase key of the exercise
+        if (userId == null || exerciseIdKey == null) {
+            Log.w(TAG, "Cannot update feedback summary: userId or exerciseIdKey is null.");
             return;
         }
-
         DatabaseReference userAnswerRef = databaseReference
-                .child("Users")
-                .child("MicrosoftUsers")
-                .child(userId)
-                .child("Progress")
-                .child("WritingAnswers")
-                .child(exerciseId);
+                .child("Users").child("MicrosoftUsers").child(userId)
+                .child("Progress").child("WritingAnswers").child(exerciseIdKey); // Keyed by actual exerciseId
 
         Map<String, Object> updates = new HashMap<>();
         updates.put("feedbackSummary", feedbackSummary);
-        updates.put("timestamp", System.currentTimeMillis()); // Update timestamp on feedback update
+        updates.put("timestamp", System.currentTimeMillis());
 
         userAnswerRef.updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.i(TAG, "Feedback summary updated successfully for user: " + userId + ", exercise: " + exerciseId))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to update feedback summary for user: " + userId + ", exercise: " + exerciseId, e));
+                .addOnSuccessListener(aVoid -> Log.i(TAG, "Feedback summary updated successfully for user: " + userId + ", exerciseId_key: " + exerciseIdKey))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update feedback summary for user: " + userId + ", exerciseId_key: " + exerciseIdKey, e));
     }
 
     interface FeedbackCallback {
@@ -746,7 +757,6 @@ public class WritingController {
         }, callback::onError);
     }
 
-
     private interface GeminiApiSuccessListener {
         void onResult(String responseString) throws JSONException;
     }
@@ -756,10 +766,14 @@ public class WritingController {
     }
 
     private void callGeminiAPI(String promptText, GeminiApiSuccessListener successListener, GeminiApiErrorListener errorListener) {
-        if (GEMINI_API_KEY.equals("AIzaSyAKitUIzcsW3Gd5SyeTLTrcGnJcPTDG09c") || GEMINI_API_KEY.isEmpty() || GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY") ) {
-            Log.e(TAG, "Gemini API Key is a placeholder, empty, or a sample key. Please set a valid API key.");
+        if (GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY") || GEMINI_API_KEY.isEmpty() || GEMINI_API_KEY.equals("AIzaSyCf-9jplfin2aWdFAdxWcCdzox5wzIkBbQ") ) {
+            Log.e(TAG, "Gemini API Key is a placeholder or empty. Please set a valid API key.");
             String simulatedError = "AI Feedback service is temporarily unavailable (API Key issue).";
-            mainThreadHandler.postDelayed(() -> errorListener.onError(simulatedError), 200);
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                errorListener.onError(simulatedError);
+            } else {
+                mainThreadHandler.postDelayed(() -> errorListener.onError(simulatedError), 100);
+            }
             return;
         }
 
@@ -789,9 +803,9 @@ public class WritingController {
                 generationConfig.put("response_mime_type", "application/json");
                 jsonBody.put("generationConfig", generationConfig);
 
-
                 try (OutputStream os = conn.getOutputStream()) {
-                    os.write(jsonBody.toString().getBytes("utf-8"));
+                    byte[] input = jsonBody.toString().getBytes("utf-8");
+                    os.write(input, 0, input.length);
                 }
 
                 int responseCode = conn.getResponseCode();
@@ -802,7 +816,7 @@ public class WritingController {
                         StringBuilder response = new StringBuilder();
                         String responseLine;
                         while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine);
+                            response.append(responseLine.trim());
                         }
 
                         Log.d(TAG, "Raw Gemini Response: " + response.toString());
@@ -825,7 +839,15 @@ public class WritingController {
                                         resultText = resultText.substring(0, resultText.length() - 3);
                                     }
                                 }
-                                successListener.onResult(resultText.trim());
+                                String finalText = resultText.trim();
+                                mainThreadHandler.post(() -> {
+                                    try {
+                                        successListener.onResult(finalText);
+                                    } catch (JSONException e) {
+                                        Log.e(TAG, "Error in successListener after API call", e);
+                                        errorListener.onError("Error processing successful API response: " + e.getMessage());
+                                    }
+                                });
                             } else {
                                 throw new JSONException("Parts array is missing or empty in Gemini response candidate.");
                             }
@@ -853,12 +875,14 @@ public class WritingController {
                     } else {
                         errorResponse.append("No error stream data. HTTP Status: ").append(conn.getResponseMessage());
                     }
+                    String errorMessage = "Server error: " + responseCode + ". Details: " + errorResponse.toString();
                     Log.e(TAG, "Gemini API Error Response (HTTP " + responseCode + "): " + errorResponse.toString());
-                    errorListener.onError("Server error: " + responseCode + ". Details: " + errorResponse.toString());
+                    mainThreadHandler.post(() -> errorListener.onError(errorMessage));
                 }
             } catch (Exception e) {
+                String errorMessage = "Client-side error during API call: " + e.getMessage();
                 Log.e(TAG, "Error calling/processing Gemini API", e);
-                errorListener.onError("Client-side error during API call: " + e.getMessage());
+                mainThreadHandler.post(() -> errorListener.onError(errorMessage));
             } finally {
                 if (conn != null) {
                     conn.disconnect();
@@ -866,7 +890,6 @@ public class WritingController {
             }
         });
     }
-
 
     public void onPause() {
         Log.d(TAG, "onPause called by View.");
@@ -877,17 +900,19 @@ public class WritingController {
 
     public void onResume() {
         Log.d(TAG, "onResume. Re-evaluating UI state if necessary.");
-        if (exerciseDataLoaded && titlesLoaded && currentMicrosoftUser != null && view != null) { // Added currentMicrosoftUser check
+        boolean userRelatedDataProcessed = (mAuth.getCurrentUser() != null && currentMicrosoftUser != null && hasLoadedSavedAnswer) ||
+                (mAuth.getCurrentUser() == null && hasLoadedSavedAnswer);
+
+        if (exerciseDataLoaded && allExercisesLoaded && userRelatedDataProcessed && view != null) {
             updateSubmitButtonBasedOnState();
             if (currentButtonState == STATE_SUBMIT_WRITING) {
                 String currentText = view.getCurrentAnswerText();
                 onAnswerTextChanged(currentText != null ? currentText : "");
             }
         } else {
-            Log.d(TAG, "onResume: Core data not yet fully loaded or view/user context missing, UI update will be handled by loading callbacks.");
+            Log.d(TAG, "onResume: Core data not yet fully processed. UI update will be handled by loading callbacks or initialize.");
         }
     }
-
 
     public void onDestroy() {
         Log.d(TAG, "onDestroy called.");
@@ -902,8 +927,8 @@ public class WritingController {
 
     public void onReviewFeedbackClicked() {
         if (view == null) return;
-        Log.d(TAG, "Review Feedback clicked. Current isFeedbackPanelVisible (flag): " + isFeedbackPanelVisible);
         isFeedbackPanelVisible = !isFeedbackPanelVisible;
+        Log.d(TAG, "Review Feedback clicked. Feedback panel visible: " + isFeedbackPanelVisible);
         view.setFeedbackPanelVisibility(isFeedbackPanelVisible);
         if (isFeedbackPanelVisible) {
             view.focusOnFeedbackPanel();

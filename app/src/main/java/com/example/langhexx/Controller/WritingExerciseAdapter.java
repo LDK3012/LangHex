@@ -6,10 +6,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.langhexx.Model.WritingExercise; // Import your WritingExercise model
 import com.example.langhexx.R;
 import com.example.langhexx.View.InternalWritingTopic;
 
@@ -18,15 +18,17 @@ import java.util.List;
 public class WritingExerciseAdapter extends RecyclerView.Adapter<WritingExerciseAdapter.ViewHolder> {
 
     private Context context;
-    private List<String> exerciseTitlesList;
+    private List<WritingExercise> exerciseList; // Changed from List<String>
     private String levelName;
-    private String topicTitle;
+    private String topicId; // Store Topic ID
+    private String topicDisplayName; // Store Topic Display Name for passing to next activity if needed
 
-    public WritingExerciseAdapter(Context context, List<String> exerciseTitlesList, String levelName, String topicTitle) {
+    public WritingExerciseAdapter(Context context, List<WritingExercise> exerciseList, String levelName, String topicId, String topicDisplayName) {
         this.context = context;
-        this.exerciseTitlesList = exerciseTitlesList;
+        this.exerciseList = exerciseList;
         this.levelName = levelName;
-        this.topicTitle = topicTitle;
+        this.topicId = topicId;
+        this.topicDisplayName = topicDisplayName;
     }
 
     @NonNull
@@ -38,24 +40,27 @@ public class WritingExerciseAdapter extends RecyclerView.Adapter<WritingExercise
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        String originalExerciseTitle = exerciseTitlesList.get(position);
+        WritingExercise currentExercise = exerciseList.get(position); // Get WritingExercise object
         int displayPosition = position + 1;
-        String numberedExerciseTitle = displayPosition + ". " + originalExerciseTitle;
+        // Use the 'title' field from WritingExercise for display
+        String numberedExerciseTitle = displayPosition + ". " + currentExercise.getTitle();
 
         holder.tvExerciseItemTitle.setText(numberedExerciseTitle);
 
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, InternalWritingTopic.class);
             intent.putExtra("LEVEL_NAME", levelName);
-            intent.putExtra("TOPIC_TITLE", topicTitle);
-            intent.putExtra("EXERCISE_TITLE", originalExerciseTitle);
+            intent.putExtra("TOPIC_ID", topicId); // Pass Topic ID
+            intent.putExtra("TOPIC_DISPLAY_NAME", topicDisplayName); // Pass Topic Display Name
+            intent.putExtra("EXERCISE_ID", currentExercise.getId()); // Pass Exercise ID
+            intent.putExtra("EXERCISE_DISPLAY_TITLE", currentExercise.getTitle()); // Pass Exercise Display Title
             context.startActivity(intent);
         });
     }
 
     @Override
     public int getItemCount() {
-        return exerciseTitlesList.size();
+        return exerciseList.size();
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

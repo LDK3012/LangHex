@@ -71,6 +71,13 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         setContentView(R.layout.activity_internal_writing_topic);
         Log.d(TAG, "onCreate");
         addControls();
+        String exerciseDisplayTitle = getIntent().getStringExtra("EXERCISE_DISPLAY_TITLE");
+        if (titleTextView != null && exerciseDisplayTitle != null) {
+            titleTextView.setText(exerciseDisplayTitle);
+        } else if (titleTextView != null) {
+            titleTextView.setText("Writing Exercise"); // Fallback
+        }
+
         controller = new WritingController(this, getIntent());
         controller.initialize();
         addEvents();
@@ -232,15 +239,7 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
                 .setCancelable(false).show());
     }
 
-    @Override
-    public void navigateToNextExercise(String levelName, String topicTitle, String nextExerciseTitle) {
-        Intent nextIntent = new Intent(InternalWritingTopic.this, InternalWritingTopic.class);
-        nextIntent.putExtra("LEVEL_NAME", levelName);
-        nextIntent.putExtra("TOPIC_TITLE", topicTitle);
-        nextIntent.putExtra("EXERCISE_TITLE", nextExerciseTitle);
-        startActivity(nextIntent);
-        finish();
-    }
+
 
     @Override
     public void finishActivity() {

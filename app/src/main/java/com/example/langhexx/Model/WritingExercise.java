@@ -1,12 +1,12 @@
 package com.example.langhexx.Model;
 
 public class WritingExercise {
-    private String id;
-    private String title;
+    private String id; // Firebase key for the exercise
+    private String title; // Display title of the exercise
     private String script;
 
     public WritingExercise() {
-
+        // Default constructor
     }
 
     public WritingExercise(String id, String title, String script) {
@@ -15,26 +15,24 @@ public class WritingExercise {
         this.script = script;
     }
 
-    // Getters
     public String getId() {
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getTitle() {
         return title;
     }
 
-    public String getScript() {
-        return script;
-    }
-
-    // Setters (optional, depending on how you create the objects)
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getScript() {
+        return script;
     }
 
     public void setScript(String script) {
