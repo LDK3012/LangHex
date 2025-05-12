@@ -328,7 +328,7 @@ public class ReadingController {
         if (allAnswered) {
             Log.d(TAG, "Check: All questions answered. Showing confirmation dialog.");
             // Use lambda for the confirmation action
-            view.showConfirmationDialog("Xác nhận nộp bài", "Bạn có chắc chắn muốn nộp bài không?", this::proceedWithSubmission);
+            view.showConfirmationDialog("Confirm", "Are you sure want to submit ?", this::proceedWithSubmission);
         } else {
             Log.d(TAG, "Check: Not all questions answered. First unanswered: " + firstUnanswered);
             view.showFailToast("Please answer all questions!");
