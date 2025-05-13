@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:layout_gravity="center"
+    android:background="#FFE5E5"
+    tools:context=".View.GrammarLearningActivity">
+
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:background="#FF2626"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        android:weightSum="12">
+
+        <ImageView
+            android:id="@+id/imgBackward"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/backward" android:tint="@color/white"
+            android:padding="8dp"/>
+        <TextView
+            android:id="@+id/tvScreenTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="10"
+            android:gravity="center"
+            android:text="Speaking"
+            android:textColor="#FFFFFF"
+            android:textSize="20dp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/imgHome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:src="@drawable/icon_home"
+            android:tint="@color/white"
+            android:padding="8dp"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="15dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txtTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20dp"
+            android:gravity="center"
+            android:textColor="#150101"
+            android:layout_gravity="center"
+            android:text="Is there anything that makes you feel happy lately ?" />
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20dp"
+                android:textStyle="bold"
+                android:layout_gravity="center"
+                android:text="Repeat after these answer" />
+
+            <TextView
+                android:id="@+id/txtCounter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:textSize="18dp"
+                android:text="1/9" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="330dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp"
+            app:contentPadding="16dp">
+
+            <TextView
+                android:id="@+id/txtScript"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:padding="10dp"
+                android:text="Recently, something that has brought me joy is spending time with my family. It feels great to connect and laugh together. Also, I've been enjoying reading new books which makes me really happy."
+                android:textColor="@android:color/black"
+                android:textSize="20dp"
+                android:textStyle="bold" />
+        </androidx.cardview.widget.CardView>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="65dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="15dp">
+
+            <ImageButton
+                android:id="@+id/imgButtonRecord"
+                android:layout_width="wrap_content"
+                android:layout_height="60dp"
+                android:layout_gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Ghi âm"
+                android:src="@drawable/micro" />
+
+            <LinearLayout
+                android:id="@+id/layout_playback_controls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_playback_controls_rounder"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="13dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageButton
+                    android:id="@+id/imgButtonPlayAudio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Phát/Tạm dừng"
+                    android:src="@drawable/icon_play_audio"
+                    android:tint="#FAF8F8" />
+
+                <SeekBar
+                    android:id="@+id/sbrAudio"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:progressBackgroundTint="@android:color/white"
+                    android:progressTint="@android:color/white"
+                    android:thumbTint="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/txtTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="00:00/00:30"
+                    android:textColor="@android:color/white"
+
+                    android:textSize="15dp" />
+
+                <ImageButton
+                    android:id="@+id/imgButtonDelete"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Xóa"
+                    android:src="@drawable/icon_delete"
+                    android:tint="@android:color/white" />
+
+            </LinearLayout>
+        </FrameLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnBackward"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_button_previous_rounded"
+                android:gravity="center"
+                android:text="Last Page"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="17dp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnForward"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Next Page"
+                android:background="@drawable/bg_button_next_rounded"
+                android:textColor="@android:color/white"
+                android:textAllCaps="false"
+                android:textSize="17dp"
+                android:layout_marginStart="8dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -16,6 +16,12 @@
         android:theme="@style/Theme.LangHexx"
         tools:targetApi="31">
         <activity
+            android:name=".View.GrammarLearningActivity"
+            android:exported="false" />
+        <activity
+            android:name=".View.ChooseSpeakingLearningMethod"
+            android:exported="false" />
+        <activity
             android:name=".View.ForumPostActivity"
             android:exported="false" />
         <activity

@@ -42,7 +42,8 @@
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
             android:src="@drawable/icon_home"
-            android:tint="@color/white"    android:padding="8dp"/> </LinearLayout>
+            android:tint="@color/white"    android:padding="8dp"/>
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvExercises"
