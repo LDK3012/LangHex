@@ -61,7 +61,7 @@ public class LearningTypeActivity extends AppCompatActivity {
         cardSpeaking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(LearningTypeActivity.this, ChooseTopicSpeakingActivity.class);
+                Intent intent = new Intent(LearningTypeActivity.this, ChooseSpeakingLearningMethod.class);
                 intent.putExtra("levelName",levelName) ;
                 startActivity(intent);
             }

@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -13,7 +12,7 @@ import android.widget.TextView;
 
 import com.example.langhexx.R;
 
-public class GrammarLearningActivity extends AppCompatActivity {
+public class VoiceLearningActivity extends AppCompatActivity {
 
     Button btnBackward, btnForward;
     ImageButton imgPlayAudio, imgDelete, imgRecord;
@@ -25,7 +24,7 @@ public class GrammarLearningActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_grammar_learning);
+        setContentView(R.layout.activity_voice_learning);
         addControls();
         addEvents();
     }
@@ -52,7 +51,7 @@ public class GrammarLearningActivity extends AppCompatActivity {
 
         if (imgHome != null) {
             imgHome.setOnClickListener(view -> {
-                Intent intent = new Intent(GrammarLearningActivity.this, MainActivity.class);
+                Intent intent = new Intent(VoiceLearningActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 finish();

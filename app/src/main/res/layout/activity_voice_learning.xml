@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:layout_gravity="center"
     android:background="#FFE5E5"
-    tools:context=".View.GrammarLearningActivity">
+    tools:context=".View.VoiceLearningActivity">
 
     <LinearLayout
         android:id="@+id/header"
