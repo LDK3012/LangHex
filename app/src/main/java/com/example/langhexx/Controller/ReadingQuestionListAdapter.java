@@ -10,103 +10,128 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.core.content.ContextCompat;
-import com.example.langhexx.Model.ReadingQuestion;
+import com.example.langhexx.Model.ReadingQuestion; // Use ReadingQuestion
 import com.example.langhexx.R;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 public class ReadingQuestionListAdapter extends BaseAdapter {
 
     private static final String TAG = "ReadQuestionAdapter";
     private Context context;
-    private List<ReadingQuestion> questions;
+    private List<ReadingQuestion> questions; // Use ReadingQuestion
     private LayoutInflater inflater;
-    private Map<Integer, Integer> selectedAnswers = new HashMap<>();
-    private Map<Integer, Integer> submittedAnswers = new HashMap<>();
-    private Map<Integer, Boolean> correctnessMap = new HashMap<>();
-    private boolean resultsShown = false;
-    private boolean answersDisabled = false;
 
-    public ReadingQuestionListAdapter(Context context, List<ReadingQuestion> questions) {
-        this.context = context;
-        this.questions = questions;
-        this.inflater = LayoutInflater.from(context);
-        initializeSelectedAnswers();
+    // Listener for answer selection changes
+    private OnAnswerSelectedListener answerSelectedListener;
+
+    public interface OnAnswerSelectedListener {
+        void onAnswerSelected(int questionIndex, int selectedOptionId);
     }
 
-    private void initializeSelectedAnswers() {
-        selectedAnswers.clear();
-        for (int i = 0; i < questions.size(); i++) {
-            selectedAnswers.put(i, -1);
+    // State variables
+    private Map<Integer, Integer> selectedAnswers = new HashMap<>(); // Current UI selections
+    private Map<Integer, Integer> submittedAnswers = new HashMap<>(); // Answers at the time of submission
+    private Map<Integer, Boolean> correctnessMap = new HashMap<>();
+    private boolean resultsShown = false;
+    private boolean answersDisabled = false; // Control if interaction is allowed
+
+    // Constructor updated to accept listener
+    public ReadingQuestionListAdapter(Context context, List<ReadingQuestion> questions, OnAnswerSelectedListener listener) {
+        this.context = context;
+        this.questions = new ArrayList<>(questions); // Use copy
+        this.inflater = LayoutInflater.from(context);
+        this.answerSelectedListener = listener; // Store listener
+        initializeSelections(); // Initialize based on potentially saved state in model
+    }
+
+    // Initialize selections based on initialSelectedOptionId from the model
+    private void initializeSelections() {
+        this.selectedAnswers.clear();
+        for (int i = 0; i < this.questions.size(); i++) {
+            ReadingQuestion q = this.questions.get(i);
+            if (q != null && q.getInitialSelectedOptionId() != -1) {
+                this.selectedAnswers.put(i, q.getInitialSelectedOptionId());
+                Log.v(TAG, "Initializing selection for Q" + i + " from model: " + q.getInitialSelectedOptionId());
+            } else {
+                this.selectedAnswers.put(i, -1); // Default to no selection
+            }
         }
     }
 
+    // Update data and reset state, re-initializing selections from the new model data
     public void updateData(List<ReadingQuestion> newQuestions) {
-        this.questions = newQuestions;
+        Log.d(TAG, "updateData called.");
+        this.questions.clear();
+        if (newQuestions != null) {
+            this.questions.addAll(newQuestions);
+        }
+        resetInternalState(); // Reset maps and flags
+        initializeSelections(); // Re-initialize selections based on potentially updated models
+        notifyDataSetChanged();
+        Log.d(TAG, "Data updated. Count: " + getCount());
+    }
+
+    // Resets internal state maps and flags
+    private void resetInternalState() {
         this.selectedAnswers.clear();
         this.submittedAnswers.clear();
         this.correctnessMap.clear();
         this.resultsShown = false;
         this.answersDisabled = false;
-        initializeSelectedAnswers();
-        notifyDataSetChanged();
     }
 
+    // Show results provided by the controller
     public void showResults(Map<Integer, Integer> userAnswers, Map<Integer, Boolean> correctness) {
-        this.submittedAnswers = new HashMap<>(userAnswers);
+        Log.d(TAG, "showResults called.");
+        this.submittedAnswers = new HashMap<>(userAnswers); // Store the submitted answers
         this.correctnessMap = new HashMap<>(correctness);
+        this.selectedAnswers = new HashMap<>(userAnswers); // Align current view state with submitted
         this.resultsShown = true;
-        this.answersDisabled = true;
-        Log.d(TAG, "Showing results. User answers count: " + submittedAnswers.size() + ", Correctness count: " + correctnessMap.size());
+        this.answersDisabled = true; // Disable interaction after results
+        Log.d(TAG, "Showing results. Submitted answers count: " + submittedAnswers.size() + ", Correctness count: " + correctnessMap.size());
         notifyDataSetChanged();
     }
 
-    /**
-     * Returns the current user selections BEFORE submitting.
-     * Key: Question Index (0-based)
-     * Value: Selected RadioButton ID (e.g., R.id.rbOptionB) or -1 if none selected.
-     */
+    // Get the current selections made by the user (before submission)
     public Map<Integer, Integer> getSelectedAnswers() {
         return new HashMap<>(selectedAnswers);
     }
 
+    // Allow external control over disabling answers (might not be needed if only disabled on showResults)
     public void setAnswersDisabled(boolean disabled) {
-        this.answersDisabled = disabled;
+        if (this.answersDisabled != disabled) {
+            this.answersDisabled = disabled;
+            notifyDataSetChanged();
+        }
     }
 
-    /**
-     * Resets the adapter state for retrying the quiz.
-     */
+    // Reset state for retrying the quiz
     public void resetQuizState() {
         Log.d(TAG, "Resetting quiz state in adapter.");
-        this.selectedAnswers.clear();
-        this.submittedAnswers.clear();
-        this.correctnessMap.clear();
-        this.resultsShown = false;
-        this.answersDisabled = false;
-        initializeSelectedAnswers();
+        resetInternalState(); // Clear results, flags
+        initializeSelections(); // Reload initial/saved state from model
         notifyDataSetChanged();
-        Log.d(TAG, "Adapter state reset completed. Requesting redraw.");
+        Log.d(TAG, "Adapter state reset completed.");
     }
 
-    /**
-     * Checks if all submitted answers were correct.
-     * Call this only *after* showResults has been called.
-     * @return True if all answers in the correctnessMap are true, false otherwise.
-     */
+    // Check if all submitted answers were correct
     public boolean areAllAnswersCorrect() {
-        if (!resultsShown || correctnessMap == null || correctnessMap.isEmpty() || correctnessMap.size() != questions.size()) {
-            Log.d(TAG, "Cannot check correctness - results not shown, map empty, or map size mismatch.");
+        if (!resultsShown || correctnessMap == null || correctnessMap.isEmpty() || correctnessMap.size() != getCount()) {
+            Log.d(TAG, "Cannot check correctness: Results not shown, map invalid/incomplete, or size mismatch.");
             return false;
         }
-        for (Boolean isCorrect : correctnessMap.values()) {
-            if (isCorrect == null || !isCorrect) { // Handle null just in case
-                Log.d(TAG, "Found incorrect or null answer in correctness map.");
-                return false; // Found at least one wrong or missing answer
+        for (int i = 0; i < getCount(); i++) {
+            Boolean isCorrect = correctnessMap.get(i);
+            if (isCorrect == null || !isCorrect) {
+                Log.d(TAG, "Found incorrect or missing correctness info at index " + i);
+                return false;
             }
         }
-        Log.d(TAG, "All answers in correctness map are true.");
-        return true; // All entries in the map are true
+        Log.d(TAG, "All answers verified as correct.");
+        return true;
     }
 
 
@@ -116,8 +141,11 @@ public class ReadingQuestionListAdapter extends BaseAdapter {
     }
 
     @Override
-    public ReadingQuestion getItem(int position) { // Use ReadingQuestion
-        return questions.get(position);
+    public ReadingQuestion getItem(int position) {
+        if (position >= 0 && position < questions.size()) {
+            return questions.get(position);
+        }
+        return null;
     }
 
     @Override
@@ -130,6 +158,7 @@ public class ReadingQuestionListAdapter extends BaseAdapter {
         ViewHolder viewHolder;
 
         if (convertView == null) {
+            // Use your specific layout for reading questions
             convertView = inflater.inflate(R.layout.item_question, parent, false);
             viewHolder = new ViewHolder();
             viewHolder.tvQuestionNumber = convertView.findViewById(R.id.tvQuestionNumber);
@@ -145,121 +174,134 @@ public class ReadingQuestionListAdapter extends BaseAdapter {
         }
 
         ReadingQuestion question = getItem(position);
+        if (question == null) {
+            Log.e(TAG, "Question at position " + position + " is null in getView!");
+            return convertView != null ? convertView : new View(context); // Return existing or empty view
+        }
 
-        // --- Set Question Number ---
         viewHolder.tvQuestionNumber.setText((position + 1) + ".");
-
-        // --- Set Question Text ---
         viewHolder.tvQuestionText.setText(question.getQuestionText());
 
-        // --- Reset and Configure RadioGroup/RadioButtons ---
         viewHolder.rgOptions.setOnCheckedChangeListener(null); // Detach listener
-        viewHolder.rgOptions.clearCheck();                  // Clear previous check
 
         Map<String, String> options = question.getOptions();
-        configureRadioButton(viewHolder.rbOptionA, "A", options.get("A"), position);
-        configureRadioButton(viewHolder.rbOptionB, "B", options.get("B"), position);
-        configureRadioButton(viewHolder.rbOptionC, "C", options.get("C"), position);
-        configureRadioButton(viewHolder.rbOptionD, "D", options.get("D"), position);
+        if (options == null) options = new HashMap<>(); // Safety check
+
+        configureRadioButton(viewHolder.rbOptionA, "A", options.get("A"));
+        configureRadioButton(viewHolder.rbOptionB, "B", options.get("B"));
+        configureRadioButton(viewHolder.rbOptionC, "C", options.get("C"));
+        configureRadioButton(viewHolder.rbOptionD, "D", options.get("D"));
+
+        // Determine which RadioButton should be checked
+        int checkedIdToSet = -1;
+        if (resultsShown && submittedAnswers.containsKey(position)) {
+            checkedIdToSet = submittedAnswers.getOrDefault(position, -1);
+        } else if (selectedAnswers.containsKey(position)) {
+            // Use current selection if results not shown
+            checkedIdToSet = selectedAnswers.getOrDefault(position, -1);
+        } else {
+            // If somehow not in selectedAnswers map (e.g., after reset/update issue), check model
+            checkedIdToSet = question.getInitialSelectedOptionId();
+        }
 
 
-        // --- Re-attach Listener ---
+        // Set the checked state visually
+        if (checkedIdToSet != -1) {
+            try {
+                viewHolder.rgOptions.check(checkedIdToSet);
+                Log.v(TAG, "getView Q" + position + ": Setting check to ID " + checkedIdToSet + " (resultsShown=" + resultsShown + ")");
+            } catch (Exception e) { // Catch potential errors during check
+                Log.e(TAG, "getView Q" + position + ": Error checking ID " + checkedIdToSet, e);
+                viewHolder.rgOptions.clearCheck(); // Clear if error
+            }
+        } else {
+            viewHolder.rgOptions.clearCheck();
+            Log.v(TAG, "getView Q" + position + ": Clearing check (resultsShown=" + resultsShown + ")");
+        }
+
+        // Re-attach listener after setting initial state
         viewHolder.rgOptions.setOnCheckedChangeListener((group, checkedId) -> {
-            // Only update selection if not showing results
-            if (!resultsShown && !answersDisabled) {
-                Log.v(TAG, "Position " + position + " selection changed to ID: " + checkedId);
-                selectedAnswers.put(position, checkedId);
-            } else if (resultsShown) {
-                // Prevent changing selection when results are shown by re-checking submitted answer
-                Integer submittedId = submittedAnswers.get(position);
-                if (submittedId != null && submittedId != -1 && checkedId != submittedId) {
-                    Log.v(TAG,"Result shown. Reverting selection for position " + position + " back to " + submittedId);
-                    group.check(submittedId); // Force check back to the submitted answer
-                } else if (submittedId != null && submittedId != -1 && checkedId == submittedId){
-                    // If they click the already submitted answer, do nothing extra
-                } else {
-                    // If no answer was submitted for this question, clear check if they click something
-                    group.clearCheck();
+            if (!answersDisabled) { // Only process if interaction is allowed
+                Log.v(TAG, "Position " + position + " selection changed via UI to ID: " + checkedId);
+                selectedAnswers.put(position, checkedId); // Update internal map
+                if (answerSelectedListener != null) {
+                    // Notify controller to save
+                    answerSelectedListener.onAnswerSelected(position, checkedId);
                 }
+            } else {
+                // If disabled, try to revert the change visually
+                int revertId = submittedAnswers.getOrDefault(position, -1);
+                Log.d(TAG, "Interaction disabled for Q" + position + ". Reverting check to: " + revertId);
+                group.post(() -> { // Use post to avoid issues during layout
+                    if (group.getCheckedRadioButtonId() != revertId) {
+                        if (revertId != -1) {
+                            try { group.check(revertId); } catch (Exception e) { Log.e(TAG, "Error reverting check", e); group.clearCheck(); }
+                        } else {
+                            group.clearCheck();
+                        }
+                    }
+                });
             }
         });
 
+        // Set enabled state for the group
+        boolean enableInteraction = !answersDisabled;
+        setRadioGroupEnabled(viewHolder.rgOptions, enableInteraction);
 
-        // --- Restore State or Show Results ---
-        Integer currentSelectionId = selectedAnswers.get(position);
-        Integer submittedId = submittedAnswers.get(position); // Might be null
-
+        // Show correctness icons if results are displayed
+        clearRadioButtonIcons(viewHolder); // Clear previous icons first
         if (resultsShown) {
-            // --- SHOW RESULTS ---
-            Boolean isCorrect = correctnessMap.get(position); // Might be null
+            Boolean isCorrect = correctnessMap.get(position);
+            int submittedId = submittedAnswers.getOrDefault(position, -1);
 
-            // Disable all options in the group
-            setRadioGroupEnabled(viewHolder.rgOptions, false);
-
-            // Check the submitted answer and show icon
-            if (submittedId != null && submittedId != -1) {
+            if (submittedId != -1) {
                 RadioButton submittedRadioButton = convertView.findViewById(submittedId);
                 if (submittedRadioButton != null) {
-                    submittedRadioButton.setChecked(true); // Make sure it's checked visually
-
                     if (isCorrect != null) {
                         int iconRes = isCorrect ? R.drawable.ic_correct_green : R.drawable.ic_incorrect_red;
                         submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, iconRes, 0);
                     } else {
-                        Log.w(TAG, "Correctness info missing for submitted answer at position " + position);
-                        highlightCorrectAnswer(viewHolder, question.getCorrectAnswer());
+                        Log.w(TAG, "Correctness info missing for submitted reading answer at position " + position);
                     }
                 } else {
-                    Log.w(TAG, "Submitted RadioButton ID " + submittedId + " not found for position " + position);
-                    highlightCorrectAnswer(viewHolder, question.getCorrectAnswer());
+                    Log.w(TAG, "Submitted reading RadioButton ID " + submittedId + " not found for position " + position);
                 }
             } else {
-                Log.w(TAG, "No submitted answer for position " + position + ", cannot show icon.");
-                highlightCorrectAnswer(viewHolder, question.getCorrectAnswer());
+                Log.w(TAG, "No submitted reading answer recorded for position " + position);
+                // Optionally highlight the correct answer if nothing was submitted
+                // highlightCorrectAnswer(viewHolder, question.getCorrectAnswer());
             }
-
-        } else {
-            if (currentSelectionId != null && currentSelectionId != -1) {
-                viewHolder.rgOptions.check(currentSelectionId);
-            } else {
-                viewHolder.rgOptions.clearCheck();
-            }
-            setRadioGroupEnabled(viewHolder.rgOptions, !answersDisabled);
         }
+
 
         return convertView;
     }
-    private void configureRadioButton(RadioButton rb, String key, String text, int position) {
+
+    // Helper to configure individual RadioButtons
+    private void configureRadioButton(RadioButton rb, String key, String text) {
         if (rb == null) return;
-        rb.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0); // Clear icons
-        rb.setTextColor(ContextCompat.getColor(context, android.R.color.primary_text_light)); // Reset text color
+        rb.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        rb.setTextColor(ContextCompat.getColor(context, android.R.color.primary_text_light));
+        rb.setBackgroundColor(ContextCompat.getColor(context, android.R.color.transparent));
 
         if (text != null && !text.isEmpty()) {
             rb.setText(text);
             rb.setVisibility(View.VISIBLE);
-            rb.setEnabled(!answersDisabled);
-            rb.setAlpha(1.0f);
         } else {
             rb.setText("");
             rb.setVisibility(View.GONE);
         }
     }
 
-    private void highlightCorrectAnswer(ViewHolder vh, String correctKey) {
-        if (correctKey == null) return;
-        RadioButton correctRb = null;
-        switch (correctKey) {
-            case "A": correctRb = vh.rbOptionA; break;
-            case "B": correctRb = vh.rbOptionB; break;
-            case "C": correctRb = vh.rbOptionC; break;
-            case "D": correctRb = vh.rbOptionD; break;
-            // Add more cases if needed
-        }
-        if (correctRb != null && correctRb.getVisibility() == View.VISIBLE) {
-            //
-        }
+    // Helper to clear icons from all radio buttons in the holder
+    private void clearRadioButtonIcons(ViewHolder holder) {
+        if (holder.rbOptionA != null) holder.rbOptionA.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        if (holder.rbOptionB != null) holder.rbOptionB.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        if (holder.rbOptionC != null) holder.rbOptionC.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        if (holder.rbOptionD != null) holder.rbOptionD.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
     }
 
+    // Helper to enable/disable all RadioButtons in a group
     private void setRadioGroupEnabled(RadioGroup group, boolean enabled) {
         if (group == null) return;
         for (int i = 0; i < group.getChildCount(); i++) {
@@ -271,6 +313,7 @@ public class ReadingQuestionListAdapter extends BaseAdapter {
         }
     }
 
+    // ViewHolder pattern
     static class ViewHolder {
         TextView tvQuestionNumber;
         TextView tvQuestionText;

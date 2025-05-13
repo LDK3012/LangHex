@@ -14,9 +14,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.langhexx.Controller.ReadingController;
-import com.example.langhexx.Controller.ReadingQuestionListAdapter;
+import com.example.langhexx.Controller.ReadingQuestionListAdapter; // Ensure correct adapter import
 import com.example.langhexx.Model.CustomToast;
-import com.example.langhexx.Model.ReadingQuestion;
+import com.example.langhexx.Model.ReadingQuestion; // Ensure correct model import
 import com.example.langhexx.R;
 
 import java.util.ArrayList;
@@ -24,23 +24,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InternalReadingTopic extends AppCompatActivity implements ReadingController.ViewInterface {
+// Implement the adapter's listener interface
+public class InternalReadingTopic extends AppCompatActivity implements
+        ReadingController.ViewInterface,
+        ReadingQuestionListAdapter.OnAnswerSelectedListener { // Add listener implementation
 
     private static final String TAG = "InternalReadTopicVIEW";
 
     private ImageView imgClose, imgHome;
-
-    // --- UI Elements ---
     private ListView lvQuestions;
     private Button btnSubmit;
     private TextView tvExerciseDisplayTitle;
     private TextView tvPassageDisplay;
     private TextView instructionText;
-    // --- Adapters and Local Data List (Managed by View for UI binding) ---
-    private List<ReadingQuestion> questionsList;
-    private ReadingQuestionListAdapter questionListAdapter;
 
-    // --- Controller ---
+    // Keep local list for the adapter, but let controller manage data flow
+    private List<ReadingQuestion> questionsListForAdapter;
+    private ReadingQuestionListAdapter questionListAdapter;
     private ReadingController controller;
 
     @Override
@@ -50,12 +50,14 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         Log.d(TAG, "onCreate");
 
         addControls();
-        setupListView();
 
-        // Initialize Controller, passing the View (this) and Intent
+        // Initialize Controller first
         controller = new ReadingController(this, getIntent());
 
-        // Controller will now handle loading data and initial setup logic
+        // Setup ListView after controller is created so listener can be passed
+        setupListView();
+
+        // Controller handles data loading and initial UI population via interface methods
         controller.initialize();
 
         addEvents();
@@ -70,13 +72,15 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         instructionText = findViewById(R.id.textView16);
         imgClose = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
+        // Initial visibility setup, controller will manage updates
         setUIElementsVisibility(false);
     }
 
     private void setupListView() {
         Log.d(TAG, "setupListView");
-        questionsList = new ArrayList<>(); // Initialize list
-        questionListAdapter = new ReadingQuestionListAdapter(this, questionsList);
+        questionsListForAdapter = new ArrayList<>(); // Initialize empty list for adapter
+        // Pass 'this' as the listener to the adapter's constructor
+        questionListAdapter = new ReadingQuestionListAdapter(this, questionsListForAdapter, this);
         lvQuestions.setAdapter(questionListAdapter);
     }
 
@@ -84,66 +88,62 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         Log.d(TAG, "addEvents");
         if (btnSubmit != null) {
             btnSubmit.setOnClickListener(v -> {
-                controller.onSubmitButtonClicked();
+                if (controller != null) {
+                    controller.onSubmitButtonClicked();
+                }
             });
         }
 
         if (imgClose != null) {
-            imgClose.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    finish();
-                }
-            });
+            imgClose.setOnClickListener(view -> finish());
         }
 
         if (imgHome != null) {
-            imgHome.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Intent intent = new Intent(InternalReadingTopic.this, MainActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    finish();
-                }
+            imgHome.setOnClickListener(view -> {
+                Intent intent = new Intent(InternalReadingTopic.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
             });
         }
     }
+
+    // --- ReadingController.ViewInterface Methods ---
 
     @Override
     public void displayExerciseTitle(String title) {
         Log.d(TAG, "displayExerciseTitle: " + title);
         runOnUiThread(() -> {
             if (tvExerciseDisplayTitle != null) {
-                tvExerciseDisplayTitle.setText(title);
+                tvExerciseDisplayTitle.setText(title != null ? title : "Reading Exercise");
             }
         });
     }
 
     @Override
     public void displayPassage(String text) {
-        Log.d(TAG, "displayPassage: " + (text != null && !text.isEmpty() ? text.substring(0, Math.min(text.length(), 50))+"..." : "empty"));
+        Log.d(TAG, "displayPassage: " + (text != null && text.length() > 50 ? text.substring(0, 50) + "..." : text));
         runOnUiThread(() -> {
             if (tvPassageDisplay != null) {
                 tvPassageDisplay.setText(text != null && !text.isEmpty() ? text : "Content not available.");
+                // Manage visibility based on content existence within setUIElementsVisibility if needed
             }
         });
     }
 
     @Override
     public void updateAdapterData(List<ReadingQuestion> newQuestions) {
-        Log.d(TAG, "updateAdapterData: Received " + (newQuestions != null ? newQuestions.size() : 0) + " questions.");
+        Log.d(TAG, "updateAdapterData (View): Received " + (newQuestions != null ? newQuestions.size() : 0) + " questions.");
         runOnUiThread(() -> {
             if (questionListAdapter != null && newQuestions != null) {
-                this.questionsList.clear(); // Xóa dữ liệu cũ trong list của Activity
-                this.questionsList.addAll(newQuestions); // Thêm dữ liệu mới
-                questionListAdapter.updateData(this.questionsList); // Cập nhật adapter với list mới
-                Log.d(TAG, "Adapter notified with " + this.questionsList.size() + " questions.");
+                // The controller prepares the list (with initial selections), just pass it to adapter
+                questionListAdapter.updateData(newQuestions);
+                Log.d(TAG, "Adapter data updated via updateData.");
             } else {
-                Log.w(TAG, "Adapter is null or newQuestions is null, cannot update UI.");
-                if (lvQuestions != null) lvQuestions.setVisibility(View.GONE);
-                if (instructionText != null) instructionText.setVisibility(View.GONE);
-                if (btnSubmit != null) btnSubmit.setVisibility(View.GONE);
+                Log.w(TAG, "Adapter is null or newQuestions is null in updateAdapterData.");
+                // Consider hiding list view if no data
+                if(lvQuestions != null) lvQuestions.setVisibility(View.GONE);
+                if(instructionText != null) instructionText.setVisibility(View.GONE);
             }
         });
     }
@@ -166,7 +166,7 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         Log.d(TAG, "resetAdapterState");
         runOnUiThread(() -> {
             if (questionListAdapter != null) {
-                questionListAdapter.resetQuizState();
+                questionListAdapter.resetQuizState(); // Adapter handles resetting its UI state
             } else {
                 Log.e(TAG, "Cannot reset adapter state, adapter is null");
             }
@@ -179,17 +179,24 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         runOnUiThread(() -> {
             if (btnSubmit != null) {
                 btnSubmit.setText(text);
-                btnSubmit.setEnabled(true);
-                btnSubmit.setAlpha(1.0f);
+                // Ensure button is enabled unless explicitly finished without next
+                btnSubmit.setEnabled(state != ReadingController.STATE_FINISHED_NO_NEXT || hasNextExercise()); // Basic logic, might need refinement
+                btnSubmit.setAlpha(btnSubmit.isEnabled() ? 1.0f : 0.5f);
             }
         });
+    }
+    // Helper needed for setButtonState logic, controller might expose this
+    private boolean hasNextExercise() {
+        // This is a placeholder, ideally controller manages this state fully
+        // or provides a method like controller.hasNextExercise()
+        return true; // Assume true for basic enabling logic
     }
 
 
     @Override
     public Map<Integer, Integer> getAdapterSelectedAnswers() {
         if (questionListAdapter != null) {
-            return questionListAdapter.getSelectedAnswers();
+            return questionListAdapter.getSelectedAnswers(); // Get current selections from adapter
         }
         Log.e(TAG, "getAdapterSelectedAnswers: Adapter is null");
         return new HashMap<>();
@@ -198,7 +205,7 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
     @Override
     public boolean areAdapterAnswersAllCorrect() {
         if (questionListAdapter != null) {
-            return questionListAdapter.areAllAnswersCorrect();
+            return questionListAdapter.areAllAnswersCorrect(); // Check correctness via adapter
         }
         Log.e(TAG, "areAdapterAnswersAllCorrect: Adapter is null");
         return false;
@@ -229,17 +236,16 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
                 .show());
     }
 
-    // SỬA PHƯƠNG THỨC NÀY ĐỂ KHỚP VỚI INTERFACE
     @Override
     public void navigateToNextExercise(String levelName, String topicId, String nextExerciseId, String topicDisplayTitle, String nextExerciseDisplayTitle) {
         Log.i(TAG, "navigateToNextExercise: Level=" + levelName + ", TopicID=" + topicId +
                 ", NextExerciseID=" + nextExerciseId + ", TopicTitle=" + topicDisplayTitle + ", NextExerciseTitle=" + nextExerciseDisplayTitle);
         Intent nextIntent = new Intent(InternalReadingTopic.this, InternalReadingTopic.class);
         nextIntent.putExtra("LEVEL_NAME", levelName);
-        nextIntent.putExtra("TOPIC_ID", topicId); // Truyền topicId
-        nextIntent.putExtra("EXERCISE_ID", nextExerciseId); // Truyền exerciseId của bài tiếp theo
-        nextIntent.putExtra("TOPIC_TITLE", topicDisplayTitle); // Truyền topic display title
-        nextIntent.putExtra("EXERCISE_TITLE", nextExerciseDisplayTitle); // Truyền exercise display title của bài tiếp theo
+        nextIntent.putExtra("TOPIC_ID", topicId);
+        nextIntent.putExtra("EXERCISE_ID", nextExerciseId);
+        nextIntent.putExtra("TOPIC_TITLE", topicDisplayTitle);
+        nextIntent.putExtra("EXERCISE_TITLE", nextExerciseDisplayTitle);
         startActivity(nextIntent);
         finish();
     }
@@ -253,7 +259,7 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
     @Override
     public void scrollToQuestion(int index) {
         Log.d(TAG, "scrollToQuestion: " + index);
-        if (lvQuestions != null) {
+        if (lvQuestions != null && questionListAdapter != null) { // Check adapter too
             lvQuestions.post(() -> {
                 if (index >= 0 && index < questionListAdapter.getCount()) {
                     lvQuestions.smoothScrollToPosition(index);
@@ -261,6 +267,8 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
                     Log.w(TAG, "Invalid index for scrollToQuestion: " + index);
                 }
             });
+        } else {
+            Log.w(TAG, "Cannot scroll, ListView or Adapter is null.");
         }
     }
 
@@ -269,28 +277,56 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         Log.d(TAG, "setUIElementsVisibility: " + visible);
         runOnUiThread(() -> {
             int visibility = visible ? View.VISIBLE : View.INVISIBLE;
+            // Always show title
             if (tvExerciseDisplayTitle != null) tvExerciseDisplayTitle.setVisibility(View.VISIBLE);
 
+            // Show passage only if visible and has content
+            boolean passageHasContent = false;
             if (tvPassageDisplay != null) {
                 CharSequence currentPassageText = tvPassageDisplay.getText();
-                boolean passageHasContent = currentPassageText != null && !currentPassageText.toString().isEmpty() && !currentPassageText.toString().equals("Content not available.");
+                passageHasContent = currentPassageText != null && !currentPassageText.toString().isEmpty() && !currentPassageText.toString().equals("Content not available.");
                 tvPassageDisplay.setVisibility(visible && passageHasContent ? View.VISIBLE : View.GONE);
             }
 
+            // Show questions/instructions/submit only if visible and questions exist
             boolean questionsAvailable = questionListAdapter != null && questionListAdapter.getCount() > 0;
             if (lvQuestions != null) lvQuestions.setVisibility(visible && questionsAvailable ? View.VISIBLE : View.GONE);
             if (instructionText != null) instructionText.setVisibility(visible && questionsAvailable ? View.VISIBLE : View.GONE);
             if (btnSubmit != null) btnSubmit.setVisibility(visible && questionsAvailable ? View.VISIBLE : View.GONE);
-            if(visible && !questionsAvailable && (tvPassageDisplay == null || tvPassageDisplay.getVisibility() == View.GONE)) {
-                Log.d(TAG, "No questions and no passage to display.");
-                if (btnSubmit != null && controller != null && questionsList.isEmpty()) {
-                        //
-                }
+
+            // Log if nothing is shown
+            if(visible && !passageHasContent && !questionsAvailable) {
+                Log.d(TAG, "Setting UI visible, but no passage and no questions to display.");
             }
         });
     }
 
+    // --- Added Methods for ViewInterface ---
+    @Override
+    public void setAdapterAnswerListener() {
+        // Listener is set in setupListView via constructor in this implementation
+        Log.d(TAG, "Adapter listener requested by controller (set in constructor).");
+    }
 
+    @Override
+    public void applySavedAnswersToAdapter(Map<Integer, Integer> savedAnswers) {
+        // This method might not be directly needed if the controller modifies
+        // the model data before calling updateAdapterData.
+        Log.d(TAG, "applySavedAnswersToAdapter called (currently handled via model update).");
+        // If needed, implement: runOnUiThread(() -> questionListAdapter.applySavedSelections(savedAnswers));
+    }
+
+    // --- Implementation of ReadingQuestionListAdapter.OnAnswerSelectedListener ---
+    @Override
+    public void onAnswerSelected(int questionIndex, int selectedOptionId) {
+        Log.d(TAG, "onAnswerSelected (View): Q" + questionIndex + ", OptionID: " + selectedOptionId);
+        if (controller != null) {
+            // Notify controller to save the selection
+            controller.saveAnswerSelection(questionIndex, selectedOptionId);
+        }
+    }
+
+    // --- Activity Lifecycle Methods (No changes needed for progress saving) ---
     @Override protected void onPause() { super.onPause(); Log.d(TAG,"onPause."); }
     @Override protected void onResume() { super.onResume(); Log.d(TAG,"onResume."); }
     @Override protected void onStop() { super.onStop(); Log.d(TAG,"onStop."); }
@@ -298,7 +334,7 @@ public class InternalReadingTopic extends AppCompatActivity implements ReadingCo
         super.onDestroy();
         Log.i(TAG,"onDestroy.");
         if (controller != null) {
-            controller.onDestroy();
+            controller.onDestroy(); // Let controller clean up if needed
         }
     }
     @Override public void onBackPressed() {

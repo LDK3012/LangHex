@@ -9,6 +9,7 @@ public class ListeningQuestion {
     private Map<String, String> options;
     private String correctAnswer;
     private int selectedOptionId = -1;
+    private int initialSelectedOptionId = -1;
     private String questionNumberText;
 
     public ListeningQuestion() {
@@ -28,6 +29,9 @@ public class ListeningQuestion {
 
     public int getSelectedOptionId() { return selectedOptionId; }
     public void setSelectedOptionId(int selectedOptionId) { this.selectedOptionId = selectedOptionId; }
+
+    public int getInitialSelectedOptionId() { return initialSelectedOptionId; }
+    public void setInitialSelectedOptionId(int initialSelectedOptionId) { this.initialSelectedOptionId = initialSelectedOptionId; }
 
     public String getQuestionNumberText() { return questionNumberText; }
     public void setQuestionNumberText(String questionNumberText) { this.questionNumberText = questionNumberText; }

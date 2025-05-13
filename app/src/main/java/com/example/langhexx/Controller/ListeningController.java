@@ -12,11 +12,13 @@ import androidx.annotation.NonNull;
 
 import com.example.langhexx.Model.Exercise;
 import com.example.langhexx.Model.ListeningQuestion;
-
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.File;
@@ -26,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class ListeningController implements
@@ -52,13 +55,14 @@ public class ListeningController implements
         void finishActivity();
         void scrollToQuestion(int index);
         void setUIElementsVisibility(boolean visible);
-
         void showAudioLoading();
         void showAudioReady(int duration);
         void updateAudioProgress(int progress, int max);
         void setPlayButtonState(boolean isPlaying);
         void resetAudioControls();
         void showAudioError(String errorMessage);
+        void applySavedAnswersToAdapter(Map<Integer, Integer> savedAnswers);
+        void setAdapterAnswerListener();
     }
 
     public static final int STATE_SUBMIT = 0;
@@ -73,12 +77,15 @@ public class ListeningController implements
     private String exerciseId;
     private String topicDisplayTitle;
     private String exerciseDisplayTitle;
+    private String currentUserId;
 
     private String scriptToSpeak;
     private List<ListeningQuestion> questionsList;
     private ArrayList<Exercise> allExercisesInTopic;
     private boolean exerciseDataLoaded = false;
     private boolean allExercisesLoaded = false;
+    private boolean savedAnswersLoaded = false;
+    private Map<Integer, Integer> savedUserAnswers = new HashMap<>();
 
     private DatabaseReference databaseReference;
     private TextToSpeech tts;
@@ -94,6 +101,7 @@ public class ListeningController implements
         this.view = view;
         this.questionsList = new ArrayList<>();
         this.allExercisesInTopic = new ArrayList<>();
+        this.currentUserId = getCurrentUserId();
         this.databaseReference = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/").getReference();
 
         if (intent != null) {
@@ -111,9 +119,26 @@ public class ListeningController implements
             return;
         }
 
+        if (currentUserId == null) {
+            handleInitializationError("Error: Could not get user ID.");
+            return;
+        }
+
         if (levelName == null || topicId == null || exerciseId == null || topicDisplayTitle == null || exerciseDisplayTitle == null) {
             handleInitializationError("Error: Missing identifiers in Intent.");
             return;
+        }
+    }
+
+    // !!! THAY THẾ BẰNG CÁCH LẤY USER ID THỰC TẾ CỦA BẠN !!!
+    private String getCurrentUserId() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            Log.d(TAG, "Current User ID: " + user.getUid());
+            return user.getUid();
+        } else {
+            Log.e(TAG, "getCurrentUserId: User is not logged in!");
+            return null;
         }
     }
 
@@ -123,12 +148,18 @@ public class ListeningController implements
             Log.e(TAG, "ViewInterface is null in initialize. Cannot proceed.");
             return;
         }
+        if (currentUserId == null) {
+            handleInitializationError("Error: User ID is missing during initialization.");
+            return;
+        }
         view.setUIElementsVisibility(false);
         view.displayExerciseTitle(exerciseDisplayTitle);
         view.resetAudioControls();
         initializeTextToSpeech();
         loadExerciseDataFromFirebase();
         loadAllExercisesInTopicFromFirebase();
+        loadSavedAnswersFromFirebase();
+        view.setAdapterAnswerListener();
     }
 
     private void handleInitializationError(String errorMessage) {
@@ -296,7 +327,7 @@ public class ListeningController implements
                 }
                 questionsList.clear();
                 questionsList.addAll(loadedQuestions);
-                view.updateAdapterData(questionsList);
+
                 if(questionsList.isEmpty()) {
                     view.showToast("No questions available for this exercise.");
                 }
@@ -307,9 +338,67 @@ public class ListeningController implements
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Firebase loading cancelled/failed: " + error.getMessage(), error.toException());
                 handleFirebaseLoadError("Error loading data: " + error.getMessage());
+                exerciseDataLoaded = true;
+                checkIfAllDataLoadedAndReady();
             }
         });
     }
+
+
+    private void loadSavedAnswersFromFirebase() {
+        if (view == null || currentUserId == null || exerciseId == null) {
+            Log.e(TAG, "Cannot load saved answers: View, UserID or ExerciseID is null.");
+            savedAnswersLoaded = true;
+            checkIfAllDataLoadedAndReady();
+            return;
+        }
+        DatabaseReference savedAnswersRef = databaseReference
+                .child("Users")
+                .child("MicrosoftUsers")
+                .child(currentUserId)
+                .child("Progress")
+                .child("ListeningAnswers")
+                .child(exerciseId);
+
+        Log.i(TAG, "Loading saved answers from: " + savedAnswersRef.toString());
+
+        savedAnswersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                savedUserAnswers.clear();
+                if (snapshot.exists()) {
+                    for (DataSnapshot answerSnap : snapshot.getChildren()) {
+                        try {
+                            String questionIndexStr = answerSnap.getKey();
+                            Object value = answerSnap.getValue();
+                            if (questionIndexStr != null && value instanceof Long) {
+                                int questionIndex = Integer.parseInt(questionIndexStr);
+                                int selectedOptionId = ((Long) value).intValue();
+                                if (selectedOptionId != -1) {
+                                    savedUserAnswers.put(questionIndex, selectedOptionId);
+                                }
+                            }
+                        } catch (NumberFormatException | ClassCastException e) {
+                            Log.w(TAG, "Error parsing saved answer snapshot: " + answerSnap.getKey(), e);
+                        }
+                    }
+                    Log.i(TAG, "Loaded " + savedUserAnswers.size() + " saved answers.");
+                } else {
+                    Log.i(TAG, "No saved answers found for this exercise.");
+                }
+                savedAnswersLoaded = true;
+                checkIfAllDataLoadedAndReady();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Failed to load saved answers: " + error.getMessage());
+                savedAnswersLoaded = true;
+                checkIfAllDataLoadedAndReady();
+            }
+        });
+    }
+
 
     private ListeningQuestion parseListeningQuestionSnapshot(DataSnapshot questionSnap) {
         ListeningQuestion question = new ListeningQuestion();
@@ -398,26 +487,79 @@ public class ListeningController implements
     }
 
     private void checkIfAllDataLoadedAndReady() {
-        if (exerciseDataLoaded && allExercisesLoaded && view != null) {
-            Log.d(TAG, "All initial data (exercise + titles) loaded for Listening.");
+        if (exerciseDataLoaded && allExercisesLoaded && savedAnswersLoaded && view != null) {
+            Log.d(TAG, "All initial data loaded (exercise, titles, saved answers) for Listening.");
+
+            if (!questionsList.isEmpty() && !savedUserAnswers.isEmpty()) {
+                Log.d(TAG, "Applying " + savedUserAnswers.size() + " saved answers to question list...");
+                for (int i = 0; i < questionsList.size(); i++) {
+                    if (savedUserAnswers.containsKey(i)) {
+                        int savedOptionId = savedUserAnswers.get(i);
+                        questionsList.get(i).setInitialSelectedOptionId(savedOptionId);
+                        Log.v(TAG, "Applying saved answer for Q" + i + ": OptionID=" + savedOptionId);
+                    } else {
+                        questionsList.get(i).setInitialSelectedOptionId(-1);
+                    }
+                }
+            } else if (!questionsList.isEmpty()) {
+                for (ListeningQuestion q : questionsList) {
+                    q.setInitialSelectedOptionId(-1);
+                }
+            }
+
+            view.updateAdapterData(new ArrayList<>(questionsList));
+
+
             boolean hasContentToShow = (scriptToSpeak != null && !scriptToSpeak.isEmpty()) || !questionsList.isEmpty();
             view.setUIElementsVisibility(hasContentToShow);
 
             boolean canSubmit = !questionsList.isEmpty();
+
             resetSubmitButtonToSubmitState(canSubmit);
 
-            if (!hasContentToShow && !questionsList.isEmpty()) { // Only questions, no script
+            if (!hasContentToShow && !questionsList.isEmpty()) {
                 view.showToast("Audio script is missing, but questions are available.");
-            } else if (!hasContentToShow && questionsList.isEmpty()) { // No script, no questions
-                // If no content and no next exercise, button might become "Finish"
+            } else if (!hasContentToShow && questionsList.isEmpty()) {
                 if(!hasNextExercise()){
                     setSubmitButtonState(STATE_FINISHED_NO_NEXT, "Finish ! Back Now");
                 } else {
-                    // If there is a next exercise, but this one has no content, allow "Next"
                     setSubmitButtonState(STATE_NEXT, "Next Exercise");
                 }
             }
+        } else {
+            Log.d(TAG, "Still waiting for data: exerciseDataLoaded=" + exerciseDataLoaded
+                    + ", allExercisesLoaded=" + allExercisesLoaded
+                    + ", savedAnswersLoaded=" + savedAnswersLoaded);
         }
+    }
+
+    public void saveAnswerSelection(int questionIndex, int selectedOptionId) {
+        if (currentUserId == null || exerciseId == null || questionIndex < 0 ) {
+            Log.w(TAG, "Cannot save answer: Missing userId, exerciseId, or invalid index.");
+            return;
+        }
+        if (view == null){
+            Log.w(TAG, "Cannot save answer: View is null.");
+            return;
+        }
+
+        DatabaseReference answerRef = databaseReference
+                .child("Users")
+                .child("MicrosoftUsers")
+                .child(currentUserId)
+                .child("Progress")
+                .child("ListeningAnswers")
+                .child(exerciseId)
+                .child(String.valueOf(questionIndex));
+
+        Log.d(TAG, "Saving answer for Q" + questionIndex + " -> OptionID: " + selectedOptionId + " to path: " + answerRef.toString());
+
+        answerRef.setValue(selectedOptionId)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Answer for Q" + questionIndex + " saved successfully."))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to save answer for Q" + questionIndex, e));
+
+        DatabaseReference timestampRef = answerRef.getParent().child("lastUpdated");
+        timestampRef.setValue(ServerValue.TIMESTAMP);
     }
 
     private void synthesizeScriptToFile() {
@@ -803,7 +945,7 @@ public class ListeningController implements
     }
 
     private void retryExercise() {
-        Log.i(TAG, "Retry button clicked. Resetting state.");
+        Log.i(TAG, "Retry button clicked. Resetting UI state.");
         if(view == null) return;
         view.resetAdapterState();
         resetSubmitButtonToSubmitState(true);
@@ -811,11 +953,11 @@ public class ListeningController implements
         if(mediaPlayer != null && isMediaPlayerPrepared) {
             pauseAudioPlayback();
             seekAudio(0);
-            if (view != null && mediaPlayer != null) { // Add null check for mediaPlayer
+            if (view != null && mediaPlayer != null) {
                 view.updateAudioProgress(0, mediaPlayer.getDuration());
             }
         }
-        Log.d(TAG, "Exercise state reset for retry. Button state: SUBMIT");
+        Log.d(TAG, "Exercise UI state reset for retry. Button state: SUBMIT");
     }
 
     private void goToNextExercise() {
@@ -916,13 +1058,13 @@ public class ListeningController implements
                 if (isPlaying) {
                     startSeekBarUpdate();
                 } else {
-                    if (mediaPlayer != null) { // Add null check
+                    if (mediaPlayer != null) {
                         view.updateAudioProgress(mediaPlayer.getCurrentPosition(), mediaPlayer.getDuration());
                     }
                 }
             } catch (IllegalStateException e) {
                 Log.w(TAG, "Error restoring state onResume", e);
-                if (view != null) { // Add null check for view
+                if (view != null) {
                     view.resetAudioControls();
                 }
                 releaseMediaPlayer();

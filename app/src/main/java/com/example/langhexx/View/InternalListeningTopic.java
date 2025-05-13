@@ -28,7 +28,8 @@ import java.util.Map;
 
 public class InternalListeningTopic extends AppCompatActivity implements
         ListeningController.ViewInterface,
-        SeekBar.OnSeekBarChangeListener {
+        SeekBar.OnSeekBarChangeListener,
+        ListeningQuestionListAdapter.OnAnswerSelectedListener {
 
     private static final String TAG = "InternalListenTopicVIEW";
 
@@ -49,9 +50,9 @@ public class InternalListeningTopic extends AppCompatActivity implements
         Log.d(TAG, "onCreate");
 
         addControls();
-        setupListView();
 
         controller = new ListeningController(this, getIntent());
+        setupListView();
         controller.initialize();
 
         addEvents();
@@ -71,7 +72,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     private void setupListView() {
         Log.d(TAG, "setupListView");
-        questionListAdapter = new ListeningQuestionListAdapter(this, new ArrayList<>());
+        questionListAdapter = new ListeningQuestionListAdapter(this, new ArrayList<>(), this);
         lvQuestions.setAdapter(questionListAdapter);
     }
 
@@ -126,7 +127,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void updateAdapterData(List<ListeningQuestion> newQuestions) {
-        Log.d(TAG, "updateAdapterData: Received " + (newQuestions != null ? newQuestions.size() : 0) + " questions.");
+        Log.d(TAG, "updateAdapterData in View: Received " + (newQuestions != null ? newQuestions.size() : 0) + " questions.");
         runOnUiThread(() -> {
             if (questionListAdapter != null && newQuestions != null) {
                 questionListAdapter.updateData(newQuestions);
@@ -154,7 +155,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void resetAdapterState() {
-        Log.d(TAG, "resetAdapterState");
+        Log.d(TAG, "resetAdapterState in View");
         runOnUiThread(() -> {
             if (questionListAdapter != null) {
                 questionListAdapter.resetQuizState();
@@ -302,8 +303,8 @@ public class InternalListeningTopic extends AppCompatActivity implements
     public void updateAudioProgress(int progress, int max) {
         runOnUiThread(() -> {
             if (seekBarAudio != null && seekBarAudio.isEnabled()) {
-                if(seekBarAudio.getMax() != max && max > 0) seekBarAudio.setMax(max); // Ensure max is set and valid
-                if (progress >= 0 && progress <= seekBarAudio.getMax()) { // Ensure progress is valid
+                if(seekBarAudio.getMax() != max && max > 0) seekBarAudio.setMax(max);
+                if (progress >= 0 && progress <= seekBarAudio.getMax()) {
                     seekBarAudio.setProgress(progress);
                 }
             }
@@ -399,5 +400,23 @@ public class InternalListeningTopic extends AppCompatActivity implements
     public void onBackPressed() {
         Log.d(TAG, "onBackPressed.");
         super.onBackPressed();
+    }
+
+    @Override
+    public void applySavedAnswersToAdapter(Map<Integer, Integer> savedAnswers) {
+        Log.d(TAG, "applySavedAnswersToAdapter called but adapter handles internally now.");
+    }
+
+    @Override
+    public void setAdapterAnswerListener() {
+        Log.d(TAG,"Adapter listener set via constructor.");
+    }
+
+    @Override
+    public void onAnswerSelected(int questionIndex, int selectedOptionId) {
+        Log.d(TAG, "onAnswerSelected: Q" + questionIndex + ", OptionID: " + selectedOptionId);
+        if (controller != null) {
+            controller.saveAnswerSelection(questionIndex, selectedOptionId);
+        }
     }
 }
