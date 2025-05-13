@@ -39,7 +39,7 @@ public class ChooseTopicReadingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_choose_topic_reading_acvitity);
         levelName = getIntent().getStringExtra("levelName");
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Error: Can't identify Level!", Toast.LENGTH_LONG).show();
             Log.e(ACTIVITY_TAG, "levelName is null or empty!");
             finish();
             return;

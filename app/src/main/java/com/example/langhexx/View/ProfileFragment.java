@@ -146,7 +146,7 @@ public class ProfileFragment extends Fragment {
                 @Override
                 public void onSuccess() {
                     if (getActivity() != null) {
-                        Toast.makeText(getActivity(), "Đăng xuất thành công!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getActivity(), "Log out Successfully!", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(getActivity(), LoginActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
@@ -157,7 +157,7 @@ public class ProfileFragment extends Fragment {
                 @Override
                 public void onFailure(String errorMessage) {
                     if (getActivity() != null) {
-                        Toast.makeText(getActivity(), "Đăng xuất thất bại: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getActivity(), "Log out failed: " + errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 }
             });
@@ -165,7 +165,7 @@ public class ProfileFragment extends Fragment {
                 authController.signOut(getActivity());
             } else {
                 Log.e(TAG, "Cannot sign out, activity context is null.");
-                Toast.makeText(getContext(), "Lỗi: Không thể lấy context để đăng xuất.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Error: Can't get context!", Toast.LENGTH_SHORT).show();
             }
         });
 

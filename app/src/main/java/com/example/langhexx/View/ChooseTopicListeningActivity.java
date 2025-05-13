@@ -40,7 +40,7 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
         levelName = getIntent().getStringExtra("levelName");
 
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Lỗi: Không xác định được Level.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Error: Can't identify Level!", Toast.LENGTH_LONG).show();
             Log.e(ACTIVITY_TAG, "levelName is null or empty!");
             finish();
             return;
@@ -100,7 +100,7 @@ public class ChooseTopicListeningActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicListeningActivity.this, "Lỗi tải chủ đề " + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseTopicListeningActivity.this, "Failed to load " + CURRENT_SKILL_NAME + ": " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
             }
         });

@@ -95,7 +95,7 @@ public class ForumActivity extends AppCompatActivity {
         lvRecentPosts.setOnItemClickListener((parent, view, position, id) -> {
             Post clickedPost = postList.get(position);
             if (clickedPost == null) {
-                CustomToast.showFail(ForumActivity.this, "Không thể mở bài viết", R.drawable.fail_icon);
+                CustomToast.showFail(ForumActivity.this, "Can't open content", R.drawable.fail_icon);
                 return;
             }
 
@@ -127,7 +127,7 @@ public class ForumActivity extends AppCompatActivity {
         postAdapter = new PostAdapter(ForumActivity.this, R.layout.custom_post_list, postList);
         lvRecentPosts.setAdapter(postAdapter);
         if (postList.isEmpty()){
-            CustomToast.showFail(ForumActivity.this, "Chưa có bài viết nào", R.drawable.fail_icon);
+            CustomToast.showFail(ForumActivity.this, "No posts yet!", R.drawable.fail_icon);
         }
     }
 
@@ -155,11 +155,11 @@ public class ForumActivity extends AppCompatActivity {
                     postList.add(0, newPost);
                     postAdapter.notifyDataSetChanged();
                     lvRecentPosts.smoothScrollToPosition(0);
-                    CustomToast.showSuccess(ForumActivity.this, "Đã đăng bài viết", R.drawable.success);
+                    CustomToast.showSuccess(ForumActivity.this, "Posted article!", R.drawable.success);
                     Log.d(TAG, "New post added: " + postTitle + " by " + postAuthorName);
                 } else {
                     Log.e(TAG, "Received null data from CreatePostActivity");
-                    CustomToast.showFail(ForumActivity.this, "Lỗi khi nhận dữ liệu bài viết", R.drawable.fail_icon);
+                    CustomToast.showFail(ForumActivity.this, "Error receiving post data!", R.drawable.fail_icon);
                 }
             } else if (resultCode == Activity.RESULT_CANCELED) {
                 Log.d(TAG, "Post creation cancelled by user.");

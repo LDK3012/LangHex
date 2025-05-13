@@ -72,7 +72,7 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
         });
 
         btnComplete.setOnClickListener(v -> {
-            Toast.makeText(this, "Đã hoàn thành bài tập", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Exercise Done!", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(SpeakingPracticeActivity.this, MainActivity.class);
             startActivity(intent);
             finish();
@@ -115,13 +115,13 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
             recorder.start();
             isRecording = true;
             btnMic.setImageResource(R.drawable.record);
-            Toast.makeText(this, "Đang ghi âm...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Không thể ghi âm", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Can't record", Toast.LENGTH_SHORT).show();
         } catch (IllegalStateException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Lỗi khi bắt đầu ghi âm", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error: Can't start record", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -132,11 +132,11 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
             recorder = null;
             isRecording = false;
             btnMic.setImageResource(R.drawable.micro);
-            Toast.makeText(this, "Đã dừng ghi âm", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Stop recording", Toast.LENGTH_SHORT).show();
         } catch (RuntimeException stopException) {
             // Xử lý trường hợp stop khi chưa start
             stopException.printStackTrace();
-            Toast.makeText(this, "Lỗi khi dừng ghi âm", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error when stopping recording", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -158,13 +158,13 @@ public class SpeakingPracticeActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Quyền ghi âm đã được cấp", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Recording permission granted", Toast.LENGTH_SHORT).show();
                 if (shouldStartRecording) {
                     shouldStartRecording = false;
                     startRecording();
                 }
             } else {
-                Toast.makeText(this, "Ứng dụng cần quyền ghi âm để hoạt động", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "The app needs recording permission to work.", Toast.LENGTH_SHORT).show();
                 btnMic.setEnabled(false);
             }
         }

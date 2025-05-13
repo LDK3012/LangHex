@@ -47,7 +47,7 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
         topicDisplayTitle = getIntent().getStringExtra("topicTitle"); // Nhận Topic Name
 
         if (levelName == null || topicId == null || topicDisplayTitle == null) {
-            Toast.makeText(this, "Lỗi: Thông tin level hoặc topic không đủ.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Error: Insufficient level or topic information.", Toast.LENGTH_LONG).show();
             Log.e(TAG, "Missing levelName, topicId or topicDisplayTitle from Intent.");
             finish();
             return;
@@ -112,7 +112,7 @@ public class Reading_Topic_Exercise_Activity extends AppCompatActivity {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Failed to load exercises: " + error.getMessage());
-                Toast.makeText(Reading_Topic_Exercise_Activity.this, "Lỗi khi tải bài tập: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(Reading_Topic_Exercise_Activity.this, "Exercise load failed " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

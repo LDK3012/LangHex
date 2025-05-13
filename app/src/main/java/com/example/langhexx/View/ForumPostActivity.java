@@ -135,7 +135,7 @@ public class ForumPostActivity extends AppCompatActivity {
                 }
                 txtLikeNum.setText(String.valueOf(likeCount));
                 updateLikeButtonState();
-                CustomToast.showSuccess(ForumPostActivity.this, isLiked ? "Đã thích bài viết" : "Đã hủy thích bài viết", R.drawable.success);
+                CustomToast.showSuccess(ForumPostActivity.this, isLiked ? "You liked the post" : "You disliked the post", R.drawable.success);
                 // TODO: Gửi kết quả likeCount và isLiked về ForumActivity để cập nhật ListView nếu cần
                 // Intent resultIntent = new Intent();
                 // resultIntent.putExtra("UPDATED_LIKE_COUNT", likeCount);

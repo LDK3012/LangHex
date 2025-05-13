@@ -61,9 +61,7 @@ public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
         imgClose = findViewById(R.id.imgBackward);
         tvTopicDisplayTitle = findViewById(R.id.tvScreenTitle);
         imgHome = findViewById(R.id.imgHome);
-
         tvTopicDisplayTitle.setText(topicDisplayTitle);
-
         rvExercises = findViewById(R.id.rvExercises);
         rvExercises.setLayoutManager(new LinearLayoutManager(this));
         exerciseList = new ArrayList<>();
@@ -111,7 +109,7 @@ public class Listening_Topic_Exercise_Activity extends AppCompatActivity {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Failed to load exercises: " + error.getMessage());
-                Toast.makeText(Listening_Topic_Exercise_Activity.this, "Lỗi khi tải bài tập: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(Listening_Topic_Exercise_Activity.this, "Exercise load failed: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

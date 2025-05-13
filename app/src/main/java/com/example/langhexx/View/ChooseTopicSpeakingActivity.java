@@ -47,7 +47,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
         levelName = getIntent().getStringExtra("levelName");
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Lỗi: Không nhận dạng được Level", Toast.LENGTH_LONG).show(); // Sửa lỗi chính tả
+            Toast.makeText(this, "Error: Can't identify Levels!", Toast.LENGTH_LONG).show(); // Sửa lỗi chính tả
             Log.e(ACTIVITY_TAG, "levelName là null hoặc rỗng!");
             finish();
             return;
@@ -96,7 +96,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
             editor.putStringSet(clickedTopicsKey, clickedTopicDisplayNamesForSpeaking);
             editor.apply();
             Log.d(ACTIVITY_TAG, "Topic history has been deleted '" + topicDisplayName + "' (Speaking) from SharedPreferences.");
-            Toast.makeText(this, "Đã xóa lịch sử cho '" + topicDisplayName + "'.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Topic '" + topicDisplayName + "'history has been deleted.", Toast.LENGTH_SHORT).show();
 
             if (topicAdapter != null) {
 
@@ -159,7 +159,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicSpeakingActivity.this, "Lỗi tải chủ đề: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseTopicSpeakingActivity.this, "Failed to load: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
             }
         });

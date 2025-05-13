@@ -177,7 +177,7 @@ public class ChatFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Lỗi kết nối Gemini API", Toast.LENGTH_SHORT).show());
+                        Toast.makeText(getContext(), "Gemini API connection error", Toast.LENGTH_SHORT).show());
             }
 
             @Override
@@ -252,7 +252,7 @@ public class ChatFragment extends Fragment {
     private void handleApiResponseError(String logMessage) {
         if (isAdded() && getActivity() != null) {
             requireActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "Lỗi xử lý phản hồi Gemini", Toast.LENGTH_SHORT).show() // Thông báo chung cho người dùng
+                    Toast.makeText(getContext(), "Gemini respond error!", Toast.LENGTH_SHORT).show() // Thông báo chung cho người dùng
             );
         }
     }

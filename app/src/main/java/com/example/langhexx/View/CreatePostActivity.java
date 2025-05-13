@@ -80,12 +80,12 @@ public class CreatePostActivity extends AppCompatActivity {
                 String title = edtPostTitle.getText().toString().trim();
                 String content = edtPostContent.getText().toString().trim(); // Lấy cả content
                 if (TextUtils.isEmpty(title)) {
-                    CustomToast.showFail(CreatePostActivity.this, "Vui lòng nhập tiêu đề bài viết", R.drawable.fail_icon);
+                    CustomToast.showFail(CreatePostActivity.this, "Please enter article title", R.drawable.fail_icon);
                     edtPostTitle.requestFocus();
                     return;
                 }
                 if (TextUtils.isEmpty(content)) {
-                    CustomToast.showFail(CreatePostActivity.this, "Vui lòng nhập nội dung bài viết", R.drawable.fail_icon);
+                    CustomToast.showFail(CreatePostActivity.this, "Please enter article content", R.drawable.fail_icon);
                     edtPostContent.requestFocus();
                     return;
                 }

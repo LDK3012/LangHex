@@ -37,7 +37,7 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
         levelName = getIntent().getStringExtra("levelName");
 
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Error: Level not identified.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Error: Can't identify Levels!", Toast.LENGTH_LONG).show();
             Log.e(ACTIVITY_TAG, "levelName is null or empty!");
             finish();
             return;
@@ -96,7 +96,7 @@ public class ChooseTopicWritingActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicWritingActivity.this, "Error loading " + CURRENT_SKILL_NAME + " topics: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseTopicWritingActivity.this, "Failed to load " + CURRENT_SKILL_NAME + " topics: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.e(ACTIVITY_TAG, "Firebase Error: " + error.getMessage());
             }
         });
