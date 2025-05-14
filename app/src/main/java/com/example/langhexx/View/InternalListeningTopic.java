@@ -50,7 +50,6 @@ public class InternalListeningTopic extends AppCompatActivity implements
         Log.d(TAG, "onCreate");
 
         addControls();
-
         controller = new ListeningController(this, getIntent());
         setupListView();
         controller.initialize();
@@ -68,6 +67,17 @@ public class InternalListeningTopic extends AppCompatActivity implements
         tvScreenTitle = findViewById(R.id.tvScreenTitle);
         imgClose = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
+        if (progressBarAudioLoading != null) {
+            progressBarAudioLoading.setVisibility(View.VISIBLE);
+        }
+        if (btnPlayAudio != null) {
+            btnPlayAudio.setVisibility(View.INVISIBLE);
+            btnPlayAudio.setEnabled(false);
+        }
+        if (seekBarAudio != null) {
+            seekBarAudio.setEnabled(false);
+            seekBarAudio.setProgress(0);
+        }
     }
 
     private void setupListView() {
@@ -138,6 +148,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
                     questionListAdapter.updateData(new ArrayList<>());
                 }
             }
+            setUIElementsVisibility(newQuestions != null && !newQuestions.isEmpty());
         });
     }
 
@@ -258,7 +269,6 @@ public class InternalListeningTopic extends AppCompatActivity implements
     public void setUIElementsVisibility(boolean visible) {
         Log.d(TAG, "setUIElementsVisibility: " + visible);
         runOnUiThread(() -> {
-            int visibility = visible ? View.VISIBLE : View.INVISIBLE;
             if (lvQuestions != null) {
                 boolean hasItems = questionListAdapter != null && questionListAdapter.getCount() > 0;
                 lvQuestions.setVisibility(visible && hasItems ? View.VISIBLE : View.INVISIBLE);
@@ -275,9 +285,14 @@ public class InternalListeningTopic extends AppCompatActivity implements
         Log.d(TAG, "showAudioLoading");
         runOnUiThread(() -> {
             if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.VISIBLE);
-            if (btnPlayAudio != null) btnPlayAudio.setVisibility(View.INVISIBLE);
-            if (seekBarAudio != null) seekBarAudio.setEnabled(false);
-            if (btnPlayAudio != null) btnPlayAudio.setEnabled(false);
+            if (btnPlayAudio != null) {
+                btnPlayAudio.setVisibility(View.INVISIBLE);
+                btnPlayAudio.setEnabled(false);
+            }
+            if (seekBarAudio != null) {
+                seekBarAudio.setEnabled(false);
+                seekBarAudio.setProgress(0);
+            }
         });
     }
 
@@ -321,13 +336,18 @@ public class InternalListeningTopic extends AppCompatActivity implements
         });
     }
 
+    /**
+     * Đảm bảo resetAudioControls luôn đưa UI về trạng thái loading với ProgressBar.
+     */
     @Override
     public void resetAudioControls() {
-        Log.d(TAG, "resetAudioControls");
+        Log.d(TAG, "resetAudioControls - Reverting to loading UI state");
         runOnUiThread(() -> {
-            if (progressBarAudioLoading != null) progressBarAudioLoading.setVisibility(View.GONE);
+            if (progressBarAudioLoading != null) {
+                progressBarAudioLoading.setVisibility(View.VISIBLE);
+            }
             if (btnPlayAudio != null) {
-                btnPlayAudio.setVisibility(View.VISIBLE);
+                btnPlayAudio.setVisibility(View.INVISIBLE);
                 btnPlayAudio.setImageResource(R.drawable.icon_play_audio);
                 btnPlayAudio.setEnabled(false);
             }
@@ -348,11 +368,13 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        //
     }
 
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
         Log.d(TAG, "SeekBar tracking started by user.");
+        //
     }
 
     @Override
@@ -404,7 +426,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void applySavedAnswersToAdapter(Map<Integer, Integer> savedAnswers) {
-        Log.d(TAG, "applySavedAnswersToAdapter called but adapter handles internally now.");
+        Log.d(TAG, "applySavedAnswersToAdapter called. Current adapter might handle this via initial data.");
     }
 
     @Override
@@ -414,7 +436,7 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void onAnswerSelected(int questionIndex, int selectedOptionId) {
-        Log.d(TAG, "onAnswerSelected: Q" + questionIndex + ", OptionID: " + selectedOptionId);
+        Log.d(TAG, "onAnswerSelected: Q" + (questionIndex + 1) + ", OptionID (RadioButton ID): " + selectedOptionId);
         if (controller != null) {
             controller.saveAnswerSelection(questionIndex, selectedOptionId);
         }
