@@ -57,7 +57,7 @@ public class ChooseSpeakingLearningMethod extends AppCompatActivity {
             crdGrammar.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(ChooseSpeakingLearningMethod.this, ChooseTopicSpeakingActivity.class);
+                    Intent intent = new Intent(ChooseSpeakingLearningMethod.this, ChooseSpeakingGrammarTopicActivity.class);
                     intent.putExtra("levelName", levelName);
                     startActivity(intent);
                 }
@@ -69,9 +69,9 @@ public class ChooseSpeakingLearningMethod extends AppCompatActivity {
             crdVoice.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-//                    Intent intent = new Intent(ChooseSpeakingLearningMethod.this, ChooseTopicSpeakingActivity.class);
-//                    intent.putExtra("levelName", levelName);
-//                    startActivity(intent);
+                    Intent intent = new Intent(ChooseSpeakingLearningMethod.this, ChooseSpeakingVoiceTopicActivity.class);
+                    intent.putExtra("levelName", levelName);
+                    startActivity(intent);
                 }
             });
         } else {

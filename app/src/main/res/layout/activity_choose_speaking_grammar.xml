@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:background="#FFE6E6"
+    android:orientation="vertical"
+    tools:context=".View.ChooseSpeakingGrammarTopicActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:background="#FF2626"
+        android:padding="10dp"
+        android:orientation="horizontal"
+        android:weightSum="12">
+
+        <ImageView
+            android:id="@+id/imgBackward"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:tint="@color/white"
+            app:srcCompat="@drawable/backward" />
+
+        <TextView
+            android:id="@+id/tvScreenTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="10"
+            android:gravity="center"
+            android:text="Select Topic"
+            android:textColor="#FFFFFF"
+            android:textSize="20dp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/imgHome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:tint="@color/white"
+            android:layout_weight="1"
+            app:srcCompat="@drawable/icon_home" />
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="20dp"
+        android:orientation="vertical">
+
+        <ListView
+            android:layout_width="match_parent"
+            android:id="@+id/lvTopics"
+            android:dividerHeight="10dp"
+            android:divider="#FFE6E6"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+</LinearLayout>

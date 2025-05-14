@@ -19,8 +19,9 @@ import androidx.core.content.ContextCompat;
 
 import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
-import com.example.langhexx.View.ChooseTopicSpeakingActivity;
+import com.example.langhexx.View.ChooseSpeakingGrammarTopicActivity;
 
+import com.example.langhexx.View.ChooseSpeakingVoiceTopicActivity;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -129,7 +130,9 @@ public class TopicAdapter extends BaseAdapter {
         }
 
         if (holder.imgTopicOptions != null) {
-            if (isSpeakingSkillCurrently && (context instanceof ChooseTopicSpeakingActivity) && isTopicHighlighted) {
+            boolean canShowOptions = isSpeakingSkillCurrently && isTopicHighlighted &&
+                    ((context instanceof ChooseSpeakingGrammarTopicActivity) || (context instanceof ChooseSpeakingVoiceTopicActivity));
+            if (canShowOptions) {
                 holder.imgTopicOptions.setVisibility(View.VISIBLE);
                 holder.imgTopicOptions.setOnClickListener(v -> showPopupMenu(v, topic.getTopicName()));
             } else {
@@ -177,15 +180,19 @@ public class TopicAdapter extends BaseAdapter {
     }
 
     private void showPopupMenu(View anchorView, final String topicDisplayName) {
-        if (!(context instanceof ChooseTopicSpeakingActivity)) {
-            Log.e(TAG, "Context not ChooseTopicSpeakingActivity, cannot show delete history menu.");
+        if (!((context instanceof ChooseSpeakingGrammarTopicActivity) || (context instanceof ChooseSpeakingVoiceTopicActivity))) {
+            Log.e(TAG, "Context not ChooseSpeakingGrammarTopicActivity or ChooseSpeakingPronunciationTopicActivity, cannot show delete history menu.");
             return;
         }
         PopupMenu popup = new PopupMenu(context, anchorView);
         popup.getMenuInflater().inflate(R.menu.topic_options_menu, popup.getMenu());
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.action_delete_history) {
-                ((ChooseTopicSpeakingActivity) context).removeClickedTopicHistory(topicDisplayName);
+                if (context instanceof ChooseSpeakingGrammarTopicActivity) {
+                    ((ChooseSpeakingGrammarTopicActivity) context).removeClickedTopicHistory(topicDisplayName);
+                } else if (context instanceof ChooseSpeakingVoiceTopicActivity) {
+                    ((ChooseSpeakingVoiceTopicActivity) context).removeClickedTopicHistory(topicDisplayName);
+                }
                 return true;
             }
             return false;

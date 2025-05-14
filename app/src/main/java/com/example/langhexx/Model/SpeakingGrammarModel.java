@@ -21,43 +21,45 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-public class SpeakingModel implements SpeakingContract.Model{
+public class SpeakingGrammarModel implements SpeakingContract.Model{
     private static final String TAG = "SpeakingModel";
-    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc";
+    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc"; // Ensure this key is kept secure
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
-    private static final String FIREBASE_DB_URL = "https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/"; // <-- THAY URL DB
+    private static final String FIREBASE_DB_URL = "https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
     private ArrayList<String> questionList = new ArrayList<>();
     private int currentQuestionIndex = 0;
     private RequestQueue requestQueue;
     private Context appContext;
 
-    public SpeakingModel(Context context) {
+    public SpeakingGrammarModel(Context context) {
         this.appContext = context.getApplicationContext();
         requestQueue = Volley.newRequestQueue(appContext);
     }
 
     @Override
-    public void loadQuestions(String levelName, String topicTitle, SpeakingContract.QuestionListener listener) {
-        if (levelName == null || topicTitle == null || levelName.isEmpty() || topicTitle.isEmpty()) {
-            listener.onQuestionLoadError("Thiếu thông tin Level hoặc Topic.");
+    public void loadQuestions(String levelName, String topicId, SpeakingContract.QuestionListener listener) {
+        // levelName is not used in the new path for questions, but topicId (formerly topicTitle) is crucial.
+        if (topicId == null || topicId.isEmpty()) {
+            listener.onQuestionLoadError("Missing Topic ID.");
             return;
         }
 
-        Log.d(TAG, "Loading questions for Level: " + levelName + ", Topic: " + topicTitle);
-        DatabaseReference questionRef = FirebaseDatabase.getInstance(FIREBASE_DB_URL)
+        Log.d(TAG, "Loading questions for Topic ID: " + topicId);
+        DatabaseReference topicRef = FirebaseDatabase.getInstance(FIREBASE_DB_URL)
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
                 .child("Speaking")
+                .child("Q&A")
                 .child("Topics")
-                .child(topicTitle);
+                .child(topicId);
 
-        questionRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        topicRef.child("questions").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 questionList.clear();
-                currentQuestionIndex = 0; // Reset index when loading new questions
+                currentQuestionIndex = 0;
                 if (snapshot.exists() && snapshot.hasChildren()) {
                     for (DataSnapshot questionSnap : snapshot.getChildren()) {
                         String question = questionSnap.getValue(String.class);
@@ -68,23 +70,22 @@ public class SpeakingModel implements SpeakingContract.Model{
                     }
                     Log.i(TAG, "Total questions loaded: " + questionList.size());
                 } else {
-                    Log.w(TAG, "No questions found in Firebase for this topic.");
+                    Log.w(TAG, "No 'questions' node found or it's empty in Firebase for this topicId: " + topicId);
                 }
 
                 if (!questionList.isEmpty()) {
-                    listener.onQuestionsLoaded(new ArrayList<>(questionList)); // Return a copy
+                    listener.onQuestionsLoaded(new ArrayList<>(questionList));
                 } else {
-                    listener.onQuestionLoadError("Không tìm thấy câu hỏi nào cho chủ đề này.");
+                    listener.onQuestionLoadError("No questions found for this topic.");
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Firebase data loading cancelled: " + error.getMessage(), error.toException());
-                listener.onQuestionLoadError("Lỗi tải dữ liệu Firebase: " + error.getMessage());
+                listener.onQuestionLoadError("Firebase data loading error: " + error.getMessage());
             }
         });
-
     }
 
     @Override
@@ -96,7 +97,7 @@ public class SpeakingModel implements SpeakingContract.Model{
                         "User's Answer: \"%s\"\n\n" +
                         "Respond ONLY with a JSON object containing these fields:\n" +
                         "1. 'is_correct': boolean (true if the answer is grammatically correct, relevant to the question's topic, and logically coherent. The answer is considered correct even if it answers the core question and provides additional relevant information, instead of just the most direct minimal answer. For example, if the question is 'Do you like ice cream?' and the answer is 'No, I like chocolate', this IS correct. Set to false ONLY if there are significant grammatical errors, the answer is completely irrelevant, or logically nonsensical).\n" +
-                        "2. 'feedback_vi': string (If 'is_correct' is false, provide a BRIEF explanation *in Vietnamese* identifying the main issue - e.g., grammar error type, vocabulary choice, relevance, logic. If 'is_correct' is true, this can be empty OR provide minor suggestions/positive feedback *in Vietnamese*, e.g., 'Câu trả lời đúng và tự nhiên!' or 'Câu trả lời đúng rồi, bạn có thể nói đầy đủ hơn là \"No, I don't like ice cream, but I like chocolate.\" nếu muốn.').\n" +
+                        "2. 'feedback_vi': string (If 'is_correct' is false, provide a BRIEF explanation *in Vietnamese* identifying the main issue - e.g., grammar error type, vocabulary choice, relevance, logic. If 'is_correct' is true, this can be empty OR provide minor suggestions/positive feedback *in Vietnamese*, e.g., 'Câu trả lời đúng và tự nhiên!' or 'Câu trả lời đúng rồi, bạn có thể nói đầy đủ hơn là \"No, I don\\'t like ice cream, but I like chocolate.\" nếu muốn.').\n" +
                         "3. 'suggested_answer_en': string (Provide a well-formed, correct alternative answer *in English* ONLY if the user's answer is incorrect ('is_correct': false). Leave empty if the user's answer is correct).\n\n" +
                         "Example of expected JSON if incorrect (grammar error):\n" +
                         "{\n" +
@@ -138,7 +139,7 @@ public class SpeakingModel implements SpeakingContract.Model{
 
         } catch (JSONException e) {
             Log.e(TAG, "Error creating JSON request body", e);
-            listener.onEvaluationError(userAnswer, "Lỗi tạo yêu cầu JSON");
+            listener.onEvaluationError(userAnswer, "Error creating JSON request");
             return;
         }
 
@@ -148,7 +149,6 @@ public class SpeakingModel implements SpeakingContract.Model{
                 response -> {
                     Log.d(TAG, "Gemini API Full Response: " + response.toString());
                     try {
-                        // --- Start Parsing Gemini Response
                         JSONArray candidates = response.optJSONArray("candidates");
                         if (candidates != null && candidates.length() > 0) {
                             JSONObject firstCandidate = candidates.getJSONObject(0);
@@ -160,12 +160,11 @@ public class SpeakingModel implements SpeakingContract.Model{
                                     if (!probability.equals("NEGLIGIBLE") && !probability.equals("LOW")) {
                                         String category = rating.optString("category", "UNKNOWN");
                                         Log.w(TAG, "Content blocked by safety filter. Category: " + category + ", Probability: " + probability);
-                                        listener.onEvaluationError(userAnswer, "Nội dung không phù hợp (bị chặn bởi bộ lọc an toàn)");
+                                        listener.onEvaluationError(userAnswer, "Content unsuitable (blocked by safety filter)");
                                         return;
                                     }
                                 }
                             }
-
 
                             JSONObject content = firstCandidate.optJSONObject("content");
                             if (content != null) {
@@ -182,39 +181,37 @@ public class SpeakingModel implements SpeakingContract.Model{
                                             listener.onEvaluationSuccess(userAnswer, isCorrect, feedbackVi, suggestionEn);
                                         } catch (JSONException jsonEx) {
                                             Log.e(TAG, "Error parsing the JSON string within 'parts'", jsonEx);
-                                            listener.onEvaluationError(userAnswer, "Lỗi phân tích cấu trúc phản hồi JSON");
+                                            listener.onEvaluationError(userAnswer, "Error parsing JSON response structure");
                                         }
                                     } else {
-                                        listener.onEvaluationError(userAnswer,"Phần 'text' trong phản hồi API trống");
+                                        listener.onEvaluationError(userAnswer,"'text' part in API response is empty");
                                     }
                                 } else {
-                                    listener.onEvaluationError(userAnswer,"Phần 'parts' trong phản hồi API trống hoặc không hợp lệ");
+                                    listener.onEvaluationError(userAnswer,"'parts' in API response is empty or invalid");
                                 }
                             } else {
                                 String finishReason = firstCandidate.optString("finishReason", "UNKNOWN");
                                 Log.w(TAG,"Candidate finished with reason: " + finishReason);
-                                listener.onEvaluationError(userAnswer, "Phản hồi API không có 'content' hợp lệ (Reason: "+finishReason+")");
+                                listener.onEvaluationError(userAnswer, "API response missing valid 'content' (Reason: "+finishReason+")");
                             }
                         } else {
                             JSONObject promptFeedback = response.optJSONObject("promptFeedback");
                             if (promptFeedback != null) {
-                                String blockReason = promptFeedback.optString("blockReason", "không rõ");
+                                String blockReason = promptFeedback.optString("blockReason", "unknown");
                                 Log.e(TAG, "Gemini prompt blocked. Reason: " + blockReason);
-                                listener.onEvaluationError(userAnswer,"Yêu cầu bị chặn (Lý do: " + blockReason + ")");
+                                listener.onEvaluationError(userAnswer,"Request blocked (Reason: " + blockReason + ")");
                             } else {
                                 Log.e(TAG,"Gemini response missing 'candidates' and 'promptFeedback'. Response: " + response);
-                                listener.onEvaluationError(userAnswer,"Phản hồi API không có 'candidates' hợp lệ");
+                                listener.onEvaluationError(userAnswer,"API response missing valid 'candidates'");
                             }
                         }
-                        // --- End Parsing Gemini Response ---
                     } catch (JSONException e) {
                         Log.e(TAG, "Error parsing top-level Gemini JSON response", e);
-                        listener.onEvaluationError(userAnswer, "Lỗi phân tích tổng thể phản hồi JSON");
+                        listener.onEvaluationError(userAnswer, "Error parsing overall JSON response");
                     }
                 },
                 error -> {
-                    // --- Start Volley Error Handling (Similar to original code) ---
-                    String errorMsg = "Lỗi mạng hoặc API không xác định";
+                    String errorMsg = "Network error or undefined API error";
                     int statusCode = -1;
                     String responseData = "";
                     if (error.networkResponse != null) {
@@ -236,17 +233,16 @@ public class SpeakingModel implements SpeakingContract.Model{
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Error decoding network error response data", e);
-                                errorMsg = "Lỗi đọc phản hồi mạng.";
+                                errorMsg = "Error reading network response.";
                             }
                         }
-                        errorMsg = "Lỗi API (Code: " + statusCode + "): " + errorMsg;
+                        errorMsg = "API Error (Code: " + statusCode + "): " + errorMsg;
                     } else {
-                        errorMsg = "Lỗi kết nối hoặc hết thời gian chờ.";
+                        errorMsg = "Connection error or timeout.";
                         Log.e(TAG, "Volley Error (No Network Response): " + error.toString(), error);
                     }
                     Log.e(TAG, "Gemini API Volley Error: " + errorMsg, error);
                     listener.onEvaluationError(userAnswer, errorMsg);
-                    // --- End Volley Error Handling ---
                 }
         ) {
             @Override

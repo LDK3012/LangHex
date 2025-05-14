@@ -37,6 +37,9 @@
             android:name=".View.ChooseTopicWritingActivity"
             android:exported="false" />
         <activity
+            android:name=".View.ChooseSpeakingVoiceTopicActivity"
+            android:exported="false" />
+        <activity
             android:name=".View.InternalWritingTopic"
             android:exported="false"
             android:windowSoftInputMode="stateHidden" />
@@ -62,7 +65,7 @@
             android:name=".View.InternalSpeakingTopic"
             android:exported="false" />
         <activity
-            android:name=".View.ChooseTopicSpeakingActivity"
+            android:name=".View.ChooseSpeakingGrammarTopicActivity"
             android:exported="false" />
         <activity
             android:name=".View.ReviewActivity"

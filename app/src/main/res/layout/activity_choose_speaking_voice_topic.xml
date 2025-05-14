@@ -7,7 +7,7 @@
     android:layout_gravity="center"
     android:background="#FFE6E6"
     android:orientation="vertical"
-    tools:context=".View.ChooseTopicSpeakingActivity">
+    tools:context=".View.ChooseSpeakingVoiceTopicActivity">
 
     <LinearLayout
         android:layout_width="match_parent"

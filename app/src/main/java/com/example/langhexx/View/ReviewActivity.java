@@ -41,7 +41,7 @@ public class ReviewActivity extends AppCompatActivity {
         lnrSpeaking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(ReviewActivity.this, ChooseTopicSpeakingActivity.class) ;
+                Intent intent = new Intent(ReviewActivity.this, ChooseSpeakingGrammarTopicActivity.class) ;
                 startActivity(intent);
             }
         });

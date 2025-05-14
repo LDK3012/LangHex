@@ -26,7 +26,7 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ChooseTopicSpeakingActivity extends AppCompatActivity {
+public class ChooseSpeakingGrammarTopicActivity extends AppCompatActivity {
 
     private ListView lvTopics;
     private ArrayList<Topics> topicsArrayList;
@@ -43,23 +43,23 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_choose_topic_speaking);
+        setContentView(R.layout.activity_choose_speaking_grammar);
 
         levelName = getIntent().getStringExtra("levelName");
         if (levelName == null || levelName.isEmpty()) {
-            Toast.makeText(this, "Error: Can't identify Levels!", Toast.LENGTH_LONG).show(); // Sửa lỗi chính tả
-            Log.e(ACTIVITY_TAG, "levelName là null hoặc rỗng!");
+            Toast.makeText(this, "Error: Can't identify Levels!", Toast.LENGTH_LONG).show();
+            Log.e(ACTIVITY_TAG, "levelName is null or empty!");
             finish();
             return;
         }
-        Log.d(ACTIVITY_TAG, "Level nhận được: " + levelName + " cho kỹ năng " + CURRENT_SKILL_NAME + " (Thời gian hiện tại: " + Calendar.getInstance().getTime() + ")");
+        Log.d(ACTIVITY_TAG, "Level received: " + levelName + " for skill " + CURRENT_SKILL_NAME + " (Current time: " + Calendar.getInstance().getTime() + ")");
 
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        clickedTopicsKey = levelName + "_" + CURRENT_SKILL_NAME + "_clickedTopicDisplayNames"; // Cập nhật key
+        clickedTopicsKey = levelName + "_" + CURRENT_SKILL_NAME + "_clickedTopicDisplayNames";
         loadClickedTopicDisplayNamesForSpeaking();
 
         addControls();
-        loadTopicsFromFirebase(levelName);
+        loadTopicsFromFirebase();
         addEvents();
     }
 
@@ -70,7 +70,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         } else {
             clickedTopicDisplayNamesForSpeaking = new HashSet<>();
         }
-        Log.d(ACTIVITY_TAG, "Đã tải " + clickedTopicDisplayNamesForSpeaking.size() + " chủ đề đã click (Speaking) từ SharedPreferences.");
+        Log.d(ACTIVITY_TAG, "Loaded " + clickedTopicDisplayNamesForSpeaking.size() + " clicked topics (Speaking) from SharedPreferences.");
     }
 
     private void saveClickedTopicDisplayNameForSpeaking(String topicDisplayName) {
@@ -83,7 +83,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putStringSet(clickedTopicsKey, clickedTopicDisplayNamesForSpeaking);
             editor.apply();
-            Log.d(ACTIVITY_TAG, "Đã lưu chủ đề '" + topicDisplayName + "' (Speaking) vào SharedPreferences.");
+            Log.d(ACTIVITY_TAG, "Saved topic '" + topicDisplayName + "' (Speaking) to SharedPreferences.");
         }
     }
 
@@ -96,10 +96,9 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
             editor.putStringSet(clickedTopicsKey, clickedTopicDisplayNamesForSpeaking);
             editor.apply();
             Log.d(ACTIVITY_TAG, "Topic history has been deleted '" + topicDisplayName + "' (Speaking) from SharedPreferences.");
-            Toast.makeText(this, "Topic '" + topicDisplayName + "'history has been deleted.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Topic '" + topicDisplayName + "' history has been deleted.", Toast.LENGTH_SHORT).show();
 
             if (topicAdapter != null) {
-
                 topicAdapter.setHighlightedTopicDisplayNames(clickedTopicDisplayNamesForSpeaking);
                 topicAdapter.notifyDataSetChanged();
             }
@@ -118,15 +117,16 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
         imgHome = findViewById(R.id.imgHome);
     }
 
-    private void loadTopicsFromFirebase(String levelName) {
+    private void loadTopicsFromFirebase() {
         DatabaseReference topicsPathRef = FirebaseDatabase.getInstance("https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .getReference("Lessons")
                 .child("Levels")
                 .child(levelName)
-                .child(CURRENT_SKILL_NAME) // "Speaking"
+                .child(CURRENT_SKILL_NAME)
+                .child("Q&A")
                 .child("Topics");
 
-        Log.d(ACTIVITY_TAG, "Đang tải chủ đề từ: " + topicsPathRef.toString());
+        Log.d(ACTIVITY_TAG, "Loading topics from: " + topicsPathRef.toString());
 
         topicsPathRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -139,17 +139,17 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
                         if (topicNameDisplay == null || topicNameDisplay.isEmpty()) {
                             topicNameDisplay = topicId;
-                            Log.w(ACTIVITY_TAG, "Topic ID " + topicId + " thiếu topicName, sử dụng ID làm tên hiển thị.");
+                            Log.w(ACTIVITY_TAG, "Topic ID " + topicId + " missing topicName, using ID as display name.");
                         }
 
                         if (topicId != null) {
                             topicsArrayList.add(new Topics(topicId, topicNameDisplay));
                         }
                     }
-                    Log.d(ACTIVITY_TAG, "Đã tải " + topicsArrayList.size() + " chủ đề " + CURRENT_SKILL_NAME + ".");
+                    Log.d(ACTIVITY_TAG, "Loaded " + topicsArrayList.size() + " " + CURRENT_SKILL_NAME + " topics.");
                 } else {
-                    Log.d(ACTIVITY_TAG, "Không tìm thấy chủ đề " + CURRENT_SKILL_NAME + " nào cho level: " + levelName);
-                    Toast.makeText(ChooseTopicSpeakingActivity.this, "No " + CURRENT_SKILL_NAME + " topics for this level.", Toast.LENGTH_SHORT).show();
+                    Log.d(ACTIVITY_TAG, "No " + CURRENT_SKILL_NAME + " topics found for level: " + levelName); // levelName is not directly used in this path anymore, but log can remain for context
+                    Toast.makeText(ChooseSpeakingGrammarTopicActivity.this, "No " + CURRENT_SKILL_NAME + " topics found.", Toast.LENGTH_SHORT).show();
                 }
                 if (topicAdapter != null) {
                     topicAdapter.setHighlightedTopicDisplayNames(clickedTopicDisplayNamesForSpeaking);
@@ -159,8 +159,8 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseTopicSpeakingActivity.this, "Failed to load: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.e(ACTIVITY_TAG, "Lỗi Firebase: " + error.getMessage());
+                Toast.makeText(ChooseSpeakingGrammarTopicActivity.this, "Failed to load: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e(ACTIVITY_TAG, "Firebase Error: " + error.getMessage());
             }
         });
     }
@@ -172,7 +172,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
 
         if (imgHome != null) {
             imgHome.setOnClickListener(view -> {
-                Intent intent = new Intent(ChooseTopicSpeakingActivity.this, MainActivity.class);
+                Intent intent = new Intent(ChooseSpeakingGrammarTopicActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 finish();
@@ -191,7 +191,7 @@ public class ChooseTopicSpeakingActivity extends AppCompatActivity {
                 topicAdapter.notifyDataSetChanged();
             }
 
-            Intent intent = new Intent(ChooseTopicSpeakingActivity.this, InternalSpeakingTopic.class);
+            Intent intent = new Intent(ChooseSpeakingGrammarTopicActivity.this, InternalSpeakingTopic.class);
             intent.putExtra("levelName", levelName);
             intent.putExtra("topicId", topicId);
             intent.putExtra("topicTitle", topicDisplayName);
