@@ -202,12 +202,11 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
             }
 
             // TODO: Chuyển sang Activity thực hành Pronunciation (ví dụ: InternalSpeakingPronunciationTopic.class)
-            // Intent intent = new Intent(ChooseSpeakingPronunciationTopicActivity.this, InternalSpeakingPronunciationTopic.class);
-            // intent.putExtra("levelName", levelName);
-            // intent.putExtra("topicId", topicId);
-            // intent.putExtra("topicTitle", topicDisplayName);
-            // startActivity(intent);
-            Toast.makeText(this, "Chuyển đến thực hành phát âm cho: " + topicDisplayName, Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(ChooseSpeakingVoiceTopicActivity.this, InternalSpeakingVoiceTopic.class);
+             intent.putExtra("levelName", levelName);
+             intent.putExtra("topicId", topicId);
+             intent.putExtra("topicTitle", topicDisplayName);
+             startActivity(intent);
         });
     }
 }

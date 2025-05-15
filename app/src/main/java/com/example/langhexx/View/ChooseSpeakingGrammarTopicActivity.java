@@ -191,7 +191,7 @@ public class ChooseSpeakingGrammarTopicActivity extends AppCompatActivity {
                 topicAdapter.notifyDataSetChanged();
             }
 
-            Intent intent = new Intent(ChooseSpeakingGrammarTopicActivity.this, InternalSpeakingTopic.class);
+            Intent intent = new Intent(ChooseSpeakingGrammarTopicActivity.this, InternalSpeakingGrammarTopic.class);
             intent.putExtra("levelName", levelName);
             intent.putExtra("topicId", topicId);
             intent.putExtra("topicTitle", topicDisplayName);

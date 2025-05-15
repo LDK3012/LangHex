@@ -14,9 +14,9 @@ import com.example.langhexx.R;
 import java.util.List;
 
 public class LevelsAdapter extends ArrayAdapter<Levels> {
-    private Context context;
-    private int resource;
-    private List<Levels> levelsList;
+    private final Context context;
+    private final int resource;
+    private final List<Levels> levelsList;
 
 
     public LevelsAdapter(Context context, int resource, List<Levels> levelsList) {
