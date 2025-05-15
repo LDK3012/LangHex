@@ -77,7 +77,8 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
     private static final String TAG_ACTIVITY = "InternalSpeakingVoiceTopic";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION_CODE = 201;
 
-    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK";
+    // IMPORTANT: Replace with your actual Azure Speech Key and Region
+    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK"; // Thay thế bằng Key của bạn
     private static final String AZURE_SPEECH_REGION = "eastus";
     private static final String TARGET_LANGUAGE = "en-US";
 
@@ -159,8 +160,6 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         addEvents();
 
         pgbAzureProcessing.setVisibility(View.GONE);
-        imgRecord.setVisibility(View.VISIBLE);
-        layoutPlaybackControls.setVisibility(View.GONE);
         updatePlaybackUIState(false, false);
 
         if (controller != null) {
@@ -316,7 +315,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                         if (mediaPlayer.isPlaying()) {
                             seekBarHandler.post(updateSeekBarRunnable);
                         } else {
-                            updatePlayTimeWithMillis(seekBar.getProgress(), mediaPlayer.getDuration());
+                            int duration = 0;
+                            try { duration = mediaPlayer.getDuration(); } catch (IllegalStateException e) { /* ignore */ }
+                            updatePlayTimeWithMillis(seekBar.getProgress(), duration);
                         }
                     } catch (IllegalStateException e) {
                         Log.w(TAG_ACTIVITY, "SeekBar StopTrack: MediaPlayer not ready: " + e.getMessage());
@@ -406,6 +407,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             if (!isCurrentlyRecording && !isAzureBusy) {
                 imgRecord.setEnabled(enabled);
                 imgRecord.setAlpha(enabled ? 1.0f : 0.5f);
+            } else if (isCurrentlyRecording) {
+                imgRecord.setEnabled(true);
+                imgRecord.setAlpha(1.0f);
             } else {
                 imgRecord.setEnabled(false);
                 imgRecord.setAlpha(0.5f);
@@ -489,7 +493,6 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         releaseMediaPlayer();
 
         this.currentRecordingFilePath = null;
-        updatePlaybackUIState(false, false);
 
         if (persistentPath != null) {
             File existingRecording = new File(persistentPath);
@@ -502,15 +505,19 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 Log.i(TAG_ACTIVITY, "No existing recording for script index " + currentScriptModelIndex +
                         (existingRecording.exists() ? " (empty file, will be deleted)" : " (file does not exist)"));
                 if (existingRecording.exists() && existingRecording.length() == 0) {
-                    existingRecording.delete();
+                    if(existingRecording.delete()){
+                        Log.d(TAG_ACTIVITY, "Deleted empty recording file: " + persistentPath);
+                    }
                 }
                 this.currentRecordingFilePath = null;
                 restoreOriginalScriptText();
+                updatePlaybackUIState(false, false);
             }
         } else {
             Log.w(TAG_ACTIVITY, "checkAndLoadExistingRecording: Could not generate persistentPath.");
             this.currentRecordingFilePath = null;
             restoreOriginalScriptText();
+            updatePlaybackUIState(false, false);
         }
     }
 
@@ -536,7 +543,6 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
         pausePlayback();
         releaseMediaPlayer();
-        updatePlaybackUIState(false, false);
 
         File oldFileForThisScript = new File(newRecordingPath);
         if (oldFileForThisScript.exists()) {
@@ -583,24 +589,28 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         }
     }
 
-
     @Override
     public void stopRecordingUI() {
         if (!isCurrentlyRecording || mediaRecorder == null) {
             Log.d(TAG_ACTIVITY, "Stop recording called but not currently recording or mediaRecorder is null.");
             String persistentPath = generatePersistentFilePath();
-            if (persistentPath != null && new File(persistentPath).exists() && new File(persistentPath).length() > 0) {
+            boolean hasFile = persistentPath != null && new File(persistentPath).exists() && new File(persistentPath).length() > 0;
+
+            if (hasFile) {
                 if(this.currentRecordingFilePath == null || !this.currentRecordingFilePath.equals(persistentPath) || mediaPlayer == null){
                     this.currentRecordingFilePath = persistentPath;
-                    prepareMediaPlayerForPlayback();
+                    if (new File(persistentPath).length() > 0) {
+                        prepareMediaPlayerForPlayback();
+                    } else {
+                        updatePlaybackUIState(false, false);
+                    }
+                } else {
+                    updatePlaybackUIState(mediaPlayer != null && mediaPlayer.isPlaying(), true);
                 }
-                updatePlaybackUIState(false, true);
             } else {
-                this.currentRecordingFilePath = null;
                 updatePlaybackUIState(false, false);
             }
             isCurrentlyRecording = false;
-            updateRecordingUIState(false);
             return;
         }
 
@@ -628,22 +638,21 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         } finally {
             releaseMediaRecorder();
             isCurrentlyRecording = false;
-            updateRecordingUIState(false);
 
             if (savedFilePath != null && new File(savedFilePath).exists() && new File(savedFilePath).length() > 0) {
                 this.currentRecordingFilePath = savedFilePath;
-                prepareMediaPlayerForPlayback();
                 if (azureSpeechConfig != null) {
                     processRecordingWithAzure(this.currentRecordingFilePath);
                 } else {
                     showError("Azure service is not ready. Cannot analyze.");
                     restoreOriginalScriptText();
+                    prepareMediaPlayerForPlayback();
                 }
             } else {
-                Log.w(TAG_ACTIVITY, "Invalid recording file after stop: " + savedFilePath + ". Cannot play or analyze.");
+                Log.w(TAG_ACTIVITY, "Invalid recording file after stop: " + (savedFilePath != null ? savedFilePath : "null") + ". Cannot play or analyze.");
                 this.currentRecordingFilePath = null;
-                updatePlaybackUIState(false, false);
                 restoreOriginalScriptText();
+                updatePlaybackUIState(false, false);
             }
         }
     }
@@ -652,6 +661,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
     private void releaseMediaRecorder() {
         if (mediaRecorder != null) {
             try {
+                mediaRecorder.reset();
                 mediaRecorder.release();
             } catch (Exception e) {
                 Log.e(TAG_ACTIVITY, "Error releasing MediaRecorder: " + e.getMessage());
@@ -667,7 +677,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 File f = new File(this.currentRecordingFilePath);
                 if (f.exists() && f.length() == 0) {
                     Log.w(TAG_ACTIVITY, "Deleting empty file during prepareMediaPlayer: " + this.currentRecordingFilePath);
-                    f.delete();
+                    if (f.delete()) {
+                        Log.d(TAG_ACTIVITY, "Empty file deleted successfully.");
+                    }
                 }
             }
             this.currentRecordingFilePath = null;
@@ -683,7 +695,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             mediaPlayer.setOnPreparedListener(mp -> {
                 Log.d(TAG_ACTIVITY, "MediaPlayer prepared. Duration: " + mp.getDuration() + " ms for " + currentRecordingFilePath);
                 if (mp.getDuration() <= 0) {
-                    Log.e(TAG_ACTIVITY, "MediaPlayer prepared with invalid duration: " + mp.getDuration() + ". File may be corrupted.");
+                    Log.e(TAG_ACTIVITY, "MediaPlayer prepared with invalid duration: " + mp.getDuration() + ". File may be corrupted: " + currentRecordingFilePath);
                     showError("Cannot play recording, file may be corrupted.");
                     releaseMediaPlayer();
                     this.currentRecordingFilePath = null;
@@ -693,9 +705,6 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 if (sbrAudio != null) sbrAudio.setMax(mp.getDuration());
                 updatePlayTimeWithMillis(0, mp.getDuration());
                 updatePlaybackUIState(false, true);
-                if (imgPlayAudio != null) imgPlayAudio.setEnabled(true);
-                if (sbrAudio != null) sbrAudio.setEnabled(true);
-                if (imgDelete != null) imgDelete.setEnabled(true);
             });
             mediaPlayer.setOnCompletionListener(mp -> {
                 Log.d(TAG_ACTIVITY, "MediaPlayer playback completed.");
@@ -746,7 +755,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 showToast("No valid recording to play.");
                 if (currentRecordingFilePath != null && new File(currentRecordingFilePath).exists() && new File(currentRecordingFilePath).length() == 0) {
                     Log.w(TAG_ACTIVITY, "Attempted to play zero-length file, deleting: " + currentRecordingFilePath);
-                    File f = new File(currentRecordingFilePath); if(f.exists()) f.delete();
+                    File f = new File(currentRecordingFilePath); if(f.exists() && f.delete()){ /* log */ }
                     this.currentRecordingFilePath = null;
                 }
                 updatePlaybackUIState(false, false);
@@ -772,7 +781,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         if (isPrepared && !mediaPlayer.isPlaying()) {
             try {
                 int currentSeekBarPos = (sbrAudio != null) ? sbrAudio.getProgress() : 0;
-                if (currentSeekBarPos >= mediaPlayer.getDuration()) currentSeekBarPos = 0;
+                if (mediaPlayer.getDuration() > 0 && currentSeekBarPos >= mediaPlayer.getDuration()) {
+                    currentSeekBarPos = 0;
+                }
                 mediaPlayer.seekTo(currentSeekBarPos);
 
                 mediaPlayer.start();
@@ -842,16 +853,15 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             if (file.exists()) {
                 if (file.delete()) {
                     Log.i(TAG_ACTIVITY, "Recording file deleted: " + pathToDelete);
-                    showToast("Recording deleted.");
                 } else {
                     showError("Could not delete recording file: " + file.getName());
                     Log.e(TAG_ACTIVITY, "Could not delete recording file: " + pathToDelete);
                 }
             } else {
-                Log.d(TAG_ACTIVITY, "Recording file not found to delete: " + pathToDelete);
+                Log.d(TAG_ACTIVITY, "Recording file not found to delete (already deleted or never existed): " + pathToDelete);
             }
         } else {
-            Log.w(TAG_ACTIVITY, "deleteCurrentRecording: No valid file path to delete.");
+            Log.w(TAG_ACTIVITY, "deleteCurrentRecording: No valid file path to delete for current script.");
         }
 
         isCurrentlyPlaying = false;
@@ -867,114 +877,126 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
 
     @Override
-    public void updateRecordingUIState(boolean isRecordingActive) {
-        this.isCurrentlyRecording = isRecordingActive;
+    public void updateRecordingUIState(boolean isRecordingActiveState) {
         boolean isAzureProcessing = pgbAzureProcessing != null && pgbAzureProcessing.getVisibility() == View.VISIBLE;
+        if (isAzureProcessing) {
+            return;
+        }
 
-        if (isRecordingActive) {
-            imgRecord.setImageResource(R.drawable.voice_icon_pause_);
-            if (pulsatingAnimation != null && (imgRecord.getAnimation() == null || !imgRecord.getAnimation().hasStarted() || imgRecord.getAnimation().hasEnded())) {
-                imgRecord.startAnimation(pulsatingAnimation);
+        if (this.isCurrentlyRecording) {
+            if (imgRecord != null) {
+                imgRecord.setImageResource(R.drawable.voice_icon_pause_);
+                if (pulsatingAnimation != null && (imgRecord.getAnimation() == null || !imgRecord.getAnimation().hasStarted() || imgRecord.getAnimation().hasEnded())) {
+                    imgRecord.startAnimation(pulsatingAnimation);
+                }
+                imgRecord.setVisibility(View.VISIBLE);
+                imgRecord.setEnabled(true);
             }
-            imgRecord.setVisibility(View.VISIBLE);
-            layoutPlaybackControls.setVisibility(View.GONE);
+            if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.GONE);
 
             if(btnBackward != null) btnBackward.setEnabled(false);
             if(btnForward != null) btnForward.setEnabled(false);
-            if(imgClose != null) imgClose.setEnabled(false);
-            if(imgHome != null) imgHome.setEnabled(false);
-            if(imgDelete != null) imgDelete.setEnabled(false);
-            if(imgPlayAudio != null) imgPlayAudio.setEnabled(false);
+            if(imgClose != null) {imgClose.setEnabled(false); imgClose.setAlpha(0.5f);}
+            if(imgHome != null) {imgHome.setEnabled(false); imgHome.setAlpha(0.5f);}
 
         } else {
-            imgRecord.setImageResource(R.drawable.micro);
-            if (pulsatingAnimation != null && imgRecord.getAnimation() != null) {
-                imgRecord.clearAnimation();
+            if (imgRecord != null) {
+                imgRecord.setImageResource(R.drawable.micro);
+                if (pulsatingAnimation != null && imgRecord.getAnimation() != null) {
+                    imgRecord.clearAnimation();
+                }
             }
-
             boolean hasFile = this.currentRecordingFilePath != null && new File(this.currentRecordingFilePath).exists() && new File(this.currentRecordingFilePath).length() > 0;
             updatePlaybackUIState(this.isCurrentlyPlaying, hasFile);
-
-            if (!isAzureProcessing) {
-                if (imgClose != null) imgClose.setEnabled(true);
-                if (imgHome != null) imgHome.setEnabled(true);
-
-                if (btnBackward != null) {
-                    btnBackward.setEnabled(this.lastCanGoPreviousState);
-                    btnBackward.setBackground(ContextCompat.getDrawable(this, this.lastCanGoPreviousState ? R.drawable.bg_button_next_rounded : R.drawable.bg_button_previous_rounded));
-                }
-                if (btnForward != null) {
-                    btnForward.setEnabled(this.lastCanGoNextState);
-                    btnForward.setBackground(ContextCompat.getDrawable(this, this.lastCanGoNextState ? R.drawable.bg_button_next_rounded : R.drawable.bg_button_previous_rounded));
-                }
-                if(imgRecord != null) imgRecord.setEnabled(true);
-                imgRecord.setAlpha(1.0f);
-            } else {
-                if(imgRecord != null) imgRecord.setEnabled(false);
-                imgRecord.setAlpha(0.5f);
-                if (btnBackward != null) btnBackward.setEnabled(false);
-                if (btnForward != null) btnForward.setEnabled(false);
-                if (imgClose != null) imgClose.setEnabled(false);
-                if (imgHome != null) imgHome.setEnabled(false);
-            }
         }
     }
 
 
     @Override
-    public void updatePlaybackUIState(boolean isPlaying, boolean hasRecording) {
-        this.isCurrentlyPlaying = isPlaying;
+    public void updatePlaybackUIState(boolean isMediaPlayerPlaying, boolean hasAudioFile) {
+        this.isCurrentlyPlaying = isMediaPlayerPlaying;
         boolean isAzureProcessing = pgbAzureProcessing != null && pgbAzureProcessing.getVisibility() == View.VISIBLE;
 
-        if (hasRecording && !isCurrentlyRecording) {
-            if (imgRecord != null) {
-                if (imgRecord.getAnimation() != null) imgRecord.clearAnimation();
+        if (isAzureProcessing) {
+            if (imgRecord != null) { // Đảm bảo imgRecord cũng bị ẩn nếu đang xử lý
+                if (imgRecord.getAnimation() != null) {
+                    imgRecord.clearAnimation();
+                }
                 imgRecord.setVisibility(View.GONE);
             }
-            if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.VISIBLE);
+            if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.GONE);
+            return;
+        }
 
-            boolean canInteractWithPlayback = !isAzureProcessing && mediaPlayer != null;
-
-            if (imgPlayAudio != null) {
-                imgPlayAudio.setImageResource(isPlaying ? R.drawable.ic_pause : R.drawable.icon_play_audio);
-                imgPlayAudio.setEnabled(canInteractWithPlayback);
-                imgPlayAudio.setAlpha(canInteractWithPlayback ? 1.0f : 0.5f);
-            }
-            if (imgDelete != null) {
-                imgDelete.setEnabled(!isAzureProcessing && hasRecording);
-                imgDelete.setAlpha(isAzureProcessing ? 0.5f : 1.0f);
-            }
-            if (sbrAudio != null) {
-                sbrAudio.setEnabled(canInteractWithPlayback);
-            }
-        } else {
+        if (this.isCurrentlyRecording) {
             if (imgRecord != null) {
-                if (isCurrentlyRecording) {
-                    imgRecord.setImageResource(R.drawable.voice_icon_pause_);
-                    if (pulsatingAnimation != null && (imgRecord.getAnimation() == null || !imgRecord.getAnimation().hasStarted() || imgRecord.getAnimation().hasEnded())) {
-                        imgRecord.startAnimation(pulsatingAnimation);
-                    }
-                } else {
-                    imgRecord.setImageResource(R.drawable.micro);
-                    if (imgRecord.getAnimation() != null) imgRecord.clearAnimation();
+                imgRecord.setImageResource(R.drawable.voice_icon_pause_);
+                if (pulsatingAnimation != null && (imgRecord.getAnimation() == null || !imgRecord.getAnimation().hasStarted() || imgRecord.getAnimation().hasEnded())) {
+                    imgRecord.startAnimation(pulsatingAnimation);
                 }
                 imgRecord.setVisibility(View.VISIBLE);
-                imgRecord.setEnabled(!isAzureProcessing);
-                imgRecord.setAlpha(isAzureProcessing ? 0.5f : 1.0f);
+                imgRecord.setEnabled(true);
             }
             if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.GONE);
 
-            if (imgPlayAudio != null) {
-                imgPlayAudio.setEnabled(false);
-                imgPlayAudio.setImageResource(R.drawable.icon_play_audio);
+            if(btnBackward != null) btnBackward.setEnabled(false);
+            if(btnForward != null) btnForward.setEnabled(false);
+            if(imgClose != null) {imgClose.setEnabled(false); imgClose.setAlpha(0.5f);}
+            if(imgHome != null) {imgHome.setEnabled(false); imgHome.setAlpha(0.5f);}
+
+        } else {
+            if (imgRecord != null && imgRecord.getAnimation() != null) {
+                imgRecord.clearAnimation();
             }
-            if (imgDelete != null) imgDelete.setEnabled(false);
-            if (sbrAudio != null) {
-                sbrAudio.setEnabled(false);
-                sbrAudio.setProgress(0);
-                sbrAudio.setMax(100);
+
+            if (hasAudioFile) {
+                if (imgRecord != null) imgRecord.setVisibility(View.GONE);
+                if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.VISIBLE);
+
+                boolean canInteractWithPlayback = (mediaPlayer != null);
+                try { if(mediaPlayer != null) mediaPlayer.getDuration(); else canInteractWithPlayback = false; }
+                catch (IllegalStateException e) { canInteractWithPlayback = false;}
+
+
+                if (imgPlayAudio != null) {
+                    imgPlayAudio.setImageResource(isMediaPlayerPlaying ? R.drawable.ic_pause : R.drawable.icon_play_audio);
+                    imgPlayAudio.setEnabled(canInteractWithPlayback);
+                    imgPlayAudio.setAlpha(canInteractWithPlayback ? 1.0f : 0.5f);
+                }
+                if (imgDelete != null) {
+                    imgDelete.setEnabled(true);
+                    imgDelete.setAlpha(1.0f);
+                }
+                if (sbrAudio != null) {
+                    sbrAudio.setEnabled(canInteractWithPlayback);
+                }
+            } else {
+                if (imgRecord != null) {
+                    imgRecord.setImageResource(R.drawable.micro);
+                    imgRecord.setVisibility(View.VISIBLE);
+                    imgRecord.setEnabled(true);
+                    imgRecord.setAlpha(1.0f);
+                }
+                if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.GONE);
+
+                if (sbrAudio != null) {
+                    sbrAudio.setEnabled(false);
+                    sbrAudio.setProgress(0);
+                    sbrAudio.setMax(100);
+                }
+                if (txtTime != null) txtTime.setText("00:00 / 00:00");
             }
-            if (txtTime != null) txtTime.setText("00:00 / 00:00");
+
+            if (imgClose != null) {imgClose.setEnabled(true); imgClose.setAlpha(1.0f);}
+            if (imgHome != null) {imgHome.setEnabled(true); imgHome.setAlpha(1.0f);}
+            if (btnBackward != null) {
+                btnBackward.setEnabled(this.lastCanGoPreviousState);
+                btnBackward.setBackground(ContextCompat.getDrawable(this, this.lastCanGoPreviousState ? R.drawable.bg_button_next_rounded : R.drawable.bg_button_previous_rounded));
+            }
+            if (btnForward != null) {
+                btnForward.setEnabled(this.lastCanGoNextState);
+                btnForward.setBackground(ContextCompat.getDrawable(this, this.lastCanGoNextState ? R.drawable.bg_button_next_rounded : R.drawable.bg_button_previous_rounded));
+            }
         }
     }
 
@@ -1010,18 +1032,23 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         updatePlayTime(currentTimeStr, totalTimeStr);
 
         if (sbrAudio != null) {
-            if (mediaPlayer != null && validTotalMillis > 0) {
-                try {
-                    if (!sbrAudio.isPressed() || !mediaPlayer.isPlaying()) {
-                        if(sbrAudio.getMax() != (int)validTotalMillis) sbrAudio.setMax((int)validTotalMillis);
-                        sbrAudio.setProgress((int) validCurrentMillis);
-                    }
-                } catch (IllegalStateException e) {
-                    Log.w(TAG_ACTIVITY, "updatePlayTimeWithMillis: MediaPlayer not ready when updating SeekBar.");
-                    sbrAudio.setMax(100); sbrAudio.setProgress(0);
+            boolean canUpdateSeekBar = false;
+            try {
+                if (mediaPlayer != null && validTotalMillis > 0) {
+                    canUpdateSeekBar = true;
+                }
+            } catch (IllegalStateException e) {
+                Log.w(TAG_ACTIVITY, "updatePlayTimeWithMillis: MediaPlayer not ready for sbrAudio update.");
+            }
+
+            if (canUpdateSeekBar) {
+                if (!sbrAudio.isPressed()) {
+                    if(sbrAudio.getMax() != (int)validTotalMillis) sbrAudio.setMax((int)validTotalMillis);
+                    sbrAudio.setProgress((int) validCurrentMillis);
                 }
             } else if (validTotalMillis <= 0) {
-                sbrAudio.setMax(100); sbrAudio.setProgress(0);
+                sbrAudio.setMax(100);
+                sbrAudio.setProgress(0);
             }
         }
     }
@@ -1042,22 +1069,20 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                             updatePlayTimeWithMillis(0,0);
                             return;
                         }
-                        if (sbrAudio != null && !sbrAudio.isPressed()) {
-                            if(sbrAudio.getMax() != duration) sbrAudio.setMax(duration);
-                            sbrAudio.setProgress(currentPosition);
-                        }
                         updatePlayTimeWithMillis(currentPosition, duration);
                         if (seekBarHandler != null) seekBarHandler.postDelayed(this, 250);
                     } else if (isCurrentlyPlaying) {
-                        Log.w(TAG_ACTIVITY, "updateSeekBarRunnable: isCurrentlyPlaying=true but mediaPlayer not playing. Rescheduling check.");
-                        if (seekBarHandler != null) seekBarHandler.postDelayed(this, 500);
+                        Log.w(TAG_ACTIVITY, "updateSeekBarRunnable: isCurrentlyPlaying=true but mediaPlayer not playing. Will stop rescheduling if it persists.");
                     } else {
                         if (seekBarHandler != null) seekBarHandler.removeCallbacks(this);
                     }
                 } catch (IllegalStateException e) {
                     Log.w(TAG_ACTIVITY, "MediaPlayer in invalid state while updating seekbar: " + e.getMessage());
                     if(isCurrentlyPlaying && seekBarHandler != null) {
-                        seekBarHandler.postDelayed(this, 1000);
+                        isCurrentlyPlaying = false;
+                        updatePlaybackUIState(false, currentRecordingFilePath != null && new File(currentRecordingFilePath).exists());
+                        if (seekBarHandler != null) seekBarHandler.removeCallbacks(this);
+
                     } else if (seekBarHandler != null) {
                         seekBarHandler.removeCallbacks(this);
                     }
@@ -1079,6 +1104,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         }
         releaseMediaPlayer();
         releaseMediaRecorder();
+
         if (imgRecord != null && pulsatingAnimation != null && imgRecord.getAnimation() != null) {
             if (imgRecord.getAnimation().hasStarted() && !imgRecord.getAnimation().hasEnded()){
                 imgRecord.clearAnimation();
@@ -1091,7 +1117,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         super.onStop();
         Log.d(TAG_ACTIVITY, "onStop called.");
         if (isCurrentlyRecording && mediaRecorder != null) {
-            Log.w(TAG_ACTIVITY, "Currently recording onStop. Auto-stopping and saving.");
+            Log.w(TAG_ACTIVITY, "Currently recording onStop. Auto-stopping recording.");
             stopRecordingUI();
         }
         if (isCurrentlyPlaying && mediaPlayer != null) {
@@ -1145,9 +1171,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 prepareMediaPlayerForPlayback();
             }
         } else {
-            Log.w(TAG_ACTIVITY, "setRecordingFilePath: path null or file does not exist/is empty. Releasing player.");
+            Log.w(TAG_ACTIVITY, "setRecordingFilePath: path null or file does not exist/is empty. Path: " + path);
             if (path == null && oldPath != null) {
-                Log.d(TAG_ACTIVITY, "setRecordingFilePath: new path is null, old path was: " + oldPath);
+                Log.d(TAG_ACTIVITY, "setRecordingFilePath: new path is null, old path was: " + oldPath + ". This implies deletion or reset.");
             }
             pausePlayback();
             releaseMediaPlayer();
@@ -1158,26 +1184,27 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
     private void setUiInteraction(boolean allowInteraction) {
         boolean isAzureProcessing = pgbAzureProcessing != null && pgbAzureProcessing.getVisibility() == View.VISIBLE;
-        boolean effectiveAllowInteraction = allowInteraction && !isAzureProcessing;
+        boolean effectiveAllowInteraction = allowInteraction && !isAzureProcessing && !isCurrentlyRecording;
 
         if(imgRecord != null) {
-            imgRecord.setEnabled(effectiveAllowInteraction && !isCurrentlyRecording);
-            imgRecord.setAlpha((effectiveAllowInteraction && !isCurrentlyRecording) ? 1.0f : 0.5f);
+            boolean shouldMicBeVisible = (layoutPlaybackControls == null || layoutPlaybackControls.getVisibility() == View.GONE);
+            imgRecord.setEnabled(effectiveAllowInteraction && shouldMicBeVisible);
+            imgRecord.setAlpha((effectiveAllowInteraction && shouldMicBeVisible) ? 1.0f : 0.5f);
         }
 
         boolean hasFileForPlayback = currentRecordingFilePath != null && new File(currentRecordingFilePath).exists() && new File(currentRecordingFilePath).length() > 0;
-        boolean canPlayback = effectiveAllowInteraction && hasFileForPlayback && mediaPlayer != null;
+        boolean canPlaybackControlsBeActive = effectiveAllowInteraction && hasFileForPlayback;
 
         if(imgPlayAudio != null) {
-            imgPlayAudio.setEnabled(canPlayback);
-            imgPlayAudio.setAlpha(canPlayback ? 1.0f : 0.5f);
+            imgPlayAudio.setEnabled(canPlaybackControlsBeActive && mediaPlayer != null);
+            imgPlayAudio.setAlpha((canPlaybackControlsBeActive && mediaPlayer != null) ? 1.0f : 0.5f);
         }
         if(imgDelete != null) {
-            imgDelete.setEnabled(effectiveAllowInteraction && hasFileForPlayback);
-            imgDelete.setAlpha((effectiveAllowInteraction && hasFileForPlayback) ? 1.0f : 0.5f);
+            imgDelete.setEnabled(canPlaybackControlsBeActive);
+            imgDelete.setAlpha(canPlaybackControlsBeActive ? 1.0f : 0.5f);
         }
         if(sbrAudio != null) {
-            sbrAudio.setEnabled(canPlayback);
+            sbrAudio.setEnabled(canPlaybackControlsBeActive && mediaPlayer != null);
         }
 
         if(btnBackward != null) {
@@ -1187,14 +1214,16 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             btnForward.setEnabled(effectiveAllowInteraction && lastCanGoNextState);
         }
 
-        if(imgClose != null) imgClose.setEnabled(effectiveAllowInteraction);
-        if(imgHome != null) imgHome.setEnabled(effectiveAllowInteraction);
+        if(imgClose != null) imgClose.setEnabled(allowInteraction && !isAzureProcessing && !isCurrentlyRecording);
+        if(imgHome != null) imgHome.setEnabled(allowInteraction && !isAzureProcessing && !isCurrentlyRecording);
     }
 
     private void restoreOriginalScriptText() {
         if (txtScriptToRepeat != null && this.lastCleanScriptDisplayed != null && !this.lastCleanScriptDisplayed.isEmpty()) {
             txtScriptToRepeat.setText(this.lastCleanScriptDisplayed);
             txtScriptToRepeat.setTextColor(ContextCompat.getColor(this, android.R.color.black));
+        } else if (txtScriptToRepeat != null) {
+            txtScriptToRepeat.setText("");
         }
     }
 
@@ -1202,11 +1231,13 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         if (azureSpeechConfig == null) {
             showError("Azure speech service is not configured. Cannot analyze.");
             restoreOriginalScriptText();
+            updatePlaybackUIState(false, new File(audioFilePath).exists() && new File(audioFilePath).length() > 0);
             return;
         }
         if (audioFilePath == null || !new File(audioFilePath).exists() || new File(audioFilePath).length() == 0) {
             showError("Invalid or empty recording file. Cannot analyze.");
             restoreOriginalScriptText();
+            updatePlaybackUIState(false, false);
             return;
         }
 
@@ -1218,15 +1249,31 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         if (referenceTextCleaned.isEmpty()) {
             showError("Reference text is empty. Cannot perform pronunciation assessment.");
             restoreOriginalScriptText();
+            if (new File(audioFilePath).exists() && new File(audioFilePath).length() > 0) {
+                prepareMediaPlayerForPlayback();
+            } else {
+                updatePlaybackUIState(false, false);
+            }
             return;
         }
 
         runOnUiThread(() -> {
-            Log.d(TAG_ACTIVITY, "processRecordingWithAzure: Showing ProgressBar and disabling UI.");
+            Log.d(TAG_ACTIVITY, "processRecordingWithAzure: Starting. Setting UI to processing state.");
             if (pgbAzureProcessing != null) pgbAzureProcessing.setVisibility(View.VISIBLE);
-            setUiInteraction(false);
-            showToast("Preparing and analyzing pronunciation with Azure...");
-            restoreOriginalScriptText();
+
+            if (imgRecord != null) {
+                // Dừng animation nếu có và ẩn nút ghi âm
+                if (imgRecord.getAnimation() != null) {
+                    imgRecord.clearAnimation();
+                }
+                imgRecord.setVisibility(View.GONE);
+            }
+            if (layoutPlaybackControls != null) layoutPlaybackControls.setVisibility(View.GONE);
+
+            if(btnBackward != null) btnBackward.setEnabled(false);
+            if(btnForward != null) btnForward.setEnabled(false);
+            if(imgClose != null) { imgClose.setEnabled(false); imgClose.setAlpha(0.5f); }
+            if(imgHome != null) { imgHome.setEnabled(false); imgHome.setAlpha(0.5f); }
         });
 
         CompletableFuture.runAsync(() -> {
@@ -1243,7 +1290,8 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
             String effectiveAudioFilePath = audioFilePath;
             String tempWavFilePath = null;
-            int actualSampleRateOfWav = 8000;
+            int actualSampleRateForSdk = 8000;
+
 
             if (USE_WAV_TRANSCODING_FOR_AZURE) {
                 Log.i(TAG_ACTIVITY, "Starting transcoding to WAV for file: " + audioFilePath);
@@ -1252,10 +1300,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 if (tempWavFilePath != null && new File(tempWavFilePath).exists()) {
                     effectiveAudioFilePath = tempWavFilePath;
                     Log.i(TAG_ACTIVITY, "Successfully transcoded to WAV: " + effectiveAudioFilePath);
-                    actualSampleRateOfWav = 8000;
-                    Log.w(TAG_ACTIVITY, "processRecordingWithAzure: Assuming sample rate of WAV file is " + actualSampleRateOfWav + "Hz. " +
-                            "If the original .3gp file is AMR-NB (8kHz) and transcodeToWav doesn't resample, this is correct. " +
-                            "For optimal Azure performance, WAV should be 16kHz mono.");
+                    actualSampleRateForSdk = 8000; // Cần cập nhật giá trị này từ transcodeToWav nếu có resampling
+                    Log.w(TAG_ACTIVITY, "processRecordingWithAzure: Using WAV. Assuming sample rate " + actualSampleRateForSdk + "Hz. " +
+                            "Ensure transcodeToWav produces 16kHz mono for optimal Azure results.");
                 } else {
                     Log.w(TAG_ACTIVITY, "Transcoding to WAV failed. Using original file: " + audioFilePath + ". Analysis quality may be affected.");
                 }
@@ -1274,11 +1321,11 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 if (USE_WAV_TRANSCODING_FOR_AZURE && tempWavFilePath != null && effectiveAudioFilePath.equals(tempWavFilePath)) {
                     short channelsForWav = 1;
                     short bitDepthForWav = 16;
-                    Log.i(TAG_ACTIVITY, "Azure Processing: Using WAV PCM format. SampleRate (for SDK): " + actualSampleRateOfWav);
-                    streamFormat = AudioStreamFormat.getWaveFormatPCM(actualSampleRateOfWav, bitDepthForWav, channelsForWav);
+                    Log.i(TAG_ACTIVITY, "Azure Processing: Using WAV PCM format. SampleRate (for SDK): " + actualSampleRateForSdk);
+                    streamFormat = AudioStreamFormat.getWaveFormatPCM(actualSampleRateForSdk, bitDepthForWav, channelsForWav);
                 } else {
-                    streamFormat = AudioStreamFormat.getCompressedFormat(AudioStreamContainerFormat.ANY);
                     Log.i(TAG_ACTIVITY, "Azure Processing: Using COMPRESSED AudioStreamFormat (ANY) for " + effectiveAudioFilePath);
+                    streamFormat = AudioStreamFormat.getCompressedFormat(AudioStreamContainerFormat.ANY);
                 }
 
                 pullAudioInputStream = PullAudioInputStream.create(pullStreamCallback, streamFormat);
@@ -1314,18 +1361,18 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                                 ", PronScore=" + pronunciationAssessmentResult.getPronunciationScore() +
                                 ", Completeness=" + pronunciationAssessmentResult.getCompletenessScore());
                         if(pronunciationAssessmentResult.getAccuracyScore() == 0 && pronunciationAssessmentResult.getPronunciationScore() == 0 && !recognizedText.isEmpty() && recognizedText.length() > referenceTextCleaned.length()/3){
-                            Log.w(TAG_ACTIVITY, "Azure: Scores are 0 despite recognized text. Possible cause: suboptimal audio quality/sample rate.");
+                            Log.w(TAG_ACTIVITY, "Azure: Scores are 0 despite recognized text. Possible cause: suboptimal audio quality/sample rate for assessment (e.g. not 16kHz mono). Input sample rate for SDK: " + actualSampleRateForSdk);
                         }
                     } else {
                         Log.w(TAG_ACTIVITY, "PronunciationAssessmentResult is NULL. Recognized text: \"" + recognizedText + "\". Reference: \"" + referenceTextCleaned + "\"");
                         if (recognizedText.isEmpty()) {
                             errorForUi = "Speech recognized but no content.";
                         } else {
-                            errorForUi = "Could not get pronunciation assessment details. Spoken text might be too different from the sample or audio quality issues.";
+                            errorForUi = "Could not get pronunciation details. Spoken text might be too different, or audio quality/format issue (e.g. ensure 16kHz mono for assessment).";
                         }
                     }
                 } else if (speechResult.getReason() == ResultReason.NoMatch) {
-                    errorForUi = "Could not recognize speech (NoMatch). Please check microphone.";
+                    errorForUi = "Could not recognize speech (NoMatch). Please check microphone and speak clearly.";
                     Log.w(TAG_ACTIVITY, "Azure STT: NOMATCH. SpeechResult details: " + speechResult.toString());
                 } else if (speechResult.getReason() == ResultReason.Canceled) {
                     CancellationDetails cancellation = CancellationDetails.fromResult(speechResult);
@@ -1352,9 +1399,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                                 errDetailsLower.contains(gstreamerKeyword) ||
                                 errDetailsOriginal.contains(gstreamerErrorHex) ||
                                 errDetailsLower.contains(gstreamerErrorName) ) {
-                            errorForUi = "Audio processing error (" + audioFile.getName() +
-                                    "). Error code: " + errorCode + ". Details: " + errDetailsOriginal +
-                                    ". Consider using resampled 16kHz mono WAV.";
+                            errorForUi = "Audio processing error by Azure SDK. File: " + audioFile.getName() +
+                                    ". ErrorCode: " + errorCode + ". Details: " + errDetailsOriginal +
+                                    ". SDK might require GStreamer for this format, or the format is unsupported. Consider using 16kHz mono WAV.";
                             Log.e(TAG_ACTIVITY, "Detected GStreamer or audio format related error. Details: " + errDetailsOriginal);
                         } else if (errDetailsLower.contains("initialsilencetimeout")) {
                             errorForUi = "No speech detected. Speak louder and clearer.";
@@ -1403,32 +1450,50 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 final String finalRecognizedText = recognizedText;
                 final PronunciationAssessmentResult finalPronunciationResult = pronunciationAssessmentResult;
                 final String finalErrorForUi = errorForUi;
-                final String finalAzureDetailedError = azureDetailedError;
+                final String finalAzureDetailedErrorLog = azureDetailedError;
 
                 runOnUiThread(() -> {
-                    Log.d(TAG_ACTIVITY, "Azure Finally UI: Preparing to hide ProgressBar and update UI.");
+                    Log.d(TAG_ACTIVITY, "Azure Finally UI: Hiding ProgressBar, restoring UI interactions.");
                     if (pgbAzureProcessing != null) {
-                        Log.d(TAG_ACTIVITY, "Azure Finally UI: ProgressBar is currently " + (pgbAzureProcessing.getVisibility() == View.VISIBLE ? "VISIBLE" : "GONE/INVISIBLE"));
                         pgbAzureProcessing.setVisibility(View.GONE);
-                        Log.d(TAG_ACTIVITY, "Azure Finally UI: ProgressBar set to GONE. New Visibility: " + (pgbAzureProcessing.getVisibility() == View.VISIBLE ? "VISIBLE" : "GONE/INVISIBLE"));
-                    } else {
-                        Log.e(TAG_ACTIVITY, "Azure Finally UI: pgbAzureProcessing is NULL!");
                     }
-                    setUiInteraction(true);
+
+                    if(btnBackward != null) btnBackward.setEnabled(this.lastCanGoPreviousState);
+                    if(btnForward != null) btnForward.setEnabled(this.lastCanGoNextState);
+                    if(imgClose != null) { imgClose.setEnabled(true); imgClose.setAlpha(1.0f); }
+                    if(imgHome != null) { imgHome.setEnabled(true); imgHome.setAlpha(1.0f); }
+
+                    boolean hasValidRecordingAfterAzure = (this.currentRecordingFilePath != null &&
+                            new File(this.currentRecordingFilePath).exists() &&
+                            new File(this.currentRecordingFilePath).length() > 0);
 
                     if (finalErrorForUi != null) {
                         showError(finalErrorForUi);
-                        Log.e(TAG_ACTIVITY, "Azure UI Error: " + finalErrorForUi + (finalAzureDetailedError.isEmpty() ? "" : " | Azure detailed error: " + finalAzureDetailedError));
+                        Log.e(TAG_ACTIVITY, "Azure UI Error: " + finalErrorForUi + (finalAzureDetailedErrorLog.isEmpty() ? "" : " | Azure detailed error: " + finalAzureDetailedErrorLog));
                         restoreOriginalScriptText();
+                        updatePlaybackUIState(false, false);
                     } else if (finalPronunciationResult != null) {
-                        showToast("Pronunciation analysis complete! Overall score: " + String.format(Locale.US, "%.0f", finalPronunciationResult.getPronunciationScore()) + "%");
+                        // showToast("Pronunciation analysis complete! Overall score: " + String.format(Locale.US, "%.0f", finalPronunciationResult.getPronunciationScore()) + "%"); // XÓA TOAST NÀY
+                        Log.i(TAG_ACTIVITY, "Pronunciation analysis complete! Overall score: " + String.format(Locale.US, "%.0f", finalPronunciationResult.getPronunciationScore()) + "%"); // Giữ lại log nếu cần
                         highlightDifferencesAzure(this.lastCleanScriptDisplayed, finalPronunciationResult, finalRecognizedText);
+                        if (!hasValidRecordingAfterAzure) {
+                            Log.w(TAG_ACTIVITY, "Azure success, but recording file is now invalid/missing. Path: " + this.currentRecordingFilePath);
+                            updatePlaybackUIState(false, false);
+                        } else {
+                            prepareMediaPlayerForPlayback();
+                        }
                     } else if (finalRecognizedText != null && !finalRecognizedText.isEmpty()) {
-                        showToast("Speech recognized successfully (no detailed pronunciation assessment).");
+                        showToast("Speech recognized successfully (no detailed pronunciation assessment)."); // Giữ lại toast này nếu muốn, hoặc xóa nếu "không thông báo overall gì cả" bao gồm cả trường hợp này
                         highlightDifferencesSimple(this.lastCleanScriptDisplayed, finalRecognizedText);
+                        if (!hasValidRecordingAfterAzure) {
+                            updatePlaybackUIState(false, false);
+                        } else {
+                            prepareMediaPlayerForPlayback();
+                        }
                     } else {
                         showError("Could not recognize speech or an unknown error occurred during processing.");
                         restoreOriginalScriptText();
+                        updatePlaybackUIState(false, false);
                     }
                     Log.d(TAG_ACTIVITY, "Azure Finally UI: UI update complete.");
                 });
@@ -1436,16 +1501,18 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         }).exceptionally(ex -> {
             Log.e(TAG_ACTIVITY, "Azure Exceptionally: Critical error in background task ", ex);
             runOnUiThread(() -> {
-                Log.d(TAG_ACTIVITY, "Azure Exceptionally UI: Preparing to hide ProgressBar due to error.");
+                Log.d(TAG_ACTIVITY, "Azure Exceptionally UI: Hiding ProgressBar due to critical error.");
                 if (pgbAzureProcessing != null) {
                     pgbAzureProcessing.setVisibility(View.GONE);
-                    Log.d(TAG_ACTIVITY, "Azure Exceptionally UI: ProgressBar set to GONE.");
-                } else {
-                    Log.e(TAG_ACTIVITY, "Azure Exceptionally UI: pgbAzureProcessing is NULL!");
                 }
-                setUiInteraction(true);
+                if(btnBackward != null) btnBackward.setEnabled(this.lastCanGoPreviousState);
+                if(btnForward != null) btnForward.setEnabled(this.lastCanGoNextState);
+                if(imgClose != null) { imgClose.setEnabled(true); imgClose.setAlpha(1.0f); }
+                if(imgHome != null) { imgHome.setEnabled(true); imgHome.setAlpha(1.0f); }
+
                 showError("Critical error in Azure background task: " + ex.getMessage());
                 restoreOriginalScriptText();
+                updatePlaybackUIState(false, false);
             });
             return null;
         });
@@ -1471,10 +1538,10 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         RandomAccessFile randomAccessFile = null;
 
         final int TIMEOUT_US = 10000;
-        final int TARGET_SAMPLE_RATE_IDEAL = 16000;
+        final int TARGET_SAMPLE_RATE_AZURE = 16000;
         int actualOutputSampleRate = 8000;
-        final int TARGET_CHANNELS = 1;
-        final int TARGET_BIT_DEPTH = 16;
+        final int TARGET_CHANNELS_AZURE = 1;
+        final int TARGET_BIT_DEPTH_AZURE = 16;
 
         try {
             fos = new FileOutputStream(outputFile);
@@ -1492,13 +1559,21 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 if (mime != null && mime.startsWith("audio/")) {
                     audioTrackIndex = i;
                     inputFormat = format;
-                    Log.d(TAG_ACTIVITY, "transcodeToWav: Found audio track: " + mime + ", Format: " + inputFormat);
+                    Log.d(TAG_ACTIVITY, "transcodeToWav: Found audio track: " + mime + ", Input Format: " + inputFormat);
+                    if (inputFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                        Log.d(TAG_ACTIVITY, "transcodeToWav: Original Sample Rate: " + inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE));
+                    }
+                    if (inputFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                        Log.d(TAG_ACTIVITY, "transcodeToWav: Original Channel Count: " + inputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT));
+                    }
                     break;
                 }
             }
 
             if (audioTrackIndex == -1 || inputFormat == null) {
                 Log.e(TAG_ACTIVITY, "transcodeToWav: No audio track found in " + inputPath);
+                if (fos != null) fos.close();
+                if (outputFile.exists()) outputFile.delete();
                 return null;
             }
             extractor.selectTrack(audioTrackIndex);
@@ -1506,10 +1581,13 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             String inputMime = inputFormat.getString(MediaFormat.KEY_MIME);
             if (inputMime == null) {
                 Log.e(TAG_ACTIVITY, "transcodeToWav: Could not get MIME type from inputFormat.");
+                if (fos != null) fos.close();
+                if (outputFile.exists()) outputFile.delete();
                 return null;
             }
             decoder = MediaCodec.createDecoderByType(inputMime);
             decoder.configure(inputFormat, null, null, 0);
+
             decoder.start();
 
             ByteBuffer[] inputBuffers = decoder.getInputBuffers();
@@ -1524,11 +1602,11 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 if (!inputEos) {
                     int inputBufIndex = decoder.dequeueInputBuffer(TIMEOUT_US);
                     if (inputBufIndex >= 0) {
-                        ByteBuffer inputBuffer = inputBuffers[inputBufIndex];
+                        ByteBuffer inputBuffer = decoder.getInputBuffer(inputBufIndex);
                         inputBuffer.clear();
                         int sampleSize = extractor.readSampleData(inputBuffer, 0);
                         if (sampleSize < 0) {
-                            Log.d(TAG_ACTIVITY, "transcodeToWav: End of input data (Input EOS).");
+                            Log.d(TAG_ACTIVITY, "transcodeToWav: End of input data from extractor (Input EOS).");
                             decoder.queueInputBuffer(inputBufIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                             inputEos = true;
                         } else {
@@ -1540,8 +1618,9 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
                 int outputBufIndex = decoder.dequeueOutputBuffer(bufferInfo, TIMEOUT_US);
                 if (outputBufIndex >= 0) {
-                    ByteBuffer outputBuffer = outputBuffers[outputBufIndex];
-                    if (bufferInfo.size > 0) {
+                    ByteBuffer outputBuffer = decoder.getOutputBuffer(outputBufIndex);
+
+                    if (bufferInfo.size > 0 && outputBuffer != null) {
                         byte[] pcmChunk = new byte[bufferInfo.size];
                         outputBuffer.get(pcmChunk);
                         outputBuffer.clear();
@@ -1551,22 +1630,21 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                     decoder.releaseOutputBuffer(outputBufIndex, false);
 
                     if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                        Log.d(TAG_ACTIVITY, "transcodeToWav: Received Output EOS flag.");
+                        Log.d(TAG_ACTIVITY, "transcodeToWav: Received Output EOS flag from decoder.");
                         outputEos = true;
                     }
                 } else if (outputBufIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-                    outputBuffers = decoder.getOutputBuffers();
-                    Log.d(TAG_ACTIVITY, "transcodeToWav: Output buffers changed.");
+                    Log.d(TAG_ACTIVITY, "transcodeToWav: Decoder output buffers changed.");
                 } else if (outputBufIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     MediaFormat newFormat = decoder.getOutputFormat();
                     actualOutputSampleRate = newFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
                     int actualOutputChannels = newFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                    Log.d(TAG_ACTIVITY, "transcodeToWav: Output format changed to: " + newFormat +
-                            " (SampleRate: " + actualOutputSampleRate + ", Channels: " + actualOutputChannels + ")");
-                    if (actualOutputSampleRate != TARGET_SAMPLE_RATE_IDEAL || actualOutputChannels != TARGET_CHANNELS) {
+                    Log.d(TAG_ACTIVITY, "transcodeToWav: Decoder output format changed to: " + newFormat +
+                            " (Actual SampleRate: " + actualOutputSampleRate + ", Actual Channels: " + actualOutputChannels + ")");
+                    if (actualOutputSampleRate != TARGET_SAMPLE_RATE_AZURE || actualOutputChannels != TARGET_CHANNELS_AZURE) {
                         Log.w(TAG_ACTIVITY, "transcodeToWav: WARNING: Output PCM format is " + actualOutputSampleRate + "Hz/" + actualOutputChannels + "ch. " +
-                                "Ideal for Azure is " + TARGET_SAMPLE_RATE_IDEAL + "Hz/" + TARGET_CHANNELS + "ch. " +
-                                "RESAMPLE/REMIX NEEDED for optimization.");
+                                "Ideal for Azure Pronunciation Assessment is " + TARGET_SAMPLE_RATE_AZURE + "Hz/" + TARGET_CHANNELS_AZURE + "ch. " +
+                                "Resampling/remixing might be needed for optimal results if not already done.");
                     }
                 }
             }
@@ -1577,17 +1655,20 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
             randomAccessFile = new RandomAccessFile(outputFile, "rw");
             writeWavHeader(randomAccessFile, totalPcmBytesWritten,
-                    actualOutputSampleRate, TARGET_CHANNELS, TARGET_BIT_DEPTH);
+                    actualOutputSampleRate, TARGET_CHANNELS_AZURE, TARGET_BIT_DEPTH_AZURE);
             randomAccessFile.close();
             randomAccessFile = null;
 
-            Log.i(TAG_ACTIVITY, "transcodeToWav: Transcoding successful: " + outputFile.getAbsolutePath() + ", PCM Size: " + totalPcmBytesWritten);
+            Log.i(TAG_ACTIVITY, "transcodeToWav: Transcoding successful: " + outputFile.getAbsolutePath() +
+                    ", PCM Size: " + totalPcmBytesWritten + " bytes, Output Sample Rate for WAV: " + actualOutputSampleRate);
             return outputFile.getAbsolutePath();
 
         } catch (Exception e) {
             Log.e(TAG_ACTIVITY, "transcodeToWav: Error during transcoding ", e);
             if (outputFile.exists()) {
-                outputFile.delete();
+                if (outputFile.delete()) {
+                    Log.d(TAG_ACTIVITY, "transcodeToWav: Deleted incomplete output file.");
+                }
             }
             return null;
         } finally {
@@ -1600,7 +1681,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                     decoder.release();
                 }
             } catch (Exception e) {
-                Log.e(TAG_ACTIVITY, "transcodeToWav: Error releasing resources ", e);
+                Log.e(TAG_ACTIVITY, "transcodeToWav: Error releasing resources in finally block ", e);
             }
         }
     }
@@ -1638,15 +1719,19 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             buffer.putShort((short) value);
         } else if (numBytes == 4) {
             buffer.putInt((int) value);
-        } else {
+        } else if (numBytes == 8 && Long.BYTES >= 8) {
             buffer.putLong(value);
+        } else {
+            Log.e(TAG_ACTIVITY, "longToByteArray: Unsupported numBytes for long conversion: " + numBytes);
+            if (numBytes == 4) buffer.putInt((int)value);
+            else if (numBytes == 2) buffer.putShort((short)value);
         }
         return buffer.array();
     }
 
     private void highlightDifferencesSimple(String originalText, String recognizedText) {
         if (txtScriptToRepeat == null || originalText == null || recognizedText == null) {
-            Log.w(TAG_ACTIVITY, "highlightDifferencesSimple: Invalid input.");
+            Log.w(TAG_ACTIVITY, "highlightDifferencesSimple: Invalid input (TextView, originalText, or recognizedText is null).");
             restoreOriginalScriptText();
             return;
         }
@@ -1657,43 +1742,38 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             return;
         }
 
-        String[] originalWords = originalText.trim().split("\\s+");
-        String[] recognizedWords = recognizedText.trim().isEmpty() ? new String[0] : recognizedText.trim().split("\\s+");
+        String[] originalWords = originalText.trim().toLowerCase(Locale.ROOT).split("\\s+");
+        String[] recognizedWords = recognizedText.trim().isEmpty() ? new String[0] : recognizedText.trim().toLowerCase(Locale.ROOT).split("\\s+");
 
-        int currentSearchStartOffset = 0;
+        int currentSearchStartOffsetInOriginal = 0;
         int recIdx = 0;
 
-        for (String origWordWithPunct : originalWords) {
-            if (origWordWithPunct.isEmpty()) continue;
-            int start = originalText.indexOf(origWordWithPunct, currentSearchStartOffset);
-            if (start == -1) {
-                Log.w(TAG_ACTIVITY, "SimpleHighlight: Could not find word '" + origWordWithPunct + "' from offset " + currentSearchStartOffset + ". Retrying from start.");
-                start = originalText.indexOf(origWordWithPunct);
-                if (start == -1) {
-                    Log.e(TAG_ACTIVITY, "SimpleHighlight: Critical error, could not find word '" + origWordWithPunct + "' in original script. Skipping this word.");
-                    currentSearchStartOffset += origWordWithPunct.length() + 1;
-                    continue;
-                }
-            }
-            int end = start + origWordWithPunct.length();
+        Pattern originalWordPattern = Pattern.compile("\\b[a-zA-Z0-9]+(?:['‘’][a-zA-Z0-9]+)*\\b");
+        Matcher originalMatcher = originalWordPattern.matcher(originalText);
 
-            boolean match = false;
+        while (originalMatcher.find(currentSearchStartOffsetInOriginal)) {
+            String displayWord = originalMatcher.group(0);
+            String cleanedDisplayWordLower = displayWord.replaceAll("[^a-zA-Z0-9']", "").toLowerCase(Locale.ROOT);
+
+            int startOriginalDisplay = originalMatcher.start();
+            int endOriginalDisplay = originalMatcher.end();
+
+            boolean matchFound = false;
             if (recIdx < recognizedWords.length) {
-                String cleanedOrigWord = origWordWithPunct.replaceAll("[\\p{Punct}&&[^'-]]", "").toLowerCase(Locale.ROOT);
-                String cleanedRecWord = recognizedWords[recIdx].replaceAll("[\\p{Punct}&&[^'-]]", "").toLowerCase(Locale.ROOT);
-                if (cleanedOrigWord.equals(cleanedRecWord) && !cleanedOrigWord.isEmpty()) {
-                    match = true;
+                String cleanedRecWord = recognizedWords[recIdx].replaceAll("[^a-zA-Z0-9']", "").toLowerCase(Locale.ROOT);
+                if (cleanedDisplayWordLower.equals(cleanedRecWord) && !cleanedDisplayWordLower.isEmpty()) {
+                    matchFound = true;
                 }
             }
 
-            if (!match) {
-                spannable.setSpan(new ForegroundColorSpan(Color.RED), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (!matchFound) {
+                spannable.setSpan(new ForegroundColorSpan(Color.RED), startOriginalDisplay, endOriginalDisplay, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
 
-            if (match) {
+            if (matchFound) {
                 recIdx++;
             }
-            currentSearchStartOffset = end;
+            currentSearchStartOffsetInOriginal = endOriginalDisplay;
         }
         txtScriptToRepeat.setText(spannable);
     }
@@ -1701,7 +1781,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
     private void highlightDifferencesAzure(String originalText, PronunciationAssessmentResult assessmentResult, String recognizedTranscriptOverall) {
         if (txtScriptToRepeat == null || originalText == null || assessmentResult == null) {
-            Log.e(TAG_ACTIVITY, "highlightDifferencesAzure: Invalid input (null).");
+            Log.e(TAG_ACTIVITY, "highlightDifferencesAzure: Invalid input (TextView, originalText, or assessmentResult is null).");
             restoreOriginalScriptText();
             return;
         }
@@ -1710,7 +1790,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         List<WordLevelTimingResult> assessedWords = assessmentResult.getWords();
 
         if (assessedWords == null || assessedWords.isEmpty()) {
-            Log.w(TAG_ACTIVITY, "No word data from PronunciationAssessmentResult for Azure highlighting.");
+            Log.w(TAG_ACTIVITY, "No word-level data from PronunciationAssessmentResult for Azure highlighting.");
             if (recognizedTranscriptOverall != null && !recognizedTranscriptOverall.isEmpty()) {
                 highlightDifferencesSimple(originalText, recognizedTranscriptOverall);
             } else {
@@ -1720,59 +1800,67 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         }
 
         Log.i(TAG_ACTIVITY, "HighlightAzure: Starting highlighting. Number of Azure assessed words: " + assessedWords.size());
-        Log.d(TAG_ACTIVITY, "HighlightAzure: Original text: \"" + originalText + "\"");
+        Log.d(TAG_ACTIVITY, "HighlightAzure: Original display text: \"" + originalText + "\"");
 
-        int searchStartIndexInOriginal = 0;
+        int searchStartIndexInOriginalDisplay = 0;
 
         for (WordLevelTimingResult assessedWordData : assessedWords) {
-            String wordFromAzureCleaned = assessedWordData.getWord();
+            String wordFromAzure = assessedWordData.getWord();
             String errorType = assessedWordData.getErrorType();
             double accuracyScore = assessedWordData.getAccuracyScore();
 
-            Log.d(TAG_ACTIVITY, "HighlightAzure: Processing Azure word: '" + wordFromAzureCleaned +
-                    "', Error: " + errorType + ", Score: " + accuracyScore);
+            Log.d(TAG_ACTIVITY, "HighlightAzure: Processing Azure word: '" + wordFromAzure +
+                    "', ErrorType: " + errorType + ", AccuracyScore: " + accuracyScore);
 
-            boolean foundThisAzureWord = false;
-            Pattern wordPattern = Pattern.compile("\\b[a-zA-Z0-9]+(['-][a-zA-Z0-9]+)*\\b");
-            Matcher matcher = wordPattern.matcher(originalText);
+            if ("Insertion".equalsIgnoreCase(errorType)) {
+                Log.d(TAG_ACTIVITY, "HighlightAzure: Skipping 'Insertion' type word: '" + wordFromAzure + "'");
+                continue;
+            }
 
-            while (matcher.find(searchStartIndexInOriginal)) {
-                String originalWordSegment = matcher.group(0);
-                int startInOriginal = matcher.start();
-                int endInOriginal = matcher.end();
-                String cleanedOriginalWordSegment = originalWordSegment.toLowerCase(Locale.ROOT);
+            boolean foundThisAzureWordInOriginal = false;
+            Pattern originalWordPattern = Pattern.compile("\\b[a-zA-Z0-9]+(?:['‘’][a-zA-Z0-9]+)*\\b");
+            Matcher matcher = originalWordPattern.matcher(originalText);
 
-                Log.v(TAG_ACTIVITY, "HighlightAzure:   Comparing Azure '" + wordFromAzureCleaned +
-                        "' with original (cleaned) '" + cleanedOriginalWordSegment +
-                        "' (from original '" + originalWordSegment + "' at " + startInOriginal + "-" + endInOriginal + ")");
+            while (matcher.find(searchStartIndexInOriginalDisplay)) {
+                String originalDisplayWordSegment = matcher.group(0);
+                String cleanedOriginalDisplayWordLower = originalDisplayWordSegment.replaceAll("[^a-zA-Z0-9']", "").toLowerCase(Locale.ROOT);
+                String cleanedWordFromAzureLower = wordFromAzure.toLowerCase(Locale.ROOT);
 
-                if (cleanedOriginalWordSegment.equals(wordFromAzureCleaned)) {
-                    Log.d(TAG_ACTIVITY, "HighlightAzure:   MATCH! Original: '" + originalWordSegment + "' with Azure: '" + wordFromAzureCleaned + "'");
+                Log.v(TAG_ACTIVITY, "HighlightAzure:   Comparing Azure '" + cleanedWordFromAzureLower +
+                        "' with original display (cleaned) '" + cleanedOriginalDisplayWordLower +
+                        "' (from original segment '" + originalDisplayWordSegment + "' at " + matcher.start() + "-" + matcher.end() + ")");
+
+                if (cleanedOriginalDisplayWordLower.equals(cleanedWordFromAzureLower) && !cleanedOriginalDisplayWordLower.isEmpty()) {
+                    int startInOriginalDisplay = matcher.start();
+                    int endInOriginalDisplay = matcher.end();
+
+                    Log.d(TAG_ACTIVITY, "HighlightAzure:   MATCH! Original display segment: '" + originalDisplayWordSegment + "' with Azure word: '" + wordFromAzure + "'");
+
                     boolean needsHighlightRed = false;
                     if ("Mispronunciation".equalsIgnoreCase(errorType)) {
                         needsHighlightRed = true;
                     } else if ("Omission".equalsIgnoreCase(errorType)) {
                         needsHighlightRed = true;
-                    } else if (accuracyScore < 60.0 && !"None".equalsIgnoreCase(errorType) && !"Insertion".equalsIgnoreCase(errorType)) {
+                    } else if (accuracyScore < 60.0 && !"None".equalsIgnoreCase(errorType)) {
                         needsHighlightRed = true;
                     }
 
                     if (needsHighlightRed) {
-                        spannable.setSpan(new ForegroundColorSpan(Color.RED), startInOriginal, endInOriginal, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        Log.i(TAG_ACTIVITY, "HighlightAzure:     HIGHLIGHTING RED: '" + originalWordSegment + "'");
+                        spannable.setSpan(new ForegroundColorSpan(Color.RED), startInOriginalDisplay, endInOriginalDisplay, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        Log.i(TAG_ACTIVITY, "HighlightAzure:     HIGHLIGHTING RED: '" + originalDisplayWordSegment + "' due to Error: " + errorType + ", Score: " + accuracyScore);
                     } else {
-                        Log.d(TAG_ACTIVITY, "HighlightAzure:     NOT HIGHLIGHTING RED (OK): '" + originalWordSegment + "'");
+                        Log.d(TAG_ACTIVITY, "HighlightAzure:     NOT HIGHLIGHTING RED (OK/None): '" + originalDisplayWordSegment + "'");
                     }
 
-                    searchStartIndexInOriginal = endInOriginal;
-                    foundThisAzureWord = true;
+                    searchStartIndexInOriginalDisplay = endInOriginalDisplay;
+                    foundThisAzureWordInOriginal = true;
                     break;
                 }
             }
 
-            if (!foundThisAzureWord) {
-                Log.w(TAG_ACTIVITY, "HighlightAzure:   COULD NOT FIND Azure word '" + wordFromAzureCleaned +
-                        "' in the remainder of originalText (from position: " + searchStartIndexInOriginal + "). ");
+            if (!foundThisAzureWordInOriginal) {
+                Log.w(TAG_ACTIVITY, "HighlightAzure:   COULD NOT FIND Azure word '" + wordFromAzure +
+                        "' (cleaned: '" + wordFromAzure.toLowerCase(Locale.ROOT) + "') in the remainder of original display text (from index: " + searchStartIndexInOriginalDisplay + "). ");
             }
         }
         txtScriptToRepeat.setText(spannable);
@@ -1791,7 +1879,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 throw new FileNotFoundException("File does not exist: " + filePath);
             }
             if (audioFile.length() == 0) {
-                Log.w(TAG_CALLBACK, "File is empty (0 bytes): " + filePath + ". Azure may report an error.");
+                Log.w(TAG_CALLBACK, "File is empty (0 bytes): " + filePath + ". Azure may report an error or no match.");
             }
             this.fileStream = new FileInputStream(audioFile);
             Log.d(TAG_CALLBACK, "FileInputStream opened for: " + filePath + ", size: " + audioFile.length());
@@ -1800,6 +1888,10 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
         @Override
         public int read(byte[] dataBuffer) {
             try {
+                if (this.fileStream == null) {
+                    Log.e(TAG_CALLBACK, "read() called but fileStream is null.");
+                    return 0;
+                }
                 int bytesRead = this.fileStream.read(dataBuffer, 0, dataBuffer.length);
                 if (bytesRead == -1) {
                     return 0;
