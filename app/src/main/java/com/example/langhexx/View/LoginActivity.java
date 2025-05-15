@@ -43,9 +43,9 @@ public class LoginActivity extends AppCompatActivity implements AuthController.A
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String username = edtStudentCode.getText().toString();
-                String password = edtStudentPassword.getText().toString();
-                authController.handleLogin(LoginActivity.this,username,password);
+//                String username = edtStudentCode.getText().toString();
+//                String password = edtStudentPassword.getText().toString();
+//                authController.handleLogin(LoginActivity.this,username,password);
             }
         });
         //
