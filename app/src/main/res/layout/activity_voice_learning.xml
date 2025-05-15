@@ -127,61 +127,65 @@
                 android:layout_gravity="center"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Ghi âm"
-                android:src="@drawable/micro" />
+                android:src="@drawable/micro"
+                android:visibility="visible"/> <LinearLayout
+            android:id="@+id/layout_playback_controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_playback_controls_rounder"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="13dp"
+            android:visibility="gone"
+            tools:visibility="gone"> <ImageButton
+            android:id="@+id/imgButtonPlayAudio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="Phát/Tạm dừng"
+            android:src="@drawable/icon_play_audio"
+            android:tint="#FAF8F8" />
 
-            <LinearLayout
-                android:id="@+id/layout_playback_controls"
-                android:layout_width="match_parent"
+            <SeekBar
+                android:id="@+id/sbrAudio"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_playback_controls_rounder"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="13dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:progressBackgroundTint="@android:color/white"
+                android:progressTint="@android:color/white"
+                android:thumbTint="@android:color/white" />
+
+            <TextView
+                android:id="@+id/txtTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="00:00/00:30"
+                android:textColor="@android:color/white"
+                android:textSize="15dp" />
+
+            <ImageButton
+                android:id="@+id/imgButtonDelete"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Xóa"
+                android:src="@drawable/icon_delete"
+                android:tint="@android:color/white" />
+
+        </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/pgbAzureProcessing"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
                 android:visibility="gone"
-                tools:visibility="visible">
-
-                <ImageButton
-                    android:id="@+id/imgButtonPlayAudio"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="Phát/Tạm dừng"
-                    android:src="@drawable/icon_play_audio"
-                    android:tint="#FAF8F8" />
-
-                <SeekBar
-                    android:id="@+id/sbrAudio"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:progressBackgroundTint="@android:color/white"
-                    android:progressTint="@android:color/white"
-                    android:thumbTint="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/txtTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:text="00:00/00:30"
-                    android:textColor="@android:color/white"
-
-                    android:textSize="15dp" />
-
-                <ImageButton
-                    android:id="@+id/imgButtonDelete"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Xóa"
-                    android:src="@drawable/icon_delete"
-                    android:tint="@android:color/white" />
-
-            </LinearLayout>
-        </FrameLayout>
+                tools:visibility="visible"/> </FrameLayout>
 
 
         <LinearLayout
