@@ -343,7 +343,7 @@ public class HomeFragment extends Fragment {
         Button btnClose = dialogView.findViewById(R.id.btnCloseDialog);
 
         ArrayList<String> notifications = new ArrayList<>();
-        notifications.add("Chào mừng đến với ứng dụng LangHexx!");
+        notifications.add("Welcome to LangHex app !");
 
         if (notifications.isEmpty()) {
             recyclerView.setVisibility(View.GONE);

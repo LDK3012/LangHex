@@ -109,14 +109,24 @@ public class SpeakingGrammarModel implements SpeakingContract.Model {
                         "Question: \"%s\"\n" +
                         "User's Answer: \"%s\"\n\n" +
                         "Respond ONLY with a JSON object containing these fields:\n" +
-                        "1. 'is_correct': boolean (true if the answer is grammatically correct, relevant, and coherent. Correct even if it provides additional relevant info. E.g., Q: 'Do you like ice cream?' A: 'No, I like chocolate.' IS correct. False ONLY for significant errors, irrelevance, or nonsensical answers).\n" +
-                        "2. 'feedback_en': string (If 'is_correct' is false, provide a BRIEF explanation *in English* of the main issue - e.g., grammar, vocabulary, relevance. If 'is_correct' is true, this can be empty OR provide minor positive feedback *in English*, e.g., 'Your answer is correct and natural!' or 'Correct! You could also say \"No, I don\\'t like ice cream, but I like chocolate.\" for a more complete sentence.').\n" +
-                        "3. 'suggested_answer_en': string (Provide a well-formed, correct alternative answer *in English* ONLY if 'is_correct' is false. Leave empty if 'is_correct' is true).\n\n" +
-                        "Example (incorrect):\n" +
+                        "1. 'is_correct': boolean (true if the answer is grammatically correct, relevant, coherent, and provides a direct or reasonably inferable answer to the question asked. An answer can be general rather than highly specific and still be correct (e.g., Q: 'What time do you wake up?' A: 'I wake up in the morning.' IS correct). Also correct if it provides additional relevant info (e.g., Q: 'Do you like ice cream?' A: 'No, I like chocolate.' IS correct). False ONLY for:\n" +
+                        "    a) Significant grammatical errors.\n" +
+                        "    b) Clear irrelevance to the question.\n" +
+                        "    c) Nonsensical or incoherent content.\n" +
+                        "    d) Explicit evasions (e.g., 'I don\\'t know', 'I won\\'t tell you', 'I can\\'t say', 'I can\\'t remember') or answers that are so vague they offer no meaningful information (e.g., Q: 'What time do you wake up?' A: 'Sometime.' would be considered incorrect here) when the question clearly seeks a specific type of information and the learning context encourages providing it. The goal is to encourage practice in forming informative statements, not just grammatically correct non-answers to specific questions.).\n" +
+                        "2. 'feedback_en': string (If 'is_correct' is false, provide a BRIEF explanation *in English* of the main issue – e.g., grammar, vocabulary, relevance, or why the answer is considered evasive or overly vague. For instance, for an answer like 'I don\\'t know' or 'Sometime.' to 'What time do you wake up?', feedback could be: 'This answer is a bit too vague or doesn\\'t provide the specific information requested. Please try to give a more precise time.' If 'is_correct' is true, this can be empty OR provide minor positive feedback *in English*, e.g., 'Your answer is correct and natural!' or 'Correct! 'I wake up in the morning' is a good general answer. For more practice, you could also try giving a specific time like 'I wake up at 7 AM'.' for answers that are general but correct.).\n" +
+                        "3. 'suggested_answer_en': string (Provide a well-formed, correct alternative answer *in English* ONLY if 'is_correct' is false. This should be an example of a direct and informative answer to the question. For example, if the question was 'What time do you wake up?' and the user answered 'I don\\'t know' or 'Sometime.', a suggested answer could be 'I wake up at 7 AM.'. Leave empty if 'is_correct' is true, unless providing an alternative way to phrase a general but correct answer, see feedback_en for example).\n\n" +
+                        "Example (incorrect grammar):\n" +
                         "{\n" +
                         "  \"is_correct\": false,\n" +
                         "  \"feedback_en\": \"There's a grammar error with the verb tense.\",\n" +
                         "  \"suggested_answer_en\": \"I went to the park yesterday.\"\n" +
+                        "}\n\n" +
+                        "Example (correct, general answer like 'I wake up in the morning.' to 'What time do you wake up?'):\n" +
+                        "{\n" +
+                        "  \"is_correct\": true,\n" +
+                        "  \"feedback_en\": \"Correct! 'I wake up in the morning' is a good general answer. For more practice, you could also try giving a specific time like 'I wake up at 7 AM'.\",\n" +
+                        "  \"suggested_answer_en\": \"\"\n" +
                         "}\n\n" +
                         "Example (correct, indirect):\n" +
                         "{\n" +
@@ -124,14 +134,21 @@ public class SpeakingGrammarModel implements SpeakingContract.Model {
                         "  \"feedback_en\": \"Good answer! You addressed the question and added relevant details.\",\n" +
                         "  \"suggested_answer_en\": \"\"\n" +
                         "}\n\n" +
-                        "Example (correct, direct):\n" +
+                        "Example (incorrect, evasive answer like 'I don\\'t know' to 'What time do you wake up?'):\n" +
                         "{\n" +
-                        "  \"is_correct\": true,\n" +
-                        "  \"feedback_en\": \"\",\n" +
-                        "  \"suggested_answer_en\": \"\"\n" +
+                        "  \"is_correct\": false,\n" +
+                        "  \"feedback_en\": \"While 'I don\\'t know' is grammatically correct, the question asks for a specific time. Please try to provide an actual time you wake up.\",\n" +
+                        "  \"suggested_answer_en\": \"I wake up at 7 AM.\"\n" +
+                        "}\n\n" +
+                        "Example (incorrect, overly vague answer like 'Sometime.' to 'What time do you wake up?'):\n" +
+                        "{\n" +
+                        "  \"is_correct\": false,\n" +
+                        "  \"feedback_en\": \"This answer is a bit too vague. Please try to give a more precise time.\",\n" +
+                        "  \"suggested_answer_en\": \"I wake up at 8 AM.\"\n" +
                         "}",
                 question, userAnswer
         );
+
 
         JSONObject requestBody = new JSONObject();
         try {
