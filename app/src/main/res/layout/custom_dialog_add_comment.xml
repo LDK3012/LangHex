@@ -22,7 +22,7 @@
         android:gravity="top"
         android:hint="Bạn đang nghĩ gì?"
         android:padding="12dp"
-        android:editable="false"
+        android:editable="true"
         android:textColorHint="#AAAAAA" />
 
     <LinearLayout
