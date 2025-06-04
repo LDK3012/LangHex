@@ -42,7 +42,6 @@ import java.util.concurrent.Executors;
 
 public class HomeFragment extends Fragment {
     private ListView lstLevel;
-    private Button btnNotifiy;
     private TextView txtName;
     private ImageView imgAvatar;
     private ArrayList<Levels> levelsList;
@@ -85,30 +84,27 @@ public class HomeFragment extends Fragment {
 
     public void addControls(View view){
         lstLevel = view.findViewById(R.id.lstLevels);
-        btnNotifiy = view.findViewById(R.id.btnNotifications);
         txtName = view.findViewById(R.id.txtName);
         imgAvatar = view.findViewById(R.id.imgAvatar);
     }
 
     private void setUpListView(){
         levelsList = new ArrayList<>();
-        levelsList.add(new Levels("General English - Vstep", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A1", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A2", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A3", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A4", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A5", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A6", String.valueOf(R.drawable.example)));
-        levelsList.add(new Levels("A7", String.valueOf(R.drawable.example)));
-        // ... (các levels khác)
-
+        levelsList.add(new Levels("A1", String.valueOf(R.drawable.a1_banner)));
+        levelsList.add(new Levels("A2", String.valueOf(R.drawable.a2_banner)));
+        levelsList.add(new Levels("A3", String.valueOf(R.drawable.a3_banner)));
+        levelsList.add(new Levels("A4", String.valueOf(R.drawable.a4_banner)));
+        levelsList.add(new Levels("A5", String.valueOf(R.drawable.a5_banner)));
+        levelsList.add(new Levels("A6", String.valueOf(R.drawable.a6_banner)));
+        levelsList.add(new Levels("A7", String.valueOf(R.drawable.a7_banner)));
+        levelsList.add(new Levels("VSTEP", String.valueOf(R.drawable.vstep_banner)));
         if (getActivity() != null) {
             levelsAdapter = new LevelsAdapter(getActivity(), R.layout.custom_levels_lst, levelsList);
             lstLevel.setAdapter(levelsAdapter);
             lstLevel.setOnItemClickListener((parent, view, position, id) -> {
                 String levelName = levelsList.get(position).getTxtLevels();
                 Intent intent;
-                if ("General English - Vstep".equals(levelName)) {
+                if ("VSTEP".equals(levelName)) {
                     intent = new Intent(getActivity(), VstepActivity.class);
                 } else {
                     intent = new Intent(getActivity(), LearningTypeActivity.class);
@@ -122,7 +118,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void addEvents(){
-        btnNotifiy.setOnClickListener(v -> showNotificationDialog());
+
     }
 
     private void loadUserProfile() {

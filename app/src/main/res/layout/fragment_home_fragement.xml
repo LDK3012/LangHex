@@ -30,28 +30,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="left"
-                    android:textSize="20dp"
-                    android:textStyle="bold"
-                    android:text="Hi," />
+                    android:textSize="18dp"
+                    android:text="Hello" />
                 <TextView
                     android:id="@+id/txtName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="left"
-                    android:textSize="17dp"
+                    android:textSize="20dp"
                     android:textStyle="bold"
                     android:text="Duy Khang Liêng" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnNotifications"
-                    android:layout_gravity="left"
-                    android:layout_width="118dp"
-                    android:layout_height="26dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/rounded_button"
-                    android:text="Notification"
-                    android:textColor="@color/white"
-                    android:textSize="12dp">
-                </androidx.appcompat.widget.AppCompatButton>
+
             </LinearLayout>
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
@@ -87,7 +76,7 @@
             android:id="@+id/textView4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="20dp"
+            android:textSize="25dp"
             android:textStyle="bold"
             android:textColor="@color/black"
             android:gravity="center"

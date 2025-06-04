@@ -14,11 +14,11 @@
         android:icon="@drawable/chat"
         android:title="Chat"/>
     <item
-        android:id="@+id/item_btt_nav_arena"
+        android:id="@+id/item_btt_nav_game"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:icon="@drawable/arena"
-        android:title="Arena" />
+        android:icon="@drawable/game"
+        android:title="Game" />
     <item
         android:id="@+id/item_btt_nav_profile"
         android:layout_width="wrap_content"

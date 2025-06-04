@@ -14,10 +14,10 @@ import com.example.langhexx.R;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link ArenaFragment#newInstance} factory method to
+ * Use the {@link GameFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class ArenaFragment extends Fragment {
+public class GameFragment extends Fragment {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -28,7 +28,7 @@ public class ArenaFragment extends Fragment {
     private String mParam1;
     private String mParam2;
 
-    public ArenaFragment() {
+    public GameFragment() {
         // Required empty public constructor
     }
 
@@ -41,8 +41,8 @@ public class ArenaFragment extends Fragment {
      * @return A new instance of fragment ArenaFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static ArenaFragment newInstance(String param1, String param2) {
-        ArenaFragment fragment = new ArenaFragment();
+    public static GameFragment newInstance(String param1, String param2) {
+        GameFragment fragment = new GameFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -63,7 +63,7 @@ public class ArenaFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_arena, container, false);
+        View view = inflater.inflate(R.layout.fragment_game, container, false);
         LinearLayout lnrRanking = view.findViewById(R.id.lnrRanking) ;
         lnrRanking.setOnClickListener(new View.OnClickListener() {
             @Override

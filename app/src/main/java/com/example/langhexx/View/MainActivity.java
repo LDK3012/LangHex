@@ -20,12 +20,12 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
     FragmentManager fragmentManager;
     HomeFragment homeFragment;
     ChatFragment chatFragment;
-    ArenaFragment arenaFragment;
+    GameFragment gameFragment;
     ProfileFragment profileFragment;
     Fragment activeFragment;
     private static final String TAG_HOME = "HOME_FRAGMENT";
     private static final String TAG_CHAT = "CHAT_FRAGMENT";
-    private static final String TAG_ARENA = "ARENA_FRAGMENT";
+    private static final String TAG_ARENA = "GAME_FRAGMENT";
     private static final String TAG_PROFILE = "PROFILE_FRAGMENT";
 
     @Override
@@ -43,8 +43,8 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
             bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_home);
         } else if (activeFragment == chatFragment) {
             bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_chat);
-        } else if (activeFragment == arenaFragment) {
-            bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_arena);
+        } else if (activeFragment == gameFragment) {
+            bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_game);
         } else if (activeFragment == profileFragment) {
             bottomNavigationView.setSelectedItemId(R.id.item_btt_nav_profile);
         }
@@ -70,11 +70,11 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
         if (savedInstanceState == null) {
             homeFragment = new HomeFragment();
             chatFragment = new ChatFragment();
-            arenaFragment = new ArenaFragment();
+            gameFragment = new GameFragment();
             profileFragment = new ProfileFragment();
             fragmentManager.beginTransaction()
                     .add(R.id.mainFrame, profileFragment, TAG_PROFILE).hide(profileFragment)
-                    .add(R.id.mainFrame, arenaFragment, TAG_ARENA).hide(arenaFragment)
+                    .add(R.id.mainFrame, gameFragment, TAG_ARENA).hide(gameFragment)
                     .add(R.id.mainFrame, chatFragment, TAG_CHAT).hide(chatFragment)
                     .add(R.id.mainFrame, homeFragment, TAG_HOME) // Add and show Home last
                     .commit();
@@ -83,14 +83,14 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
         } else {
             homeFragment = (HomeFragment) fragmentManager.findFragmentByTag(TAG_HOME);
             chatFragment = (ChatFragment) fragmentManager.findFragmentByTag(TAG_CHAT);
-            arenaFragment = (ArenaFragment) fragmentManager.findFragmentByTag(TAG_ARENA);
+            gameFragment = (GameFragment) fragmentManager.findFragmentByTag(TAG_ARENA);
             profileFragment = (ProfileFragment) fragmentManager.findFragmentByTag(TAG_PROFILE);
             if (homeFragment != null && !homeFragment.isHidden()) {
                 activeFragment = homeFragment;
             } else if (chatFragment != null && !chatFragment.isHidden()) {
                 activeFragment = chatFragment;
-            } else if (arenaFragment != null && !arenaFragment.isHidden()) {
-                activeFragment = arenaFragment;
+            } else if (gameFragment != null && !gameFragment.isHidden()) {
+                activeFragment = gameFragment;
             } else if (profileFragment != null && !profileFragment.isHidden()) {
                 activeFragment = profileFragment;
             } else {
@@ -116,8 +116,8 @@ public class MainActivity extends AppCompatActivity implements ChatFragment.Keyb
                     selectedFragment = homeFragment;
                 } else if (itemId == R.id.item_btt_nav_chat) {
                     selectedFragment = chatFragment;
-                } else if (itemId == R.id.item_btt_nav_arena) {
-                    selectedFragment = arenaFragment;
+                } else if (itemId == R.id.item_btt_nav_game) {
+                    selectedFragment = gameFragment;
                 } else if (itemId == R.id.item_btt_nav_profile) {
                     selectedFragment = profileFragment;
                 }
