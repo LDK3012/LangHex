@@ -38,28 +38,28 @@ public class ReviewActivity extends AppCompatActivity {
             }
         });
         //
-        lnrSpeaking.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ReviewActivity.this, ChooseSpeakingGrammarTopicActivity.class) ;
-                startActivity(intent);
-            }
-        });
-        lnrListening.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ReviewActivity.this, InternalListeningTopic.class) ;
-                startActivity(intent);
-            }
-        });
-        //
-        lnrReading.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ReviewActivity.this, InternalReadingTopic.class) ;
-                startActivity(intent);
-            }
-        });
+//        lnrSpeaking.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent(ReviewActivity.this, ChooseSpeakingGrammarTopicActivity.class) ;
+//                startActivity(intent);
+//            }
+//        });
+//        lnrListening.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent(ReviewActivity.this, InternalListeningTopic.class) ;
+//                startActivity(intent);
+//            }
+//        });
+//        //
+//        lnrReading.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent(ReviewActivity.this, InternalReadingTopic.class) ;
+//                startActivity(intent);
+//            }
+//        });
 
     }
 }
