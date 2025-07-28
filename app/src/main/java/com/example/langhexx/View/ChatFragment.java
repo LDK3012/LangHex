@@ -1,4 +1,3 @@
-
 package com.example.langhexx.View;
 
 import android.content.Context;
@@ -6,24 +5,31 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.langhexx.Controller.ChatAdapter;
 import com.example.langhexx.Model.ChatMessage;
+import com.example.langhexx.Model.ChatHistoryManager;
+import com.example.langhexx.Model.CustomToast;
+import com.example.langhexx.Model.TokenLimiter;
 import com.example.langhexx.R;
 
 import org.json.JSONArray;
@@ -33,6 +39,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -46,12 +53,14 @@ public class ChatFragment extends Fragment {
     private View rootView;
     private ViewTreeObserver.OnGlobalLayoutListener globalLayoutListener;
     private boolean isKeyboardVisible = false;
+    private boolean isLimitToastVisible = false;
+    private static final String OPENAI_API_KEY = "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" ;
+    private static final String TYPING_MESSAGE = "Typing...";
     public interface KeyboardVisibilityListener {
         void onKeyboardVisibilityChanged(boolean isVisible);
     }
-    private KeyboardVisibilityListener keyboardVisibilityListener ;
 
-
+    private KeyboardVisibilityListener keyboardVisibilityListener;
     private EditText edtMessage;
     private ImageButton btnSend;
     private RecyclerView recyclerChat;
@@ -59,6 +68,8 @@ public class ChatFragment extends Fragment {
     private List<ChatMessage> messages = new ArrayList<>();
     private TextView sampleQuestion1, sampleQuestion2, sampleQuestion3;
     private LinearLayout sampleQuestionsContainer;
+    private TextView selectedModelText;
+    private String currentModel = "Normal Mode";
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -71,7 +82,11 @@ public class ChatFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
-        //
+
+        selectedModelText = view.findViewById(R.id.selectedModelText);
+        selectedModelText.setText(currentModel);
+        selectedModelText.setOnClickListener(this::showModelMenu);
+
         sampleQuestion1 = view.findViewById(R.id.sampleQuestion1);
         sampleQuestion2 = view.findViewById(R.id.sampleQuestion2);
         sampleQuestion3 = view.findViewById(R.id.sampleQuestion3);
@@ -79,7 +94,7 @@ public class ChatFragment extends Fragment {
         setupSampleQuestionClickListener(sampleQuestion1);
         setupSampleQuestionClickListener(sampleQuestion2);
         setupSampleQuestionClickListener(sampleQuestion3);
-        //
+
         edtMessage = view.findViewById(R.id.edtMessage);
         btnSend = view.findViewById(R.id.btnSend);
         recyclerChat = view.findViewById(R.id.recyclerChat);
@@ -91,6 +106,29 @@ public class ChatFragment extends Fragment {
         btnSend.setOnClickListener(v -> {
             String userMessage = edtMessage.getText().toString().trim();
             if (!TextUtils.isEmpty(userMessage)) {
+                if ("Pro Mode".equals(currentModel) && !TokenLimiter.canSend(getContext())) {
+                    if (!isLimitToastVisible) {
+                        isLimitToastVisible = true;
+                        int[] location = new int[2];
+                        edtMessage.getLocationOnScreen(location);
+                        int toastY = location[1] - 100;
+                        Toast toast = new Toast(getContext());
+                        View layout = inflater.inflate(R.layout.limted_custom_toast, null);
+
+                        TextView text = layout.findViewById(R.id.toastText);
+                        text.setText("You have reached the limit of 10 messages per hour in Pro Mode.");
+
+                        layout.setBackgroundResource(R.drawable.limited_toast_background);
+
+                        toast.setView(layout);
+                        toast.setDuration(Toast.LENGTH_SHORT);
+                        toast.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, toastY);
+                        toast.show();
+                        edtMessage.postDelayed(() -> isLimitToastVisible = false, 2000);
+                    }
+                    return;
+                }
+
                 if (sampleQuestionsContainer.getVisibility() == View.VISIBLE) {
                     sampleQuestionsContainer.setVisibility(View.GONE);
                 }
@@ -98,13 +136,63 @@ public class ChatFragment extends Fragment {
                 messages.add(userMsg);
                 chatAdapter.notifyItemInserted(messages.size() - 1);
                 recyclerChat.scrollToPosition(messages.size() - 1);
-                callGeminiAPI(userMessage);
+                ChatHistoryManager.saveChatHistory(getContext(), messages);
+                if ("Pro Mode".equals(currentModel)) {
+                    callOpenAIAPI(userMessage);
+                } else {
+                    callGeminiAPI(userMessage);
+                }
                 edtMessage.setText("");
             }
         });
 
+        List<ChatMessage> savedMessages = ChatHistoryManager.loadChatHistory(getContext());
+        if (!savedMessages.isEmpty()) {
+            messages.addAll(savedMessages);
+            chatAdapter.notifyDataSetChanged();
+            recyclerChat.scrollToPosition(messages.size() - 1);
+            sampleQuestionsContainer.setVisibility(View.GONE);
+        }
+
         return view;
     }
+
+    private void showModelMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(requireContext(), anchor);
+        popup.getMenu().add("Normal Mode");
+        popup.getMenu().add("Pro Mode");
+
+        List<ChatMessage> savedMessages = ChatHistoryManager.loadChatHistory(getContext());
+        if (!savedMessages.isEmpty()) {
+            popup.getMenu().add("Clear History");
+        }
+
+        popup.setOnMenuItemClickListener(item -> {
+            String title = item.getTitle().toString();
+            if ("Clear History".equals(title)) {
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Confirm")
+                        .setMessage("Are you sure you want to delete all chat history?")
+                        .setPositiveButton("Yes", (dialog, which) -> {
+                            ChatHistoryManager.clearChatHistory(getContext());
+                            messages.clear();
+                            chatAdapter.notifyDataSetChanged();
+                            Toast.makeText(getContext(), "Chat history cleared.", Toast.LENGTH_SHORT).show();
+                            sampleQuestionsContainer.setVisibility(View.VISIBLE);
+                        })
+                        .setNegativeButton("No", null)
+                        .show();
+                return true;
+            } else {
+                currentModel = title;
+                selectedModelText.setText(currentModel);
+                return true;
+            }
+        });
+
+        popup.show();
+    }
+
 
     private void setupKeyboardListener() {
         globalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -126,7 +214,6 @@ public class ChatFragment extends Fragment {
         };
     }
 
-
     private int calculateThreshold() {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50, getResources().getDisplayMetrics());
     }
@@ -141,26 +228,26 @@ public class ChatFragment extends Fragment {
         });
     }
 
-
     private void callGeminiAPI(String userMessage) {
+        ChatMessage typingMsg = new ChatMessage(TYPING_MESSAGE, ChatMessage.SENDER_AI);
+        messages.add(typingMsg);
+        requireActivity().runOnUiThread(() -> {
+            chatAdapter.notifyItemInserted(messages.size() - 1);
+            recyclerChat.scrollToPosition(messages.size() - 1);
+        });
+
         OkHttpClient client = new OkHttpClient();
         MediaType mediaType = MediaType.parse("application/json");
-
         JSONObject requestBody = new JSONObject();
-
         try {
-            // Tạo mảng "parts"
             JSONArray parts = new JSONArray();
             JSONObject textPart = new JSONObject();
             textPart.put("text", userMessage);
             parts.put(textPart);
-
-            // Tạo mảng "contents"
             JSONArray contents = new JSONArray();
             JSONObject contentObj = new JSONObject();
             contentObj.put("parts", parts);
             contents.put(contentObj);
-
             requestBody.put("contents", contents);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -176,8 +263,10 @@ public class ChatFragment extends Fragment {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Gemini API connection error", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(() -> {
+                    removeTypingMessage();
+                    Toast.makeText(getContext(), "Gemini API connection error.", Toast.LENGTH_SHORT).show();
+                });
             }
 
             @Override
@@ -193,66 +282,141 @@ public class ChatFragment extends Fragment {
                 if (response.isSuccessful() && responseBodyString != null) {
                     try {
                         JSONObject jsonResponse = new JSONObject(responseBodyString);
-                        if (!jsonResponse.has("candidates") || jsonResponse.getJSONArray("candidates").length() == 0) {
-                            handleApiResponseError("Invalid response structure: Missing or empty 'candidates'");
-                            return;
-                        }
                         JSONArray candidates = jsonResponse.getJSONArray("candidates");
-
                         JSONObject firstCandidate = candidates.getJSONObject(0);
-                        if (!firstCandidate.has("content")) {
-                            handleApiResponseError("Invalid response structure: Missing 'content'");
-                            return;
-                        }
                         JSONObject content = firstCandidate.getJSONObject("content");
-
-                        if (!content.has("parts") || content.getJSONArray("parts").length() == 0) {
-                            handleApiResponseError("Invalid response structure: Missing or empty 'parts'");
-                            return;
-                        }
                         JSONArray parts = content.getJSONArray("parts");
-
                         JSONObject firstPart = parts.getJSONObject(0);
-                        if (!firstPart.has("text")) {
-                            handleApiResponseError("Invalid response structure: Missing 'text'");
-                            return;
+
+                        String rawReply = firstPart.getString("text");
+                        String[] lines = rawReply.replace("*", "").split("\n");
+                        StringBuilder sb = new StringBuilder();
+                        for (String line : lines) {
+                            sb.append(line.replaceAll("^#+\\s*", "")).append("\n");
                         }
+                        String processedReply = sb.toString()
+                                .replaceAll("(?<!\\n)\\n(?!\\n)", "\n\n")
+                                .replace(". ", ".\n")
+                                .trim();
 
-                        String rawReply = firstPart.getString("text"); // Lấy phản hồi gốc
-                        String processedReply = rawReply.replace("*", "").trim();
                         requireActivity().runOnUiThread(() -> {
-                            if (isAdded() && getActivity() != null) {
-                                ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
-                                messages.add(botMsg);
-                                chatAdapter.notifyItemInserted(messages.size() - 1);
-                                recyclerChat.scrollToPosition(messages.size() - 1);
-                            }
+                            removeTypingMessage();
+                            ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
+                            messages.add(botMsg);
+                            chatAdapter.notifyItemInserted(messages.size() - 1);
+                            recyclerChat.scrollToPosition(messages.size() - 1);
+                            ChatHistoryManager.saveChatHistory(getContext(), messages);
                         });
-
                     } catch (JSONException e) {
-                        handleApiResponseError("Lỗi xử lý JSON phản hồi Gemini");
+                        handleApiResponseError("Error parsing Gemini JSON response");
                     }
                 } else {
-                    String errorBody = "";
-                    try {
-                        if (responseBodyString == null && response.body() != null) {
-                            errorBody = response.body().string(); // Đọc body lỗi
-                            response.body().close(); // Đóng body lỗi
-                        } else if (responseBodyString != null) {
-                            errorBody = responseBodyString; // Dùng lại body đã đọc nếu response không successful
-                        }
-                    } catch (Exception ignored) { } // Bỏ qua lỗi đọc body lỗi
-                    handleApiResponseError("Phản hồi không hợp lệ từ Gemini (Code: " + response.code() + ")");
+                    handleApiResponseError("Invalid response from Gemini (Code: " + response.code() + ")");
                 }
             }
+        });
+    }
 
+    private void removeTypingMessage() {
+        if (!messages.isEmpty()) {
+            int lastIndex = messages.size() - 1;
+            ChatMessage lastMsg = messages.get(lastIndex);
+            if (lastMsg.getSenderType() == ChatMessage.SENDER_AI
+                    && TYPING_MESSAGE.equals(lastMsg.getMessage())) {
+                messages.remove(lastIndex);
+                chatAdapter.notifyItemRemoved(lastIndex);
+            }
+        }
+    }
+
+    private void callOpenAIAPI(String userMessage) {
+        ChatMessage typingMsg = new ChatMessage(TYPING_MESSAGE, ChatMessage.SENDER_AI);
+        messages.add(typingMsg);
+        requireActivity().runOnUiThread(() -> {
+            chatAdapter.notifyItemInserted(messages.size() - 1);
+            recyclerChat.scrollToPosition(messages.size() - 1);
+        });
+
+        OkHttpClient client = new OkHttpClient();
+
+        JSONObject requestBody = new JSONObject();
+        try {
+            requestBody.put("model", "gpt-4.1");
+            JSONArray messagesArr = new JSONArray();
+            JSONObject userMsg = new JSONObject();
+            userMsg.put("role", "user");
+            userMsg.put("content", userMessage);
+            messagesArr.put(userMsg);
+            requestBody.put("messages", messagesArr);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        RequestBody body = RequestBody.create(
+                MediaType.parse("application/json"), requestBody.toString());
+
+        Request request = new Request.Builder()
+                .url("https://api.openai.com/v1/chat/completions")
+                .post(body)
+                .addHeader("Authorization", "Bearer " + OPENAI_API_KEY)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                requireActivity().runOnUiThread(() -> {
+                    removeTypingMessage();
+                    Toast.makeText(getContext(), "OpenAI API connection error.", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (!isAdded() || getActivity() == null) {
+                    if (response.body() != null) response.body().close();
+                    return;
+                }
+                String responseBodyString = response.body() != null ? response.body().string() : null;
+                if (response.body() != null) response.body().close();
+
+                if (response.isSuccessful() && responseBodyString != null) {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(responseBodyString);
+                        JSONArray choices = jsonResponse.getJSONArray("choices");
+                        JSONObject message = choices.getJSONObject(0).getJSONObject("message");
+                        String aiReply = message.getString("content").trim();
+                        String[] lines = aiReply.replace("*", "").split("\n");
+                        StringBuilder sb = new StringBuilder();
+                        for (String line : lines) {
+                            sb.append(line.replaceAll("^#+\\s*", "")).append("\n");
+                        }
+                        String processedReply = sb.toString()
+                                .replaceAll("(?<!\\n)\\n(?!\\n)", "\n\n")
+                                .replace(". ", ".\n")
+                                .trim();
+                        requireActivity().runOnUiThread(() -> {
+                            removeTypingMessage();
+                            ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
+                            messages.add(botMsg);
+                            chatAdapter.notifyItemInserted(messages.size() - 1);
+                            recyclerChat.scrollToPosition(messages.size() - 1);
+                            ChatHistoryManager.saveChatHistory(getContext(), messages);
+                        });
+                    } catch (JSONException e) {
+                        handleApiResponseError("Error parsing OpenAI JSON response");
+                    }
+                } else {
+                    handleApiResponseError("Invalid response from OpenAI (Code: " + response.code() + ")");
+                }
+            }
         });
     }
 
     private void handleApiResponseError(String logMessage) {
         if (isAdded() && getActivity() != null) {
             requireActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "Gemini respond error!", Toast.LENGTH_SHORT).show() // Thông báo chung cho người dùng
+                    Toast.makeText(getContext(), "Gemini response error!", Toast.LENGTH_SHORT).show()
             );
         }
     }
@@ -263,15 +427,14 @@ public class ChatFragment extends Fragment {
         if (context instanceof KeyboardVisibilityListener) {
             keyboardVisibilityListener = (KeyboardVisibilityListener) context;
         } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement KeyboardVisibilityListener");
+            throw new RuntimeException(context.toString() + " must implement KeyboardVisibilityListener");
         }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        keyboardVisibilityListener = null ;
+        keyboardVisibilityListener = null;
     }
 
     @Override
@@ -290,4 +453,3 @@ public class ChatFragment extends Fragment {
         }
     }
 }
-

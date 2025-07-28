@@ -65,6 +65,6 @@ public class LoginActivity extends AppCompatActivity implements AuthController.A
 
     @Override
     public void onFailure(String errorMessage) {
-        CustomToast.showSuccess(this, "Fail !", R.drawable.fail_icon);
+        CustomToast.showFail(this, "Fail !", R.drawable.fail_icon);
     }
 }

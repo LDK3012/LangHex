@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     tools:context=".View.ChatFragment">
 
-    <!-- Layout chính với nền trắng -->
+    <!-- Main layout -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -25,32 +25,46 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:src="@drawable/logo_start"
-                android:contentDescription="Logo trường"
+                android:contentDescription="University Logo"
                 android:layout_marginEnd="8dp" />
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
-                    android:text="Trường đại học Văn Lang"
+                    android:text="Van Lang University"
                     android:textStyle="bold"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
                     android:textColor="#000000" />
 
                 <TextView
-                    android:text="Viện Ngôn ngữ trường đại học Văn Lang"
+                    android:text="Institute of Languages"
                     android:textSize="12sp"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#777777" />
             </LinearLayout>
+
+            <!-- Model selector -->
+            <TextView
+                android:id="@+id/selectedModelText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pro Mode"
+                android:textStyle="bold"
+                android:textColor="#000000"
+                android:padding="8dp"
+                android:drawableEnd="@drawable/arrow_drop_down"
+                android:drawablePadding="4dp"
+                android:background="@drawable/sample_question_item_background" />
         </LinearLayout>
 
-        <!-- Khung trò chuyện -->
+        <!-- Chat container -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -65,7 +79,7 @@
             android:id="@+id/chatContainer"
             android:backgroundTint="@android:color/white">
 
-            <!-- RecyclerView để hiển thị tin nhắn -->
+            <!-- RecyclerView for messages -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerChat"
                 android:layout_width="match_parent"
@@ -75,7 +89,7 @@
                 android:scrollbars="none"
                 android:clipToPadding="false" />
 
-            <!-- Khung nhập tin nhắn -->
+            <!-- Message input -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -101,13 +115,13 @@
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_send"
                     android:background="@android:color/transparent"
-                    android:contentDescription="Gửi"
-                    android:layout_marginStart="8dp" />
+                    android:contentDescription="Send"
+                    android:layout_marginStart="8dp"
+                    android:visibility="visible" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- TextView trung tâm cho dòng "Ask everything" -->
     <!-- Sample Questions Container -->
     <LinearLayout
         android:id="@+id/sampleQuestionsContainer"
@@ -132,7 +146,7 @@
             android:id="@+id/sampleQuestion1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Đây là đâu ? Và bạn là ai ?"
+            android:text="Where am I? And who are you?"
             android:textSize="16sp"
             android:textColor="#333333"
             android:padding="8dp"
@@ -143,7 +157,7 @@
             android:id="@+id/sampleQuestion2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cách để cải thiện kĩ năng nói ?"
+            android:text="How to improve speaking skills?"
             android:textSize="16sp"
             android:textColor="#333333"
             android:padding="8dp"
@@ -154,7 +168,7 @@
             android:id="@+id/sampleQuestion3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ví dụ về các ngữ pháp tiếng anh thú vị ?"
+            android:text="Examples of interesting English grammar?"
             android:textSize="16sp"
             android:textColor="#333333"
             android:padding="8dp"
