@@ -3,6 +3,7 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+
 android {
     namespace 'com.example.langhexx'
     compileSdk 34
@@ -12,14 +13,19 @@ android {
         abortOnError true     // Make the build fail if any lint error is found
         htmlOutput file("lint-report.html") // Generate an HTML report
     }
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId "com.example.langhexx"
         minSdk 29
         targetSdk 34
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        buildConfigField "String", "API_KEY", "\"${properties.getProperty('API_KEY')}\""
     }
 
     buildTypes {

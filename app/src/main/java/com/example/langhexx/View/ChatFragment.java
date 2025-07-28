@@ -25,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Controller.ChatAdapter;
 import com.example.langhexx.Model.ChatMessage;
 import com.example.langhexx.Model.ChatHistoryManager;
@@ -54,7 +55,7 @@ public class ChatFragment extends Fragment {
     private ViewTreeObserver.OnGlobalLayoutListener globalLayoutListener;
     private boolean isKeyboardVisible = false;
     private boolean isLimitToastVisible = false;
-    private static final String OPENAI_API_KEY = "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" ;
+    private static final String OPENAI_API_KEY = BuildConfig.API_KEY;
     private static final String TYPING_MESSAGE = "Typing...";
     public interface KeyboardVisibilityListener {
         void onKeyboardVisibilityChanged(boolean isVisible);
@@ -116,7 +117,7 @@ public class ChatFragment extends Fragment {
                         View layout = inflater.inflate(R.layout.limted_custom_toast, null);
 
                         TextView text = layout.findViewById(R.id.toastText);
-                        text.setText("You have reached the limit of 10 messages per hour in Pro Mode.");
+                        text.setText("You have reached the limit of 10 messages per hour in Pro Mode ! please switch to Normal Mode");
 
                         layout.setBackgroundResource(R.drawable.limited_toast_background);
 
