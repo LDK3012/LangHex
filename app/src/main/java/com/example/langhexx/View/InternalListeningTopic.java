@@ -436,9 +436,9 @@ public class InternalListeningTopic extends AppCompatActivity implements
 
     @Override
     public void onAnswerSelected(int questionIndex, int selectedOptionId) {
-        Log.d(TAG, "onAnswerSelected: Q" + (questionIndex + 1) + ", OptionID (RadioButton ID): " + selectedOptionId);
-        if (controller != null) {
-            controller.saveAnswerSelection(questionIndex, selectedOptionId);
-        }
+//        Log.d(TAG, "onAnswerSelected: Q" + (questionIndex + 1) + ", OptionID (RadioButton ID): " + selectedOptionId);
+//        if (controller != null) {
+//            controller.saveAnswerSelection(questionIndex, selectedOptionId);
+//        }
     }
 }

@@ -297,12 +297,10 @@ public class ListeningController implements
                 if (hasScript) {
                     Log.d(TAG, "Script loaded (" + scriptToSpeak.length() + " chars).");
                     if (isTtsInitialized && audioFile == null) {
-                        Log.d(TAG, "Script loaded, TTS ready, starting synthesis.");
                         synthesizeScriptToFile();
                     } else if (!isTtsInitialized) {
                         Log.d(TAG, "Script loaded, waiting for TTS initialization.");
                     } else {
-                        Log.d(TAG, "Script loaded, but TTS not ready or synthesis already done/in progress.");
                         checkAndSetupPlayerFromCache();
                     }
                 } else {
@@ -321,19 +319,18 @@ public class ListeningController implements
                             Log.e(TAG, "Error parsing question: " + questionSnap.getKey(), e);
                         }
                     }
-                    Log.i(TAG, "Loaded " + loadedQuestions.size() + " questions.");
-                } else {
-                    Log.w(TAG, "No 'questions' node found.");
                 }
                 questionsList.clear();
                 questionsList.addAll(loadedQuestions);
 
-                if(questionsList.isEmpty()) {
-                    view.showToast("No questions available for this exercise.");
-                }
+                // Shuffle
+                java.util.Collections.shuffle(questionsList);
+                view.updateAdapterData(new ArrayList<>(questionsList));
+
                 exerciseDataLoaded = true;
                 checkIfAllDataLoadedAndReady();
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Firebase loading cancelled/failed: " + error.getMessage(), error.toException());
@@ -533,34 +530,34 @@ public class ListeningController implements
         }
     }
 
-    public void saveAnswerSelection(int questionIndex, int selectedOptionId) {
-        if (currentUserId == null || exerciseId == null || questionIndex < 0 ) {
-            Log.w(TAG, "Cannot save answer: Missing userId, exerciseId, or invalid index.");
-            return;
-        }
-        if (view == null){
-            Log.w(TAG, "Cannot save answer: View is null.");
-            return;
-        }
-
-        DatabaseReference answerRef = databaseReference
-                .child("Users")
-                .child("MicrosoftUsers")
-                .child(currentUserId)
-                .child("Progress")
-                .child("ListeningAnswers")
-                .child(exerciseId)
-                .child(String.valueOf(questionIndex));
-
-        Log.d(TAG, "Saving answer for Q" + questionIndex + " -> OptionID: " + selectedOptionId + " to path: " + answerRef.toString());
-
-        answerRef.setValue(selectedOptionId)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Answer for Q" + questionIndex + " saved successfully."))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to save answer for Q" + questionIndex, e));
-
-        DatabaseReference timestampRef = answerRef.getParent().child("lastUpdated");
-        timestampRef.setValue(ServerValue.TIMESTAMP);
-    }
+//    public void saveAnswerSelection(int questionIndex, int selectedOptionId) {
+//        if (currentUserId == null || exerciseId == null || questionIndex < 0 ) {
+//            Log.w(TAG, "Cannot save answer: Missing userId, exerciseId, or invalid index.");
+//            return;
+//        }
+//        if (view == null){
+//            Log.w(TAG, "Cannot save answer: View is null.");
+//            return;
+//        }
+//
+//        DatabaseReference answerRef = databaseReference
+//                .child("Users")
+//                .child("MicrosoftUsers")
+//                .child(currentUserId)
+//                .child("Progress")
+//                .child("ListeningAnswers")
+//                .child(exerciseId)
+//                .child(String.valueOf(questionIndex));
+//
+//        Log.d(TAG, "Saving answer for Q" + questionIndex + " -> OptionID: " + selectedOptionId + " to path: " + answerRef.toString());
+//
+//        answerRef.setValue(selectedOptionId)
+//                .addOnSuccessListener(aVoid -> Log.d(TAG, "Answer for Q" + questionIndex + " saved successfully."))
+//                .addOnFailureListener(e -> Log.e(TAG, "Failed to save answer for Q" + questionIndex, e));
+//
+//        DatabaseReference timestampRef = answerRef.getParent().child("lastUpdated");
+//        timestampRef.setValue(ServerValue.TIMESTAMP);
+//    }
 
     private void synthesizeScriptToFile() {
         if (view == null || view.getContext() == null) return;
@@ -909,8 +906,13 @@ public class ListeningController implements
             correctnessMap.put(i, isCorrect);
             Log.v(TAG, "Q" + (i + 1) + ": SelectedID=" + selectedRadioButtonId + " (Key='" + selectedAnswerKey + "'), CorrectKey='" + question.getCorrectAnswer() + "', Result=" + isCorrect);
         }
-        String resultMessage = String.format(Locale.getDefault(), "Result: %d / %d correct!", correctCount, totalQuestions);
+        float score10 = (totalQuestions == 0) ? 0 : ((float) correctCount / totalQuestions) * 10;
+        String scoreStr = (score10 == (int) score10)
+                ? String.format(Locale.getDefault(), "%d", (int) score10)
+                : String.format(Locale.getDefault(), "%.1f", score10);
+        String resultMessage = "Your score: " + scoreStr + "/10";
         view.showToast(resultMessage);
+
         Log.i(TAG, "Final Score: " + correctCount + "/" + totalQuestions);
         view.showResultsInAdapter(userAnswers, correctnessMap);
         boolean allCorrect = (correctCount == totalQuestions);
@@ -946,11 +948,18 @@ public class ListeningController implements
 
     private void retryExercise() {
         Log.i(TAG, "Retry button clicked. Resetting UI state.");
-        if(view == null) return;
+        if (view == null) return;
+        if (questionsList != null && !questionsList.isEmpty()) {
+            java.util.Collections.shuffle(questionsList);
+            for (int i = 0; i < questionsList.size(); i++) {
+                questionsList.get(i).setInitialSelectedOptionId(-1);
+            }
+            view.updateAdapterData(new ArrayList<>(questionsList));
+        }
         view.resetAdapterState();
         resetSubmitButtonToSubmitState(true);
         view.scrollToQuestion(0);
-        if(mediaPlayer != null && isMediaPlayerPrepared) {
+        if (mediaPlayer != null && isMediaPlayerPrepared) {
             pauseAudioPlayback();
             seekAudio(0);
             if (view != null && mediaPlayer != null) {
@@ -959,6 +968,7 @@ public class ListeningController implements
         }
         Log.d(TAG, "Exercise UI state reset for retry. Button state: SUBMIT");
     }
+
 
     private void goToNextExercise() {
         Log.i(TAG, "Attempting to go to next Listening exercise.");

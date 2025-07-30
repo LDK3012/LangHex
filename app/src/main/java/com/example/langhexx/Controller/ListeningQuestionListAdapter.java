@@ -227,40 +227,39 @@ public class ListeningQuestionListAdapter extends BaseAdapter {
                 });
             }
         });
-
-        // Apply results visualization and enabled state
         boolean enableInteraction = !answersDisabled;
         setRadioGroupEnabled(viewHolder.rgOptions, enableInteraction);
 
         if (resultsShown) {
             Boolean isCorrect = correctnessMap.get(position);
             int submittedId = submittedAnswers.getOrDefault(position, -1);
-
-            // Reset icons first
-            clearRadioButtonIcons(viewHolder);
-
-            if (submittedId != -1) {
+            if (isCorrect != null && isCorrect && submittedId != -1) {
                 RadioButton submittedRadioButton = convertView.findViewById(submittedId);
                 if (submittedRadioButton != null) {
-                    if (isCorrect != null) {
-                        int iconRes = isCorrect ? R.drawable.ic_correct_green : R.drawable.ic_incorrect_red;
-                        // Apply icon to the submitted answer
-                        submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, iconRes, 0);
-                    } else {
-                        Log.w(TAG, "Correctness info missing for submitted answer at position " + position);
-                    }
-                } else {
-                    Log.w(TAG, "Submitted RadioButton ID " + submittedId + " not found for position " + position);
+                    submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_correct_green, 0);
                 }
-            } else {
-                Log.w(TAG, "No submitted answer recorded for position " + position);
             }
-        } else {
-            // Clear icons if not showing results
-            clearRadioButtonIcons(viewHolder);
+            if (isCorrect != null && !isCorrect) {
+                if (submittedId != -1) {
+                    RadioButton submittedRadioButton = convertView.findViewById(submittedId);
+                    if (submittedRadioButton != null) {
+                        submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_incorrect_red, 0);
+                    }
+                }
+                String correctKey = question.getCorrectAnswer();
+                int correctRadioButtonId = -1;
+                if ("A".equals(correctKey)) correctRadioButtonId = R.id.rbOptionA;
+                if ("B".equals(correctKey)) correctRadioButtonId = R.id.rbOptionB;
+                if ("C".equals(correctKey)) correctRadioButtonId = R.id.rbOptionC;
+                if ("D".equals(correctKey)) correctRadioButtonId = R.id.rbOptionD;
+                if (correctRadioButtonId != -1) {
+                    RadioButton correctRadioButton = convertView.findViewById(correctRadioButtonId);
+                    if (correctRadioButton != null) {
+                        correctRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_correct_green, 0);
+                    }
+                }
+            }
         }
-
-
         return convertView;
     }
 
