@@ -120,13 +120,14 @@ public class TopicAdapter extends BaseAdapter {
         }
 
         if (holder.tvTopicTracker != null) {
-            if (isSpeakingSkillCurrently) {
-                holder.tvTopicTracker.setVisibility(View.GONE);
-            } else { // Cho Reading, Writing, Listening
-                holder.tvTopicTracker.setVisibility(View.VISIBLE);
-                holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%s", "..."));
-                loadExerciseCount(holder, topic.getId(), topic.getTopicName(), currentSkillNameAdapter);
-            }
+            holder.tvTopicTracker.setVisibility(View.GONE);
+//            if (isSpeakingSkillCurrently) {
+//                holder.tvTopicTracker.setVisibility(View.GONE);
+//            } else { // Cho Reading, Writing, Listening
+//                holder.tvTopicTracker.setVisibility(View.VISIBLE);
+//                holder.tvTopicTracker.setText(String.format(Locale.getDefault(), "Done: 0/%s", "..."));
+//                loadExerciseCount(holder, topic.getId(), topic.getTopicName(), currentSkillNameAdapter);
+//            }
         }
 
         if (holder.imgTopicOptions != null) {
