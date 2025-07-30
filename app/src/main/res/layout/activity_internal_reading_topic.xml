@@ -5,11 +5,9 @@
     android:layout_height="wrap_content"
     android:layout_gravity="center"
     android:orientation="vertical"
-    android:gravity="center"
-    >
+    android:gravity="center">
 
     <!-- PHẦN HEADER -->
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="70dp"
@@ -50,7 +48,6 @@
             app:srcCompat="@drawable/icon_home" />
     </LinearLayout>
 
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -62,8 +59,36 @@
         android:layout_marginLeft="15dp"
         android:orientation="vertical">
 
+        <!-- Dòng icon Play + Reset (nằm ngay trên txtTitle) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="left"
+            android:paddingLeft="10dp"
+            android:layout_marginBottom="8dp">
+
+            <ImageView
+                android:id="@+id/btnPlay"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:layout_marginRight="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Play"
+                android:src="@drawable/ic_play" />
+
+            <ImageView
+                android:id="@+id/btnReset"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Reset"
+                android:src="@drawable/ic_reset" />
+        </LinearLayout>
+
+        <!-- Tiêu đề bài đọc -->
         <TextView
-                android:id="@+id/txtTitle"
+            android:id="@+id/txtTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textStyle="bold"
@@ -97,16 +122,26 @@
             android:padding="5dp"
             android:dividerHeight="5dp" />
 
-        <Button
-            android:id="@+id/btnSubmit"
-            android:layout_width="127dp"
+        <!-- Nút Submit cuối cùng -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:backgroundTint="#F44336"
-            android:layout_gravity="right"
-            android:layout_marginRight="20dp"
-            android:text="Submit"
-            android:textColor="#FFFFFF" />
-    </LinearLayout>
+            android:orientation="horizontal">
 
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <Button
+                android:id="@+id/btnSubmit"
+                android:layout_width="127dp"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#F44336"
+                android:text="Submit"
+                android:textColor="#FFFFFF"
+                android:layout_marginRight="20dp"
+                android:layout_gravity="right"/>
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

@@ -37,7 +37,8 @@ public class InternalReadingTopic extends AppCompatActivity implements
     private TextView tvExerciseDisplayTitle;
     private TextView tvPassageDisplay;
     private TextView instructionText;
-
+    private boolean isPlaying = false ;
+    private ImageView btnPlay ;
     // Keep local list for the adapter, but let controller manage data flow
     private List<ReadingQuestion> questionsListForAdapter;
     private ReadingQuestionListAdapter questionListAdapter;
@@ -72,6 +73,8 @@ public class InternalReadingTopic extends AppCompatActivity implements
         instructionText = findViewById(R.id.textView16);
         imgClose = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
+        btnPlay = findViewById(R.id.btnPlay) ;
+
         // Initial visibility setup, controller will manage updates
         setUIElementsVisibility(false);
     }
@@ -106,6 +109,19 @@ public class InternalReadingTopic extends AppCompatActivity implements
                 finish();
             });
         }
+        btnPlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isPlaying = !isPlaying;
+                if (isPlaying) {
+                    btnPlay.setImageResource(R.drawable.reading_icon_pause);
+                    // TODO: Xử lý logic phát âm thanh hoặc nội dung tại đây
+                } else {
+                    btnPlay.setImageResource(R.drawable.ic_play);
+                    // TODO: Xử lý logic tạm dừng tại đây
+                }
+            }
+        });
     }
 
     // --- ReadingController.ViewInterface Methods ---
