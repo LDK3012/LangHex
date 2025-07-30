@@ -254,26 +254,39 @@ public class ReadingQuestionListAdapter extends BaseAdapter {
             Boolean isCorrect = correctnessMap.get(position);
             int submittedId = submittedAnswers.getOrDefault(position, -1);
 
-            if (submittedId != -1) {
+            // Nếu user chọn đúng: chỉ hiện icon xanh ở đáp án đã chọn
+            if (isCorrect != null && isCorrect && submittedId != -1) {
                 RadioButton submittedRadioButton = convertView.findViewById(submittedId);
                 if (submittedRadioButton != null) {
-                    if (isCorrect != null) {
-                        int iconRes = isCorrect ? R.drawable.ic_correct_green : R.drawable.ic_incorrect_red;
-                        submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, iconRes, 0);
-                    } else {
-                        Log.w(TAG, "Correctness info missing for submitted reading answer at position " + position);
-                    }
-                } else {
-                    Log.w(TAG, "Submitted reading RadioButton ID " + submittedId + " not found for position " + position);
+                    submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_correct_green, 0);
                 }
-            } else {
-                Log.w(TAG, "No submitted reading answer recorded for position " + position);
-                // Optionally highlight the correct answer if nothing was submitted
-                // highlightCorrectAnswer(viewHolder, question.getCorrectAnswer());
+            }
+
+            // Nếu user chọn sai
+            if (isCorrect != null && !isCorrect) {
+                // 1. Hiện icon đỏ ở đáp án user chọn sai
+                if (submittedId != -1) {
+                    RadioButton submittedRadioButton = convertView.findViewById(submittedId);
+                    if (submittedRadioButton != null) {
+                        submittedRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_incorrect_red, 0);
+                    }
+                }
+                // 2. Hiện icon xanh (V) ở đáp án đúng
+                String correctKey = question.getCorrectAnswer();
+                int correctRadioButtonId = -1;
+                if ("A".equals(correctKey)) correctRadioButtonId = R.id.rbOptionA;
+                if ("B".equals(correctKey)) correctRadioButtonId = R.id.rbOptionB;
+                if ("C".equals(correctKey)) correctRadioButtonId = R.id.rbOptionC;
+                if ("D".equals(correctKey)) correctRadioButtonId = R.id.rbOptionD;
+
+                if (correctRadioButtonId != -1) {
+                    RadioButton correctRadioButton = convertView.findViewById(correctRadioButtonId);
+                    if (correctRadioButton != null) {
+                        correctRadioButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_correct_green, 0);
+                    }
+                }
             }
         }
-
-
         return convertView;
     }
 

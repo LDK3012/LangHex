@@ -319,11 +319,11 @@ public class InternalReadingTopic extends AppCompatActivity implements
     // --- Implementation of ReadingQuestionListAdapter.OnAnswerSelectedListener ---
     @Override
     public void onAnswerSelected(int questionIndex, int selectedOptionId) {
-        Log.d(TAG, "onAnswerSelected (View): Q" + questionIndex + ", OptionID: " + selectedOptionId);
-        if (controller != null) {
-            // Notify controller to save the selection
-            controller.saveAnswerSelection(questionIndex, selectedOptionId);
-        }
+//        Log.d(TAG, "onAnswerSelected (View): Q" + questionIndex + ", OptionID: " + selectedOptionId);
+//        if (controller != null) {
+//            // Notify controller to save the selection
+//            controller.saveAnswerSelection(questionIndex, selectedOptionId);
+//        }
     }
 
     // --- Activity Lifecycle Methods (No changes needed for progress saving) ---
