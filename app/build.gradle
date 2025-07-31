@@ -25,7 +25,8 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         Properties properties = new Properties()
         properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        buildConfigField "String", "API_KEY", "\"${properties.getProperty('API_KEY')}\""
+        buildConfigField "String", "OPENAI_API_KEY", "\"${properties.getProperty('OPENAI_API_KEY')}\""
+        buildConfigField "String", "AZURE_TTS_API_KEY", "\"${properties.getProperty('AZURE_TTS_API_KEY')}\""
     }
 
     buildTypes {

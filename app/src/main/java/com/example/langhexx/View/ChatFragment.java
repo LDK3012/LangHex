@@ -55,7 +55,7 @@ public class ChatFragment extends Fragment {
     private ViewTreeObserver.OnGlobalLayoutListener globalLayoutListener;
     private boolean isKeyboardVisible = false;
     private boolean isLimitToastVisible = false;
-    private static final String OPENAI_API_KEY = BuildConfig.API_KEY;
+    private static final String OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY;
     private static final String TYPING_MESSAGE = "Typing...";
     public interface KeyboardVisibilityListener {
         void onKeyboardVisibilityChanged(boolean isVisible);
@@ -417,7 +417,7 @@ public class ChatFragment extends Fragment {
     private void handleApiResponseError(String logMessage) {
         if (isAdded() && getActivity() != null) {
             requireActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "Gemini response error!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(getContext(), "Error!", Toast.LENGTH_SHORT).show()
             );
         }
     }

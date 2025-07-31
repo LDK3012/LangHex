@@ -3,6 +3,8 @@ package com.example.langhexx.Controller;
 import android.content.Intent;
 import android.util.Log;
 import androidx.annotation.NonNull;
+
+import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Model.Exercise;
 import com.example.langhexx.Model.ReadingQuestion;
 import com.example.langhexx.R;
@@ -17,10 +19,65 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
+// tts
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import java.io.IOException;
+import com.example.langhexx.BuildConfig;
 
 public class ReadingController {
 
     private static final String TAG = "ReadingController";
+    // Interface TTS callback
+    public interface TTSCallback {
+        void onStart();
+        void onDone(byte[] audioData);
+        void onError(String message);
+    }
+
+    // TTS Constants
+    private static final String AZURE_TTS_KEY = BuildConfig.AZURE_TTS_API_KEY ;
+    private static final String AZURE_TTS_ENDPOINT = "https://southeastasia.tts.speech.microsoft.com/cognitiveservices/v1";
+    private final OkHttpClient httpClient = new OkHttpClient();
+    // TTS REST API--> callback
+    public void synthesizeTextToSpeech(String text, TTSCallback callback) {
+        if (callback != null) callback.onStart();
+        String ssml = "<speak version='1.0' xml:lang='en-US'>" +
+                "<voice name='en-US-JennyNeural'>" + text + "</voice></speak>";
+
+        Request request = new Request.Builder()
+                .url(AZURE_TTS_ENDPOINT)
+                .addHeader("Ocp-Apim-Subscription-Key", AZURE_TTS_KEY)
+                .addHeader("Content-Type", "application/ssml+xml")
+                .addHeader("X-Microsoft-OutputFormat", "audio-16khz-32kbitrate-mono-mp3")
+                .addHeader("User-Agent", "LangHex-App")
+                .post(RequestBody.create(ssml, MediaType.parse("application/ssml+xml")))
+                .build();
+
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (callback != null) callback.onError("Speech synthesis failed.");
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    if (callback != null) callback.onError("TTS failed: " + response.code());
+                    return;
+                }
+                byte[] audioBytes = response.body().bytes();
+                if (callback != null) {
+                    callback.onDone(audioBytes);
+                }
+            }
+        });
+    }
 
     public interface ViewInterface {
         void displayExerciseTitle(String title);
