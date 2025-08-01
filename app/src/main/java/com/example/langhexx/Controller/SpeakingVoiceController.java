@@ -167,6 +167,11 @@ public class SpeakingVoiceController implements SpeakingContract.Controller, Spe
     }
 
     @Override
+    public void playTtsWithAzure(Context context, String text) {
+        //
+    }
+
+    @Override
     public void onQuestionsLoaded(List<String> scripts) {
         Log.i(TAG, "Scripts loaded. Count: " + (scripts != null ? scripts.size() : "null"));
         if (view != null) {

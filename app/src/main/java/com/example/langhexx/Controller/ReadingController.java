@@ -4,77 +4,46 @@ import android.content.Intent;
 import android.util.Log;
 import androidx.annotation.NonNull;
 
-import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Model.Exercise;
 import com.example.langhexx.Model.ReadingQuestion;
 import com.example.langhexx.R;
+import com.example.langhexx.Util.AzureTTSHelper;
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
-// tts
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import java.io.IOException;
-import com.example.langhexx.BuildConfig;
 
 public class ReadingController {
 
     private static final String TAG = "ReadingController";
-    // Interface TTS callback
     public interface TTSCallback {
         void onStart();
         void onDone(byte[] audioData);
         void onError(String message);
     }
 
-    // TTS Constants
-    private static final String AZURE_TTS_KEY = BuildConfig.AZURE_TTS_API_KEY ;
-    private static final String AZURE_TTS_ENDPOINT = "https://southeastasia.tts.speech.microsoft.com/cognitiveservices/v1";
-    private final OkHttpClient httpClient = new OkHttpClient();
-    // TTS REST API--> callback
     public void synthesizeTextToSpeech(String text, TTSCallback callback) {
-        if (callback != null) callback.onStart();
-        String ssml = "<speak version='1.0' xml:lang='en-US'>" +
-                "<voice name='en-US-JennyNeural'>" + text + "</voice></speak>";
-
-        Request request = new Request.Builder()
-                .url(AZURE_TTS_ENDPOINT)
-                .addHeader("Ocp-Apim-Subscription-Key", AZURE_TTS_KEY)
-                .addHeader("Content-Type", "application/ssml+xml")
-                .addHeader("X-Microsoft-OutputFormat", "audio-16khz-32kbitrate-mono-mp3")
-                .addHeader("User-Agent", "LangHex-App")
-                .post(RequestBody.create(ssml, MediaType.parse("application/ssml+xml")))
-                .build();
-
-        httpClient.newCall(request).enqueue(new Callback() {
+        AzureTTSHelper.synthesize(text, new AzureTTSHelper.TTSCallback() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                if (callback != null) callback.onError("Speech synthesis failed.");
+            public void onStart() {
+                if (callback != null) callback.onStart();
             }
-
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    if (callback != null) callback.onError("TTS failed: " + response.code());
-                    return;
-                }
-                byte[] audioBytes = response.body().bytes();
-                if (callback != null) {
-                    callback.onDone(audioBytes);
-                }
+            public void onDone(byte[] audioData) {
+                if (callback != null) callback.onDone(audioData);
+            }
+            @Override
+            public void onError(String message) {
+                if (callback != null) callback.onError(message);
             }
         });
     }
@@ -113,8 +82,8 @@ public class ReadingController {
     private String exerciseDisplayTitle;
 
     private String passageText;
-    private List<ReadingQuestion> originalQuestionsList = new ArrayList<>();   // Danh sách gốc từ firebase
-    private List<ReadingQuestion> displayedQuestions = new ArrayList<>();       // Danh sách đã shuffle
+    private List<ReadingQuestion> originalQuestionsList = new ArrayList<>();
+    private List<ReadingQuestion> displayedQuestions = new ArrayList<>();
 
     private ArrayList<Exercise> allExercisesInTopic;
     private boolean dataLoaded = false;
@@ -358,10 +327,8 @@ public class ReadingController {
         Map<Integer, Boolean> correctnessMap = new HashMap<>();
 
         for (int i = 0; i < totalQuestions; i++) {
-            ReadingQuestion displayedQ = displayedQuestions.get(i); // Đang hiển thị trên màn hình
+            ReadingQuestion displayedQ = displayedQuestions.get(i);
             String displayedId = displayedQ.getId();
-
-            // Lấy đáp án đúng từ danh sách gốc theo id
             ReadingQuestion originalQ = findQuestionById(originalQuestionsList, displayedId);
             String correct = (originalQ != null) ? originalQ.getCorrectAnswer() : null;
 
@@ -375,8 +342,6 @@ public class ReadingController {
             if (isCorrect) correctCount++;
             correctnessMap.put(i, isCorrect);
         }
-
-        // --- Tính điểm thang 10 ---
         float score10 = (totalQuestions == 0) ? 0 : ((float) correctCount / totalQuestions) * 10;
         String scoreStr = (score10 == (int) score10)
                 ? String.format(Locale.getDefault(), "%d", (int) score10)
@@ -388,8 +353,6 @@ public class ReadingController {
         boolean allCorrect = (correctCount == totalQuestions);
         updateButtonStateBasedOnResults(allCorrect);
     }
-
-    // Hàm tìm câu hỏi theo id
     private ReadingQuestion findQuestionById(List<ReadingQuestion> list, String id) {
         for (ReadingQuestion q : list) {
             if (q.getId() != null && q.getId().equals(id)) return q;
@@ -417,7 +380,6 @@ public class ReadingController {
 
     private void retryExercise() {
         if (view == null) return;
-        // Shuffle lại từ danh sách gốc
         displayedQuestions = new ArrayList<>(originalQuestionsList);
         Collections.shuffle(displayedQuestions);
         view.updateAdapterData(displayedQuestions);

@@ -57,6 +57,10 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.io.File;
+import java.io.FileOutputStream;
+import com.example.langhexx.Util.AzureTTSHelper;
+import android.media.MediaPlayer;
 
 public class InternalSpeakingGrammarTopic extends AppCompatActivity implements SpeakingContract.InteractiveSpeakingView {
 
@@ -94,7 +98,7 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     private boolean isCurrentlyListening = false, speechConfirmedManually = false, keepListeningActive = false;
     private AlertDialog speechConfirmationDialog;
     private TextView tvPartialSpeechTextInDialog;
-
+    private MediaPlayer ttsPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -240,7 +244,10 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
         if (azureAudioConfig != null) { azureAudioConfig.close(); azureAudioConfig = null; }
         azureSpeechConfig = null;
         if (avatarExecutorService != null && !avatarExecutorService.isShutdown()) avatarExecutorService.shutdown();
-        Log.d(TAG, "onDestroy finished.");
+        if (ttsPlayer != null) {
+            ttsPlayer.release();
+            ttsPlayer = null;
+        }
     }
 
     @Override
@@ -259,7 +266,12 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
         avatarUser = currentQaView.findViewById(R.id.userAvatar);
         iconWarning = currentQaView.findViewById(R.id.iconWarning);
         txtCurrentQuestion.setText(question);
-        questionSpeaker.setOnClickListener(v -> { if (controller != null) controller.onQuestionSpeakerClicked(question); });
+        questionSpeaker.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (controller != null) controller.playTtsWithAzure(getContext(), question);
+            }
+        });
         hideResponseElements();
         questionContainer.addView(currentQaView);
         setMicButtonEnabled(azureSpeechConfig != null);
@@ -378,6 +390,21 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
 
     @Override
     public void showToast(String message) { if (!isFinishing() && message != null) Toast.makeText(this, message, Toast.LENGTH_SHORT).show(); }
+
+    @Override
+    public void onTtsPlayStart() {
+
+    }
+
+    @Override
+    public void onTtsPlayEnd() {
+
+    }
+
+    @Override
+    public void onTtsPlayError(String error) {
+
+    }
 
     @Override
     public void showCustomToast(boolean success, String message) {

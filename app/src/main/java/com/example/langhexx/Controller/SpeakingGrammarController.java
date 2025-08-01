@@ -3,13 +3,18 @@ package com.example.langhexx.Controller;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import androidx.core.content.ContextCompat;
 import com.example.langhexx.Model.SpeakingContract;
 import com.example.langhexx.Model.SpeakingGrammarModel;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.List;
+import com.example.langhexx.Util.AzureTTSHelper ;
 
 public class SpeakingGrammarController implements SpeakingContract.Controller, SpeakingContract.QuestionListener, SpeakingContract.EvaluationListener {
 
@@ -22,6 +27,62 @@ public class SpeakingGrammarController implements SpeakingContract.Controller, S
     private String levelName;
     private String topicIdentifier;
     private boolean ttsReady = false;
+    private MediaPlayer ttsPlayer;
+
+    public void playTtsWithAzure(Context context, String text) {
+        if (ttsPlayer != null) {
+            ttsPlayer.release();
+            ttsPlayer = null;
+        }
+        AzureTTSHelper.synthesize(text, new AzureTTSHelper.TTSCallback() {
+            @Override
+            public void onStart() {
+                if (view != null) view.onTtsPlayStart();
+            }
+
+            @Override
+            public void onDone(byte[] audioData) {
+                handler.post(() -> {
+                    if (view == null) return;
+                    try {
+                        if (audioData == null || audioData.length == 0) {
+                            view.showToast("No audio data from Azure.");
+                            view.onTtsPlayError("No audio data from Azure.");
+                            return;
+                        }
+                        File tempFile = File.createTempFile("azure_tts_", ".mp3", context.getCacheDir());
+                        FileOutputStream fos = new FileOutputStream(tempFile);
+                        fos.write(audioData);
+                        fos.close();
+
+                        ttsPlayer = new MediaPlayer();
+                        ttsPlayer.setDataSource(tempFile.getAbsolutePath());
+                        ttsPlayer.setOnPreparedListener(MediaPlayer::start);
+                        ttsPlayer.setOnCompletionListener(mp -> {
+                            mp.release();
+                            ttsPlayer = null;
+                            tempFile.delete();
+                            if (view != null) view.onTtsPlayEnd();
+                        });
+                        ttsPlayer.prepareAsync();
+                    } catch (Exception e) {
+                        view.showToast("Playback error: " + e.getMessage());
+                        view.onTtsPlayError(e.getMessage());
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                handler.post(() -> {
+                    if (view != null) {
+                        view.showToast("Azure TTS error: " + errorMsg);
+                        view.onTtsPlayError(errorMsg);
+                    }
+                });
+            }
+        });
+    }
 
     public SpeakingGrammarController(SpeakingContract.InteractiveSpeakingView view, Context context, String levelName, String topicIdentifier) {
         this.view = view;
@@ -187,6 +248,10 @@ public class SpeakingGrammarController implements SpeakingContract.Controller, S
         if(handler != null) handler.removeCallbacksAndMessages(null);
         view = null;
         model = null;
+        if (ttsPlayer != null) {
+            ttsPlayer.release();
+            ttsPlayer = null;
+        }
     }
 
     @Override

@@ -68,6 +68,11 @@ public interface SpeakingContract {
         void showSpeechConfirmationDialog(String partialText);
         void updateSpeechConfirmationDialog(String newPartialText);
         void dismissSpeechConfirmationDialog();
+        void showToast(String message);
+        void onTtsPlayStart();
+        void onTtsPlayEnd();
+        void onTtsPlayError(String error);
+
     }
 
 
@@ -96,6 +101,7 @@ public interface SpeakingContract {
         void onDestroy();
         //
         void onAudioPermissionResult(boolean granted);
+        void playTtsWithAzure(Context context, String text);
     }
 
     // --- LISTENER Interfaces ---
