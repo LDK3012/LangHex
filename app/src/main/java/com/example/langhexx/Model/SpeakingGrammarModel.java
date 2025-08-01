@@ -3,10 +3,12 @@ package com.example.langhexx.Model;
 import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.langhexx.BuildConfig;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -22,7 +24,7 @@ import java.util.Map;
 
 public class SpeakingGrammarModel implements SpeakingContract.Model {
     private static final String TAG = "SpeakingGrammarModel";
-    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc"; // Replace with your actual key
+    private static final String GEMINI_API_KEY = BuildConfig.GEMINI_API_KEY;
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
     private static final String FIREBASE_DB_URL = "https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/";
 

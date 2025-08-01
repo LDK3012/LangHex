@@ -11,7 +11,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 
 public class SpeakingVoiceModel implements SpeakingContract.Model {
-    private static final String TAG = "SpeakingVoiceModel"; // Đổi tên TAG cho rõ ràng
+    private static final String TAG = "SpeakingVoiceModel";
     private static final String FIREBASE_DB_URL = "https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
     private ArrayList<String> scriptList = new ArrayList<>();

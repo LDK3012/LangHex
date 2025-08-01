@@ -256,7 +256,7 @@ public class ChatFragment extends Fragment {
 
         RequestBody body = RequestBody.create(mediaType, requestBody.toString());
         Request request = new Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc")
+                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + BuildConfig.GEMINI_API_KEY)
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .build();

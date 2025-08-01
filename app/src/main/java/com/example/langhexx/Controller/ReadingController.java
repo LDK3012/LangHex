@@ -163,7 +163,6 @@ public class ReadingController {
                         if (question != null) loadedQuestions.add(question);
                     }
                 }
-                // Lưu lại danh sách gốc
                 originalQuestionsList.clear();
                 originalQuestionsList.addAll(loadedQuestions);
 
@@ -203,7 +202,7 @@ public class ReadingController {
         if (text != null && !text.isEmpty() && answer != null && !answer.isEmpty() && !stringOptionsMap.isEmpty()) {
             question.setQuestionText(text);
             question.setOptions(stringOptionsMap);
-            question.setCorrectAnswer(answer); // Gán đúng đáp án cho từng object
+            question.setCorrectAnswer(answer);
             return question;
         } else {
             return null;

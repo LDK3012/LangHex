@@ -27,6 +27,8 @@ android {
         properties.load(project.rootProject.file('local.properties').newDataInputStream())
         buildConfigField "String", "OPENAI_API_KEY", "\"${properties.getProperty('OPENAI_API_KEY')}\""
         buildConfigField "String", "AZURE_TTS_API_KEY", "\"${properties.getProperty('AZURE_TTS_API_KEY')}\""
+        buildConfigField "String", "GEMINI_API_KEY  ", "\"${properties.getProperty('GEMINI_API_KEY')}\""
+        buildConfigField "String", "AZURE_STT_API_KEY  ", "\"${properties.getProperty('AZURE_STT_API_KEY')}\""
     }
 
     buildTypes {

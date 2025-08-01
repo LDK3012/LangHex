@@ -35,6 +35,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 
+import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Controller.SpeakingVoiceController;
 import com.example.langhexx.Model.SpeakingContract;
 import com.example.langhexx.R;
@@ -83,9 +84,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
 
     private static final String TAG_ACTIVITY = "InternalSpeakingVoiceTopic";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION_CODE = 201;
-
-    // IMPORTANT: Replace with your actual Azure Speech Key and Region
-    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK"; // Thay thế bằng Key của bạn
+    private static final String AZURE_SPEECH_KEY = BuildConfig.AZURE_STT_API_KEY;
     private static final String AZURE_SPEECH_REGION = "eastus";
     private static final String TARGET_LANGUAGE = "en-US";
 
@@ -116,7 +115,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
     private String lastCleanScriptDisplayed = "";
     private int currentScriptModelIndex = -1;
     private File recordingsDir;
-    private List<Integer> currentRedWordIndices = null; // Để lưu trữ chỉ số của các từ màu đỏ cho script hiện tại
+    private List<Integer> currentRedWordIndices = null;
 
     private SpeechConfig azureSpeechConfig;
 

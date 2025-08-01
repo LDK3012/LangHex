@@ -36,6 +36,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.signature.ObjectKey;
+import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Controller.SpeakingGrammarController;
 import com.example.langhexx.Model.CustomToast;
 import com.example.langhexx.Model.SpeakingContract;
@@ -89,7 +90,7 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     private static final String MS_GRAPH_TOKEN_KEY = "ms_graph_token";
     private static final String MICROSOFT_PROVIDER_ID = "microsoft.com";
 
-    private static final String AZURE_SPEECH_KEY = "75aMORlAm3JGJXfz0oOcHaX3hytrGyJ9MBRUfRGutW5qeZSuFjz3JQQJ99BEACYeBjFXJ3w3AAAYACOGDbeK"; // Replace with your key
+    private static final String AZURE_SPEECH_KEY = BuildConfig.AZURE_STT_API_KEY;
     private static final String AZURE_SPEECH_REGION = "eastus";
     private SpeechConfig azureSpeechConfig;
     private SpeechRecognizer azureSpeechRecognizer;
