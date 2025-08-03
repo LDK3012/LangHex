@@ -202,7 +202,7 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
             }
 
             // TODO: Chuyển sang Activity thực hành Pronunciation (ví dụ: InternalSpeakingPronunciationTopic.class)
-            Intent intent = new Intent(ChooseSpeakingVoiceTopicActivity.this, InternalSpeakingVoiceTopic.class);
+            Intent intent = new Intent(ChooseSpeakingVoiceTopicActivity.this, InternalSpeakingPronunciationTopic.class);
              intent.putExtra("levelName", levelName);
              intent.putExtra("topicId", topicId);
              intent.putExtra("topicTitle", topicDisplayName);

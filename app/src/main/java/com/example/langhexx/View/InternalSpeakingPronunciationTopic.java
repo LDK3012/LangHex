@@ -36,7 +36,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 
 import com.example.langhexx.BuildConfig;
-import com.example.langhexx.Controller.SpeakingVoiceController;
+import com.example.langhexx.Controller.SpeakingPronunciationController;
 import com.example.langhexx.Model.SpeakingContract;
 import com.example.langhexx.R;
 
@@ -80,7 +80,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 
 
-public class InternalSpeakingVoiceTopic extends AppCompatActivity implements SpeakingContract.PronunciationView {
+public class InternalSpeakingPronunciationTopic extends AppCompatActivity implements SpeakingContract.PronunciationView {
 
     private static final String TAG_ACTIVITY = "InternalSpeakingVoiceTopic";
     private static final int REQUEST_RECORD_AUDIO_PERMISSION_CODE = 201;
@@ -163,7 +163,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             azureSpeechConfig = null;
         }
 
-        controller = new SpeakingVoiceController(this, getApplicationContext(), levelName, topicId, topicDisplayTitleStr);
+        controller = new SpeakingPronunciationController(this, getApplicationContext(), levelName, topicId, topicDisplayTitleStr);
         addEvents();
 
         pgbAzureProcessing.setVisibility(View.GONE);
@@ -228,7 +228,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
                 showToast("Please stop recording first.");
                 return;
             }
-            Intent intent = new Intent(InternalSpeakingVoiceTopic.this, MainActivity.class);
+            Intent intent = new Intent(InternalSpeakingPronunciationTopic.this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
@@ -288,7 +288,7 @@ public class InternalSpeakingVoiceTopic extends AppCompatActivity implements Spe
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
                 showToast("Processing, please wait..."); return;
             }
-            new AlertDialog.Builder(InternalSpeakingVoiceTopic.this)
+            new AlertDialog.Builder(InternalSpeakingPronunciationTopic.this)
                     .setTitle("Confirm Deletion")
                     .setMessage("Are you sure you want to delete this recording and its feedback?")
                     .setPositiveButton("Yes", (dialog, which) -> deleteCurrentRecording())

@@ -20,7 +20,6 @@ public class MicrosoftAuthModel {
     private static final String MS_GRAPH_PREFS = "MSGraphPrefs";
     private static final String MS_GRAPH_TOKEN_KEY = "ms_graph_token";
 
-    // Interface để thông báo kết quả về Controller
     public interface MicrosoftAuthListener {
         // Pass the full AuthResult on success
         void onSignInSuccess(Activity activity, AuthResult authResult);
