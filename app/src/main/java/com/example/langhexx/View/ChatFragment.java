@@ -69,7 +69,7 @@ public class ChatFragment extends Fragment {
     private List<ChatMessage> messages = new ArrayList<>();
     private TextView sampleQuestion1, sampleQuestion2, sampleQuestion3;
     private LinearLayout sampleQuestionsContainer;
-    private TextView selectedModelText;
+    private TextView selectedModelText, tvIntroduce;
     private String currentModel = "Normal Mode";
 
     @Override
@@ -87,6 +87,8 @@ public class ChatFragment extends Fragment {
         selectedModelText = view.findViewById(R.id.selectedModelText);
         selectedModelText.setText(currentModel);
         selectedModelText.setOnClickListener(this::showModelMenu);
+
+        tvIntroduce = view.findViewById(R.id.tvIntroduce);
 
         sampleQuestion1 = view.findViewById(R.id.sampleQuestion1);
         sampleQuestion2 = view.findViewById(R.id.sampleQuestion2);
@@ -180,6 +182,7 @@ public class ChatFragment extends Fragment {
                             chatAdapter.notifyDataSetChanged();
                             Toast.makeText(getContext(), "Chat history cleared.", Toast.LENGTH_SHORT).show();
                             sampleQuestionsContainer.setVisibility(View.VISIBLE);
+                            tvIntroduce.setVisibility(View.VISIBLE);
                         })
                         .setNegativeButton("No", null)
                         .show();
@@ -221,6 +224,7 @@ public class ChatFragment extends Fragment {
 
     private void setupSampleQuestionClickListener(TextView sampleQuestion) {
         sampleQuestion.setOnClickListener(v -> {
+            tvIntroduce.setVisibility(View.INVISIBLE);
             String questionText = sampleQuestion.getText().toString();
             edtMessage.setText(questionText);
             edtMessage.setSelection(questionText.length());

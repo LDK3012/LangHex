@@ -17,51 +17,43 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="8dp"
+            android:padding="12dp"
             android:background="@android:color/white"
             android:elevation="2dp">
 
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/logo_start"
-                android:contentDescription="University Logo"
-                android:layout_marginEnd="8dp" />
+
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:text="Van Lang University"
+                    android:text="ChatEngHex"
                     android:textStyle="bold"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="16sp"
+                    android:textSize="25sp"
                     android:textColor="#000000" />
 
                 <TextView
-                    android:text="Institute of Languages"
-                    android:textSize="12sp"
+                    android:id="@+id/selectedModelText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#777777" />
+                    android:layout_marginTop="10dp"
+                    android:text="Pro Mode"
+                    android:textStyle="bold"
+                    android:textColor="#000000"
+                    android:padding="8dp"
+                    android:drawableEnd="@drawable/arrow_drop_down"
+                    android:drawablePadding="4dp"
+                    android:background="@drawable/sample_question_item_background" />
+
             </LinearLayout>
 
-            <!-- Model selector -->
-            <TextView
-                android:id="@+id/selectedModelText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Pro Mode"
-                android:textStyle="bold"
-                android:textColor="#000000"
-                android:padding="8dp"
-                android:drawableEnd="@drawable/arrow_drop_down"
-                android:drawablePadding="4dp"
-                android:background="@drawable/sample_question_item_background" />
+
         </LinearLayout>
 
         <!-- Chat container -->
@@ -123,24 +115,30 @@
     </LinearLayout>
 
     <!-- Sample Questions Container -->
+
+    <TextView
+        android:id="@+id/tvIntroduce"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="250dp"
+        android:textColor="@color/black"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:text="How can I help you?" />
+
     <LinearLayout
         android:id="@+id/sampleQuestionsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
         android:orientation="vertical"
         android:layout_gravity="center"
         android:padding="12dp"
         android:elevation="3dp"
         android:visibility="visible">
 
-        <ImageView
-            android:id="@+id/sampleQuestionsIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_horizontal"
-            android:src="@drawable/chatbot"
-            android:contentDescription="Sample Questions Icon"
-            android:layout_marginBottom="12dp" />
+
 
         <TextView
             android:id="@+id/sampleQuestion1"
