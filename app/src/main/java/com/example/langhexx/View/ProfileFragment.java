@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast; // Thêm import Toast
@@ -46,9 +47,9 @@ import android.content.pm.PackageManager;
 
 public class ProfileFragment extends Fragment {
     private static final String TAG = "ProfileFragment";
-    TextView txtProfileDetail, txtForum, txtName, txtEmail, txtLanguage,txtVersion;
+    TextView txtForum, txtName, txtEmail,txtVersion;
+    Button btnLogout;
     private ImageView avatarImg ;
-    private TextView txtLogout ;
     private FirebaseAuth mAuth;
     private UsernamePasswordSessionManager sessionManager;
     private AuthController authController;
@@ -116,20 +117,15 @@ public class ProfileFragment extends Fragment {
     }
 
     public void addControls(View view) {
-        txtProfileDetail = view.findViewById(R.id.txtInfo);
         txtForum = view.findViewById(R.id.txtForum);
         txtName = view.findViewById(R.id.txtName);
         txtEmail = view.findViewById(R.id.txtMail);
         avatarImg = view.findViewById(R.id.profileImg);
-        txtLogout = view.findViewById(R.id.txtLogout) ;
-        txtVersion = view.findViewById(R.id.txtVersion); //update phiên bản
+        btnLogout = view.findViewById(R.id.btnLogout);
+        txtVersion = view.findViewById(R.id.txtVersion);
     }
 
     public void addEvents() {
-        txtProfileDetail.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), ProfileDetail.class);
-            startActivity(intent);
-        });
         txtForum.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), ForumActivity.class);
             String userName = txtName.getText().toString();
@@ -141,7 +137,7 @@ public class ProfileFragment extends Fragment {
             }
             startActivity(intent);
         });
-        txtLogout.setOnClickListener(v -> {
+        btnLogout.setOnClickListener(v -> {
             authController = new AuthController(new AuthController.AuthCallback() {
                 @Override
                 public void onSuccess() {

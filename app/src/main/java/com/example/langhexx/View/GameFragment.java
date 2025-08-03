@@ -64,14 +64,7 @@ public class GameFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_game, container, false);
-        LinearLayout lnrRanking = view.findViewById(R.id.lnrRanking) ;
-        lnrRanking.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getActivity() , LeaderboardActivity.class) ;
-                startActivity(intent);
-            }
-        });
+
         return view ;
     }
 }
