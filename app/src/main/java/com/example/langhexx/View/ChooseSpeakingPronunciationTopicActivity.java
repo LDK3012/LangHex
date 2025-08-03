@@ -26,7 +26,7 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
+public class ChooseSpeakingPronunciationTopicActivity extends AppCompatActivity {
 
     private ListView lvTopics;
     private ArrayList<Topics> topicsArrayList;
@@ -158,7 +158,7 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
                     Log.d(ACTIVITY_TAG, "Loaded " + topicsArrayList.size() + " " + CURRENT_SUB_SKILL_NAME + " topics.");
                 } else {
                     Log.w(ACTIVITY_TAG, "No " + CURRENT_SUB_SKILL_NAME + " topics found for level: " + levelName + " at " + topicsPathRef.toString());
-                    Toast.makeText(ChooseSpeakingVoiceTopicActivity.this, "No " + CURRENT_SUB_SKILL_NAME + " topics found.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ChooseSpeakingPronunciationTopicActivity.this, "No " + CURRENT_SUB_SKILL_NAME + " topics found.", Toast.LENGTH_SHORT).show();
                 }
 
                 if (topicAdapter != null) {
@@ -169,7 +169,7 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChooseSpeakingVoiceTopicActivity.this, "Failed to load Pronunciation topics: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChooseSpeakingPronunciationTopicActivity.this, "Failed to load Pronunciation topics: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.e(ACTIVITY_TAG, "Firebase Error for Pronunciation Topics: " + error.getMessage());
             }
         });
@@ -182,7 +182,7 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
 
         if (imgHome != null) {
             imgHome.setOnClickListener(view -> {
-                Intent intent = new Intent(ChooseSpeakingVoiceTopicActivity.this, MainActivity.class);
+                Intent intent = new Intent(ChooseSpeakingPronunciationTopicActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 finish();
@@ -202,7 +202,7 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
             }
 
             // TODO: Chuyển sang Activity thực hành Pronunciation (ví dụ: InternalSpeakingPronunciationTopic.class)
-            Intent intent = new Intent(ChooseSpeakingVoiceTopicActivity.this, InternalSpeakingPronunciationTopic.class);
+            Intent intent = new Intent(ChooseSpeakingPronunciationTopicActivity.this, InternalSpeakingPronunciationTopic.class);
              intent.putExtra("levelName", levelName);
              intent.putExtra("topicId", topicId);
              intent.putExtra("topicTitle", topicDisplayName);

@@ -69,7 +69,7 @@ public class ChooseSpeakingLearningMethod extends AppCompatActivity {
             crdVoice.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(ChooseSpeakingLearningMethod.this, ChooseSpeakingVoiceTopicActivity.class);
+                    Intent intent = new Intent(ChooseSpeakingLearningMethod.this, ChooseSpeakingPronunciationTopicActivity.class);
                     intent.putExtra("levelName", levelName);
                     startActivity(intent);
                 }

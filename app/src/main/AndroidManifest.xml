@@ -37,7 +37,7 @@
             android:name=".View.ChooseTopicWritingActivity"
             android:exported="false" />
         <activity
-            android:name=".View.ChooseSpeakingVoiceTopicActivity"
+            android:name=".View.ChooseSpeakingPronunciationTopicActivity"
             android:exported="false" />
         <activity
             android:name=".View.InternalWritingTopic"

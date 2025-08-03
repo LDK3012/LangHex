@@ -21,7 +21,7 @@ import com.example.langhexx.Model.Topics;
 import com.example.langhexx.R;
 import com.example.langhexx.View.ChooseSpeakingGrammarTopicActivity;
 
-import com.example.langhexx.View.ChooseSpeakingVoiceTopicActivity;
+import com.example.langhexx.View.ChooseSpeakingPronunciationTopicActivity;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -132,7 +132,7 @@ public class TopicAdapter extends BaseAdapter {
 
         if (holder.imgTopicOptions != null) {
             boolean canShowOptions = isSpeakingSkillCurrently && isTopicHighlighted &&
-                    ((context instanceof ChooseSpeakingGrammarTopicActivity) || (context instanceof ChooseSpeakingVoiceTopicActivity));
+                    ((context instanceof ChooseSpeakingGrammarTopicActivity) || (context instanceof ChooseSpeakingPronunciationTopicActivity));
             if (canShowOptions) {
                 holder.imgTopicOptions.setVisibility(View.VISIBLE);
                 holder.imgTopicOptions.setOnClickListener(v -> showPopupMenu(v, topic.getTopicName()));
@@ -181,7 +181,7 @@ public class TopicAdapter extends BaseAdapter {
     }
 
     private void showPopupMenu(View anchorView, final String topicDisplayName) {
-        if (!((context instanceof ChooseSpeakingGrammarTopicActivity) || (context instanceof ChooseSpeakingVoiceTopicActivity))) {
+        if (!((context instanceof ChooseSpeakingGrammarTopicActivity) || (context instanceof ChooseSpeakingPronunciationTopicActivity))) {
             Log.e(TAG, "Context not ChooseSpeakingGrammarTopicActivity or ChooseSpeakingPronunciationTopicActivity, cannot show delete history menu.");
             return;
         }
@@ -191,8 +191,8 @@ public class TopicAdapter extends BaseAdapter {
             if (item.getItemId() == R.id.action_delete_history) {
                 if (context instanceof ChooseSpeakingGrammarTopicActivity) {
                     ((ChooseSpeakingGrammarTopicActivity) context).removeClickedTopicHistory(topicDisplayName);
-                } else if (context instanceof ChooseSpeakingVoiceTopicActivity) {
-                    ((ChooseSpeakingVoiceTopicActivity) context).removeClickedTopicHistory(topicDisplayName);
+                } else if (context instanceof ChooseSpeakingPronunciationTopicActivity) {
+                    ((ChooseSpeakingPronunciationTopicActivity) context).removeClickedTopicHistory(topicDisplayName);
                 }
                 return true;
             }
