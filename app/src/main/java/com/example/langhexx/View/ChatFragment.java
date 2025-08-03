@@ -145,6 +145,7 @@ public class ChatFragment extends Fragment {
                 } else {
                     callGeminiAPI(userMessage);
                 }
+                tvIntroduce.setVisibility(View.INVISIBLE);
                 edtMessage.setText("");
             }
         });
