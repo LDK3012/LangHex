@@ -49,21 +49,14 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
     private ImageView iconTaskResponse, iconCoherenceCohesion, iconGrammarVocabulary, iconLength;
     private TextView taskResponseTitleTextView, coherenceTitleTextView, grammarTitleTextView, lengthTitleTextView;
     private TextView textFeedbackTaskResponse, textFeedbackCoherenceCohesion, textFeedbackGrammarVocabulary, textFeedbackLength;
-    // private Button btnSeeRevisedVersion; // REMOVED
-
     private AlertDialog loadingDialog;
     private ScrollView mainScrollView;
-
     private WritingController controller;
-
-    // Lưu trữ các span lỗi hiện tại để có thể xóa
     private List<Object> currentErrorSpans = new ArrayList<>();
-
-    // Debounce cho TextWatcher
     private Handler textChangeHandler = new Handler(Looper.getMainLooper());
     private Runnable textChangeRunnable;
     private final long TEXT_CHANGE_DEBOUNCE_MS = 1000;
-
+    private TextView scoreTaskResponse, scoreCoherence, scoreGrammar, scoreLength, totalScoreText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +81,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         mainScrollView = findViewById(R.id.main_scroll_view);
         titleTextView = findViewById(R.id.tvScreenTitle);
         imgClose = findViewById(R.id.back_button);
-        // titleTextView = findViewById(R.id.title_textview); // Duplicate
         questionTextView = findViewById(R.id.question_textview);
         answerEditText = findViewById(R.id.answer_edittext);
         submitButton = findViewById(R.id.submit_button);
@@ -108,6 +100,13 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         textFeedbackCoherenceCohesion = includedFeedbackPanel.findViewById(R.id.text_feedback_coherence_cohesion);
         textFeedbackGrammarVocabulary = includedFeedbackPanel.findViewById(R.id.text_feedback_grammar_vocabulary);
         textFeedbackLength = includedFeedbackPanel.findViewById(R.id.text_feedback_length);
+
+        scoreTaskResponse = includedFeedbackPanel.findViewById(R.id.score_task_response);
+        scoreCoherence = includedFeedbackPanel.findViewById(R.id.score_coherence);
+        scoreGrammar = includedFeedbackPanel.findViewById(R.id.score_grammar);
+        scoreLength = includedFeedbackPanel.findViewById(R.id.score_length);
+        totalScoreText = includedFeedbackPanel.findViewById(R.id.total_score);
+
 
         TextView reviewTextView = findViewById(R.id.feedback_trigger_button);
         if (reviewTextView != null) {
@@ -163,35 +162,6 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
-    @Override
-    public void displayStructuredAIFeedback(
-            String taskResponseFeedback, int taskResponseIconType,
-            String coherenceCohesionFeedback, int coherenceCohesionIconType,
-            String grammarVocabularyFeedback, int grammarVocabularyIconType,
-            String lengthFeedback, int lengthIconType) {
-        Log.d(TAG, "displayStructuredAIFeedback called");
-        runOnUiThread(() -> {
-            if (includedFeedbackPanel == null) return;
-
-            boolean allSuccess = taskResponseIconType == 1 && coherenceCohesionIconType == 1 && grammarVocabularyIconType == 1 && lengthIconType == 1;
-            int panelBorderColor = ContextCompat.getColor(this, allSuccess ? R.color.feedback_panel_border_success : R.color.feedback_panel_border_warning);
-            Drawable background = includedFeedbackPanel.getBackground();
-            if (background instanceof GradientDrawable) {
-                ((GradientDrawable) background).setStroke(dpToPx(2), panelBorderColor);
-            } else {
-                GradientDrawable mutatedDrawable = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.feedback_panel_background).mutate();
-                if (mutatedDrawable != null) {
-                    mutatedDrawable.setStroke(dpToPx(2), panelBorderColor);
-                    includedFeedbackPanel.setBackground(mutatedDrawable);
-                }
-            }
-
-            updateFeedbackItemUI(taskResponseTitleTextView, textFeedbackTaskResponse, iconTaskResponse, taskResponseFeedback, taskResponseIconType);
-            updateFeedbackItemUI(coherenceTitleTextView, textFeedbackCoherenceCohesion, iconCoherenceCohesion, coherenceCohesionFeedback, coherenceCohesionIconType);
-            updateFeedbackItemUI(grammarTitleTextView, textFeedbackGrammarVocabulary, iconGrammarVocabulary, grammarVocabularyFeedback, grammarVocabularyIconType);
-            updateFeedbackItemUI(lengthTitleTextView, textFeedbackLength, iconLength, lengthFeedback, lengthIconType);
-        });
-    }
 
     private void updateFeedbackItemUI(TextView titleView, TextView detailView, ImageView iconView, String detailText, int iconType) {
         int titleColorRes = iconType == 1 ? R.color.feedback_text_item_success : R.color.feedback_text_item_warning;
@@ -261,6 +231,36 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
     public void clearAnswerInput() {
         runOnUiThread(() -> { if (answerEditText != null) answerEditText.setText(""); });
     }
+
+
+
+    @Override
+    public void displayStructuredAIFeedback(
+            String taskResponseFeedback, int taskResponseIconType, int taskScore,
+            String coherenceCohesionFeedback, int coherenceCohesionIconType, int coherenceScore,
+            String grammarVocabularyFeedback, int grammarVocabularyIconType, int grammarScore,
+            String lengthFeedback, int lengthIconType, int lengthScore,
+            int totalScore
+    ) {
+        runOnUiThread(() -> {
+            if (includedFeedbackPanel == null) return;
+            updateFeedbackItemUI(taskResponseTitleTextView, textFeedbackTaskResponse, iconTaskResponse, taskResponseFeedback, taskResponseIconType);
+            if (scoreTaskResponse != null) scoreTaskResponse.setText("Score: " + taskScore + "/10");
+
+            updateFeedbackItemUI(coherenceTitleTextView, textFeedbackCoherenceCohesion, iconCoherenceCohesion, coherenceCohesionFeedback, coherenceCohesionIconType);
+            if (scoreCoherence != null) scoreCoherence.setText("Score: " + coherenceScore + "/10");
+
+            updateFeedbackItemUI(grammarTitleTextView, textFeedbackGrammarVocabulary, iconGrammarVocabulary, grammarVocabularyFeedback, grammarVocabularyIconType);
+            if (scoreGrammar != null) scoreGrammar.setText("Score: " + grammarScore + "/10");
+
+            updateFeedbackItemUI(lengthTitleTextView, textFeedbackLength, iconLength, lengthFeedback, lengthIconType);
+            if (scoreLength != null) scoreLength.setText("Score: " + lengthScore + "/10");
+
+            if (totalScoreText != null) totalScoreText.setText("Total: " + totalScore + "/10");
+        });
+    }
+
+
 
     @Override
     public void showLoading(String message) {
@@ -518,12 +518,12 @@ public class InternalWritingTopic extends AppCompatActivity implements WritingCo
         boolean shouldShowDialog = false;
 
         if (isInFeedbackState) {
-            if (controller.isEditButtonForcedByLoad()) { // Just loaded a saved answer, button shows "Edit"
-                super.onBackPressed(); // Allow back immediately without prompt
+            if (controller.isEditButtonForcedByLoad()) {
+                super.onBackPressed();
                 return;
             }
-            if (isAllCriteriaSuccess) { // Button is "Done"
-                super.onBackPressed(); // Or specific logic if "Done" state should behave differently on back
+            if (isAllCriteriaSuccess) {
+                super.onBackPressed();
                 return;
             }
         }

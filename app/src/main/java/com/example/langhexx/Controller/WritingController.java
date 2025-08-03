@@ -1,3 +1,4 @@
+
 package com.example.langhexx.Controller;
 
 import android.content.Intent;
@@ -8,6 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Model.MicrosoftUser;
 import com.example.langhexx.Model.WritingExercise;
 import com.google.firebase.auth.FirebaseAuth;
@@ -22,23 +24,26 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 public class WritingController {
 
     private static final String TAG = "WritingController";
-    private static final String GEMINI_API_KEY = "AIzaSyDoQKvSTwu_RJMIKl3c456iLFW0oIK16tc";
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
-
+    private static final String OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY;
+    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
 
@@ -54,6 +59,7 @@ public class WritingController {
     private boolean isFeedbackPanelVisible = false;
     private boolean editButtonForcedByLoad = false;
 
+
     public interface ViewInterface {
         void displayExerciseTitle(String title);
         void displayQuestionPrompt(String prompt);
@@ -66,12 +72,6 @@ public class WritingController {
         void showLoading(String message);
         void hideLoading();
         void clearAnswerInput();
-        void displayStructuredAIFeedback(
-                String taskResponseFeedback, int taskResponseIconType,
-                String coherenceCohesionFeedback, int coherenceCohesionIconType,
-                String grammarVocabularyFeedback, int grammarVocabularyIconType,
-                String lengthFeedback, int lengthIconType
-        );
         void setFeedbackPanelVisibility(boolean visible);
         void setFeedbackTriggerVisibility(boolean visible);
         void setAnswerInputVisibility(boolean visible);
@@ -81,6 +81,14 @@ public class WritingController {
         void clearInlineErrorHighlighting();
         void displaySavedAnswer(String answer);
         String getCurrentAnswerText();
+        void displayStructuredAIFeedback(
+                String taskResponseFeedback, int taskResponseIconType, int taskScore,
+                String coherenceCohesionFeedback, int coherenceCohesionIconType, int coherenceScore,
+                String grammarVocabularyFeedback, int grammarVocabularyIconType, int grammarScore,
+                String lengthFeedback, int lengthIconType, int lengthScore,
+                int totalScore
+        );
+
     }
 
     public static final int STATE_SUBMIT_WRITING = 0;
@@ -612,8 +620,8 @@ public class WritingController {
         }
 
         final String finalUserIdForFeedbackUpdate = userIdToUseForSaving;
-
-        getFeedbackFromGemini(originalPrompt, textBeingSubmitted, new FeedbackCallback() {
+        final String submittedUserAnswer = userAnswer;
+        getFeedbackFromOpenAI(originalPrompt, textBeingSubmitted, new FeedbackCallback() {
             @Override
             public void onSuccess(JSONObject feedbackJson) {
                 mainThreadHandler.post(() -> {
@@ -624,38 +632,39 @@ public class WritingController {
                         JSONObject coherenceCohesion = feedbackJson.getJSONObject("coherenceCohesion");
                         JSONObject grammarVocabulary = feedbackJson.getJSONObject("grammarVocabulary");
                         JSONObject length = feedbackJson.getJSONObject("length");
+                        int totalScore = feedbackJson.getInt("totalScore");
+
+                        int taskScore = taskResponse.getInt("score");
+                        int coherenceScore = coherenceCohesion.getInt("score");
+                        int grammarScore = grammarVocabulary.getInt("score");
+                        int lengthScore = length.getInt("score");
 
                         allCriteriaSuccess = taskResponse.getInt("iconType") == 1 &&
                                 coherenceCohesion.getInt("iconType") == 1 &&
                                 grammarVocabulary.getInt("iconType") == 1 &&
                                 length.getInt("iconType") == 1;
-                        Log.d(TAG, "All criteria success after Gemini: " + allCriteriaSuccess);
 
                         if (currentMicrosoftUser != null) {
                             currentMicrosoftUser.setWritingFeedbackSummary(allCriteriaSuccess ? "All criteria success" : "Needs improvement");
+                            // Nếu muốn lưu tổng điểm
+                            // currentMicrosoftUser.setWritingTotalScore(totalScore);
                         }
 
                         view.displayStructuredAIFeedback(
-                                taskResponse.getString("feedback"), taskResponse.getInt("iconType"),
-                                coherenceCohesion.getString("feedback"), coherenceCohesion.getInt("iconType"),
-                                grammarVocabulary.getString("feedback"), grammarVocabulary.getInt("iconType"),
-                                length.getString("feedback"), length.getInt("iconType")
+                                taskResponse.getString("feedback"), taskResponse.getInt("iconType"), taskScore,
+                                coherenceCohesion.getString("feedback"), coherenceCohesion.getInt("iconType"), coherenceScore,
+                                grammarVocabulary.getString("feedback"), grammarVocabulary.getInt("iconType"), grammarScore,
+                                length.getString("feedback"), length.getInt("iconType"), lengthScore,
+                                totalScore
                         );
+
                         currentButtonState = STATE_RETRY_WRITING;
                         isUserEditingAfterFeedback = false;
-                        submittedTextForCurrentFeedback = textBeingSubmitted;
+                        submittedTextForCurrentFeedback = submittedUserAnswer;
                         isFeedbackPanelVisible = true;
                         editButtonForcedByLoad = false;
-
                         updateSubmitButtonBasedOnState();
                         if (isFeedbackPanelVisible) view.focusOnFeedbackPanel();
-                        if (finalUserIdForFeedbackUpdate != null && WritingController.this.exerciseId != null && currentMicrosoftUser != null) {
-                            updateUserWritingAnswerFeedback(
-                                    finalUserIdForFeedbackUpdate,
-                                    WritingController.this.exerciseId, // Use actual exerciseId for User's Progress key
-                                    currentMicrosoftUser.getWritingFeedbackSummary()
-                            );
-                        }
                     } catch (JSONException e) {
                         Log.e(TAG, "Error parsing overall feedback JSON from Gemini", e);
                         if (view != null) view.showFailToast("Error processing feedback: " + e.getMessage());
@@ -719,26 +728,24 @@ public class WritingController {
         void onError(String error);
     }
 
-    private void getFeedbackFromGemini(String originalPrompt, String userAnswer, FeedbackCallback callback) {
-        String promptForGemini = "You are an English language learning assistant. Evaluate the following written response to the prompt.\n" +
-                "Provide constructive feedback for a language learner.\n" +
-                "Your response MUST be a JSON object with the following exact structure:\n" +
-                "{\n" +
-                "  \"taskResponse\": {\"feedback\": \"<string>\", \"iconType\": <0_for_warning_1_for_success>},\n" +
-                "  \"coherenceCohesion\": {\"feedback\": \"<string>\", \"iconType\": <0_for_warning_1_for_success>},\n" +
-                "  \"grammarVocabulary\": {\"feedback\": \"<string>\", \"iconType\": <0_for_warning_1_for_success>},\n" +
-                "  \"length\": {\"feedback\": \"<string>\", \"iconType\": <0_for_warning_1_for_success>}\n" +
-                "}\n" +
-                "Be concise in your feedback strings.\n\n" +
-                "IMPORTANT rules for iconType:\n" +
-                "- For \"taskResponse\", \"coherenceCohesion\", and \"length\", iconType should be 1 if the user generally did well in that aspect, 0 if there are notable issues.\n" +
-                "- For \"grammarVocabulary\": Be very strict. iconType MUST be 0 if ANY grammatical errors (e.g., subject-verb agreement, tense, articles, prepositions, sentence structure) OR vocabulary errors (e.g., incorrect word choice, wrong form of word, significant spelling mistakes that change word meaning or make it unrecognizable) are present. iconType for grammarVocabulary should only be 1 if the response is free of such errors and uses appropriate vocabulary.\n" +
-                "- If you identify errors for grammarVocabulary and set its iconType to 0, ensure your feedback string for grammarVocabulary briefly mentions the type or an example of the error.\n\n" +
-                "Original Prompt: \"" + originalPrompt + "\"\n\n" +
-                "User's Response: \"" + userAnswer + "\"\n\n" +
-                "Provide only the JSON object as your response.";
-
-        callGeminiAPI(promptForGemini, responseString -> {
+    private void getFeedbackFromOpenAI(String originalPrompt, String userAnswer, FeedbackCallback callback) {
+        String promptForGemini =
+                "You are an English writing evaluator. Assess the user's writing in 4 rubric categories: taskResponse, coherenceCohesion, grammarVocabulary, length. " +
+                        "For each, provide:" +
+                        "\\n- feedback (short, practical comment)" +
+                        "\\n- iconType: 1 if meets requirements, 0 if not" +
+                        "\\n- score: integer from 0 (poor) to 10 (excellent)" +
+                        "\\nAt the end, provide totalScore (average of 4 scores, round to nearest integer)." +
+                        "\\nFormat output as JSON:" +
+                        "\\n{" +
+                        "\\n  \"taskResponse\": {\"feedback\": \"...\", \"iconType\": <0_or_1>, \"score\": <0-10>}," +
+                        "\\n  \"coherenceCohesion\": {\"feedback\": \"...\", \"iconType\": <0_or_1>, \"score\": <0-10>}," +
+                        "\\n  \"grammarVocabulary\": {\"feedback\": \"...\", \"iconType\": <0_or_1>, \"score\": <0-10>}," +
+                        "\\n  \"length\": {\"feedback\": \"...\", \"iconType\": <0_or_1>, \"score\": <0-10>}," +
+                        "\\n  \"totalScore\": <0-10>" +
+                        "\\n}" +
+                        "\\nOnly return JSON. Prompt: \"" + originalPrompt + "\"\\nUser's Response: \"" + userAnswer + "\"";
+        callOpenAIAPI(promptForGemini, responseString -> {
             try {
                 callback.onSuccess(new JSONObject(responseString));
             } catch (JSONException e) {
@@ -748,6 +755,7 @@ public class WritingController {
         }, callback::onError);
     }
 
+
     private interface GeminiApiSuccessListener {
         void onResult(String responseString) throws JSONException;
     }
@@ -756,129 +764,85 @@ public class WritingController {
         void onError(String errorMessage);
     }
 
-    private void callGeminiAPI(String promptText, GeminiApiSuccessListener successListener, GeminiApiErrorListener errorListener) {
-        if (GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY") || GEMINI_API_KEY.isEmpty() || GEMINI_API_KEY.equals("AIzaSyCf-9jplfin2aWdFAdxWcCdzox5wzIkBbQ") ) {
-            Log.e(TAG, "Gemini API Key is a placeholder or empty. Please set a valid API key.");
-            String simulatedError = "AI Feedback service is temporarily unavailable (API Key issue).";
-            if (Looper.myLooper() == Looper.getMainLooper()) {
-                errorListener.onError(simulatedError);
-            } else {
-                mainThreadHandler.postDelayed(() -> errorListener.onError(simulatedError), 100);
-            }
-            return;
-        }
-
+    private void callOpenAIAPI(String promptText, GeminiApiSuccessListener successListener, GeminiApiErrorListener errorListener) {
         executorService.execute(() -> {
-            HttpURLConnection conn = null;
+            OkHttpClient client = new OkHttpClient();
+            JSONArray messagesArr = new JSONArray();
+            JSONObject userMsg = new JSONObject();
             try {
-                URL url = new URL(GEMINI_API_URL);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(20000);
-                conn.setReadTimeout(20000);
+                userMsg.put("role", "user");
+                userMsg.put("content", promptText);
+                messagesArr.put(userMsg);
+            } catch (JSONException e) {
+                mainThreadHandler.post(() -> errorListener.onError("Error building OpenAI request: " + e.getMessage()));
+                return;
+            }
 
-                JSONObject jsonBody = new JSONObject();
-                JSONArray contentsArray = new JSONArray();
-                JSONObject content = new JSONObject();
-                JSONArray partsArray = new JSONArray();
-                JSONObject part = new JSONObject();
-                part.put("text", promptText);
-                partsArray.put(part);
-                content.put("parts", partsArray);
-                contentsArray.put(content);
-                jsonBody.put("contents", contentsArray);
+            JSONObject requestBody = new JSONObject();
+            try {
+                requestBody.put("model", "gpt-4.1");
+                requestBody.put("messages", messagesArr);
+                requestBody.put("response_format", new JSONObject().put("type", "json_object"));
+            } catch (JSONException e) {
+                mainThreadHandler.post(() -> errorListener.onError("Error building OpenAI request: " + e.getMessage()));
+                return;
+            }
 
-                JSONObject generationConfig = new JSONObject();
-                generationConfig.put("response_mime_type", "application/json");
-                jsonBody.put("generationConfig", generationConfig);
+            RequestBody body = RequestBody.create(
+                    MediaType.parse("application/json"), requestBody.toString());
 
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = jsonBody.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
+            Request request = new Request.Builder()
+                    .url(OPENAI_API_URL)
+                    .post(body)
+                    .addHeader("Authorization", "Bearer " + OPENAI_API_KEY)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    mainThreadHandler.post(() -> errorListener.onError("OpenAI API connection error: " + e.getMessage()));
                 }
 
-                int responseCode = conn.getResponseCode();
-                Log.d(TAG, "Gemini API Response Code: " + responseCode);
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    String responseBodyString = response.body() != null ? response.body().string() : null;
+                    if (response.body() != null) response.body().close();
 
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"))) {
-                        StringBuilder response = new StringBuilder();
-                        String responseLine;
-                        while ((responseLine = br.readLine()) != null) {
-                            response.append(responseLine.trim());
-                        }
-
-                        Log.d(TAG, "Raw Gemini Response: " + response.toString());
-                        JSONObject fullJsonResponse = new JSONObject(response.toString());
-
-                        if (fullJsonResponse.has("candidates") && fullJsonResponse.getJSONArray("candidates").length() > 0) {
-                            JSONObject firstCandidate = fullJsonResponse.getJSONArray("candidates").getJSONObject(0);
-                            if (firstCandidate.has("content") && firstCandidate.getJSONObject("content").has("parts") &&
-                                    firstCandidate.getJSONObject("content").getJSONArray("parts").length() > 0) {
-                                String resultText = firstCandidate.getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
-
-                                if (resultText.startsWith("```json")) {
-                                    resultText = resultText.substring(7);
-                                    if (resultText.endsWith("```")) {
-                                        resultText = resultText.substring(0, resultText.length() - 3);
-                                    }
-                                } else if (resultText.startsWith("```")) {
-                                    resultText = resultText.substring(3);
-                                    if (resultText.endsWith("```")) {
-                                        resultText = resultText.substring(0, resultText.length() - 3);
-                                    }
+                    if (response.isSuccessful() && responseBodyString != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(responseBodyString);
+                            JSONArray choices = jsonResponse.getJSONArray("choices");
+                            JSONObject message = choices.getJSONObject(0).getJSONObject("message");
+                            String aiReply = message.getString("content").trim();
+                            String resultText = aiReply;
+                            if (resultText.startsWith("```json")) {
+                                resultText = resultText.substring(7);
+                                if (resultText.endsWith("```")) {
+                                    resultText = resultText.substring(0, resultText.length() - 3);
                                 }
-                                String finalText = resultText.trim();
-                                mainThreadHandler.post(() -> {
-                                    try {
-                                        successListener.onResult(finalText);
-                                    } catch (JSONException e) {
-                                        Log.e(TAG, "Error in successListener after API call", e);
-                                        errorListener.onError("Error processing successful API response: " + e.getMessage());
-                                    }
-                                });
-                            } else {
-                                throw new JSONException("Parts array is missing or empty in Gemini response candidate.");
-                            }
-                        } else {
-                            if (fullJsonResponse.has("promptFeedback")) {
-                                String blockReason = "Blocked by API (Safety Settings)";
-                                if(fullJsonResponse.getJSONObject("promptFeedback").has("blockReason")){
-                                    blockReason += ": " + fullJsonResponse.getJSONObject("promptFeedback").getString("blockReason");
+                            } else if (resultText.startsWith("```")) {
+                                resultText = resultText.substring(3);
+                                if (resultText.endsWith("```")) {
+                                    resultText = resultText.substring(0, resultText.length() - 3);
                                 }
-                                Log.e(TAG, "Gemini API blocked the prompt: " + fullJsonResponse.getJSONObject("promptFeedback").toString());
-                                throw new JSONException(blockReason);
                             }
-                            throw new JSONException("Candidates array is missing or empty in Gemini response.");
-                        }
-                    }
-                } else {
-                    StringBuilder errorResponse = new StringBuilder();
-                    if (conn.getErrorStream() != null) {
-                        try (BufferedReader brError = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"))) {
-                            String line;
-                            while ((line = brError.readLine()) != null) {
-                                errorResponse.append(line.trim());
-                            }
+                            String finalText = resultText.trim();
+                            mainThreadHandler.post(() -> {
+                                try {
+                                    successListener.onResult(finalText);
+                                } catch (JSONException e) {
+                                    errorListener.onError("Error processing OpenAI response: " + e.getMessage());
+                                }
+                            });
+                        } catch (JSONException e) {
+                            mainThreadHandler.post(() -> errorListener.onError("Error parsing OpenAI JSON response: " + e.getMessage()));
                         }
                     } else {
-                        errorResponse.append("No error stream data. HTTP Status: ").append(conn.getResponseMessage());
+                        mainThreadHandler.post(() -> errorListener.onError("OpenAI API error: " + response.code() + ". " + responseBodyString));
                     }
-                    String errorMessage = "Server error: " + responseCode + ". Details: " + errorResponse.toString();
-                    Log.e(TAG, "Gemini API Error Response (HTTP " + responseCode + "): " + errorResponse.toString());
-                    mainThreadHandler.post(() -> errorListener.onError(errorMessage));
                 }
-            } catch (Exception e) {
-                String errorMessage = "Client-side error during API call: " + e.getMessage();
-                Log.e(TAG, "Error calling/processing Gemini API", e);
-                mainThreadHandler.post(() -> errorListener.onError(errorMessage));
-            } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
-            }
+            });
         });
     }
 

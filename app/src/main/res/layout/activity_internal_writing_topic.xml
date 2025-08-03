@@ -7,6 +7,7 @@
     android:orientation="vertical"
     tools:context=".View.InternalWritingTopic">
 
+    <!-- Header Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="70dp"
@@ -32,7 +33,8 @@
             android:gravity="center"
             android:text="Writing"
             android:textColor="@android:color/white"
-            android:textSize="20sp" android:textStyle="bold" />
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/imgHome"
@@ -42,10 +44,9 @@
             android:src="@drawable/icon_home"
             android:tint="@android:color/white" />
 
-
-
     </LinearLayout>
 
+    <!-- Main Content -->
     <ScrollView
         android:id="@+id/main_scroll_view"
         android:layout_width="match_parent"
@@ -61,39 +62,158 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:orientation="vertical">
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
                 <TextView
                     android:id="@+id/question_textview"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Script here :"
-                    android:textSize="16sp" /> <EditText
-                android:id="@+id/answer_edittext"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/writing_border"
-                android:gravity="top|start"
-                android:hint="Type here..."
-                android:inputType="textMultiLine"
-                android:minHeight="150dp"
-                android:padding="12dp" />
+                    android:textSize="16sp" />
+
+                <EditText
+                    android:id="@+id/answer_edittext"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/writing_border"
+                    android:gravity="top|start"
+                    android:hint="Type here..."
+                    android:inputType="textMultiLine"
+                    android:minHeight="150dp"
+                    android:padding="12dp" />
 
                 <TextView
                     android:id="@+id/feedback_trigger_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" android:text="Review"
+                    android:layout_marginTop="8dp"
+                    android:text="Review"
                     android:textColor="@color/Red"
-                    android:textSize="16sp" android:textStyle="bold" />
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                <include
+                <!-- Feedback Panel tích hợp rubric + điểm -->
+                <LinearLayout
                     android:id="@+id/included_feedback_panel_internal"
-                    layout="@layout/layout_feedback_panel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/feedback_panel_background"
+                    android:padding="16dp"
                     android:layout_marginTop="8dp"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone">
+
+                    <!-- Task Response -->
+                    <TextView
+                        android:id="@+id/taskResponseTxt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Task Response"
+                        android:textStyle="bold"
+                        android:textColor="#222" />
+
+                    <TextView
+                        android:id="@+id/text_feedback_task_response"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Feedback..." />
+
+                    <TextView
+                        android:id="@+id/score_task_response"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Score: 0/10"
+                        android:textColor="#1976D2"
+                        android:textSize="14sp" />
+
+                    <!-- Coherence & Cohesion -->
+                    <TextView
+                        android:id="@+id/coherenceTxt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Coherence and Cohesion"
+                        android:textStyle="bold"
+                        android:paddingTop="8dp"
+                        android:textColor="#222" />
+
+                    <TextView
+                        android:id="@+id/text_feedback_coherence_cohesion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Feedback..." />
+
+                    <TextView
+                        android:id="@+id/score_coherence"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Score: 0/10"
+                        android:textColor="#1976D2"
+                        android:textSize="14sp" />
+
+                    <!-- Grammar & Vocabulary -->
+                    <TextView
+                        android:id="@+id/grammarTxt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Grammar and Vocabulary"
+                        android:textStyle="bold"
+                        android:paddingTop="8dp"
+                        android:textColor="#222" />
+
+                    <TextView
+                        android:id="@+id/text_feedback_grammar_vocabulary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Feedback..." />
+
+                    <TextView
+                        android:id="@+id/score_grammar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Score: 0/10"
+                        android:textColor="#1976D2"
+                        android:textSize="14sp" />
+
+                    <!-- Length -->
+                    <TextView
+                        android:id="@+id/lengthTxt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Length"
+                        android:textStyle="bold"
+                        android:paddingTop="8dp"
+                        android:textColor="#222" />
+
+                    <TextView
+                        android:id="@+id/text_feedback_length"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Feedback..." />
+
+                    <TextView
+                        android:id="@+id/score_length"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Score: 0/10"
+                        android:textColor="#1976D2"
+                        android:textSize="14sp" />
+
+                    <!-- Tổng điểm -->
+                    <TextView
+                        android:id="@+id/total_score"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Total: 0/10"
+                        android:textStyle="bold"
+                        android:textColor="#D32F2F"
+                        android:textSize="16sp"
+                        android:gravity="center"
+                        android:paddingTop="16dp" />
+
+                </LinearLayout>
 
                 <Button
                     android:id="@+id/submit_button"
@@ -103,6 +223,7 @@
                     android:layout_marginTop="16dp"
                     android:backgroundTint="#F41818"
                     android:text="Submit" />
+
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
