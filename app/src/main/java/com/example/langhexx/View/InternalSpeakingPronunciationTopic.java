@@ -21,7 +21,7 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
-import android.util.Pair; // QUAN TRỌNG: Đảm bảo import này nếu dùng Pair
+import android.util.Pair;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -120,8 +120,9 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
 
     private static final boolean USE_WAV_TRANSCODING_FOR_AZURE = true;
     private static final int AZURE_RECOGNITION_TIMEOUT_SECONDS = 60;
-
-
+    private boolean isTtsPlaying = false;
+    private String lastPlayedScriptTts = null;
+    private MediaPlayer ttsMediaPlayer = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -204,19 +205,50 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
         txtTime.setText("00:00 / 00:00");
     }
 
+    private void startScriptTtsPlayback(String text) {
+        isTtsPlaying = true;
+        imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_pause_speaking_script);
+        speakText(text, "script_tts_playback");
+    }
+
+    private void stopScriptTtsPlayback() {
+        isTtsPlaying = false;
+        imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_play_speaking_script);
+        if (ttsMediaPlayer != null && ttsMediaPlayer.isPlaying()) {
+            ttsMediaPlayer.stop();
+            ttsMediaPlayer.release();
+            ttsMediaPlayer = null;
+        }
+        onTtsPlayEnd();
+    }
+
+
+
     private void addEvents() {
         imgButtonPlayScriptTTS.setOnClickListener(new View.OnClickListener() {
-            private boolean isPlaying = false;
             @Override
             public void onClick(View v) {
-                if (isPlaying) {
-                    imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_play_speaking_script);
-                } else {
-                    imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_pause_speaking_script);
+                String script = txtScriptToRepeat.getText().toString();
+                if (script == null || script.trim().isEmpty()) {
+                    showToast("No script to play.");
+                    return;
                 }
-                isPlaying = !isPlaying;
+                if (isCurrentlyRecording) {
+                    showToast("Please stop recording before playing TTS.");
+                    return;
+                }
+                if (isCurrentlyPlaying) {
+                    pausePlayback();
+                }
+                if (isTtsPlaying) {
+                    stopScriptTtsPlayback();
+                } else {
+                    lastPlayedScriptTts = script;
+                    startScriptTtsPlayback(script);
+                }
             }
         });
+
         imgClose.setOnClickListener(v -> {
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
                 showToast("Processing, please wait...");
@@ -226,6 +258,8 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
                 showToast("Please stop recording first.");
                 return;
             }
+            if (isTtsPlaying) stopScriptTtsPlayback();
+            if (isCurrentlyPlaying) pausePlayback();
             if (controller != null) controller.onCloseButtonClicked();
             else finishActivity();
         });
@@ -239,12 +273,13 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
                 showToast("Please stop recording first.");
                 return;
             }
+            if (isTtsPlaying) stopScriptTtsPlayback();
+            if (isCurrentlyPlaying) pausePlayback();
             Intent intent = new Intent(InternalSpeakingPronunciationTopic.this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
         });
-
 
         btnBackward.setOnClickListener(v -> {
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
@@ -254,11 +289,12 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
                 showToast("Please stop recording before switching scripts.");
                 return;
             }
+            if (isTtsPlaying) stopScriptTtsPlayback();
+            if (isCurrentlyPlaying) pausePlayback();
             if (controller != null && btnBackward.isEnabled()) {
                 controller.onPreviousScriptClicked();
             }
         });
-
         btnForward.setOnClickListener(v -> {
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
                 showToast("Processing, please wait..."); return;
@@ -267,6 +303,8 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
                 showToast("Please stop recording before switching scripts.");
                 return;
             }
+            if (isTtsPlaying) stopScriptTtsPlayback();
+            if (isCurrentlyPlaying) pausePlayback();
             if (controller != null && btnForward.isEnabled()) {
                 controller.onNextScriptClicked();
             }
@@ -276,6 +314,8 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
                 showToast("Processing, please wait..."); return;
             }
+            if (isTtsPlaying) stopScriptTtsPlayback();
+            if (isCurrentlyPlaying) pausePlayback();
             if (controller != null) controller.onMicButtonClicked();
         });
 
@@ -283,9 +323,10 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
                 showToast("Processing, please wait..."); return;
             }
+            if (isTtsPlaying) stopScriptTtsPlayback();
             if (currentRecordingFilePath == null || !new File(currentRecordingFilePath).exists()) {
                 showToast("No recording to play.");
-                checkAndLoadExistingRecording(); // Attempt to load if path is null but file might exist based on script index
+                checkAndLoadExistingRecording();
                 return;
             }
             if (isCurrentlyPlaying) {
@@ -306,7 +347,6 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
                     .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
                     .show();
         });
-
 
         sbrAudio.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -446,7 +486,59 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
 
     @Override
     public void speakText(String text, String utteranceId) {
-        Log.d(TAG_ACTIVITY, "TTS request (not fully implemented in View): " + text);
+        runOnUiThread(this::onTtsPlayStart);
+
+        com.example.langhexx.Util.AzureTTSHelper.synthesize(text, new com.example.langhexx.Util.AzureTTSHelper.TTSCallback() {
+            @Override
+            public void onStart() {
+                runOnUiThread(() -> onTtsPlayStart());
+            }
+
+            @Override
+            public void onDone(byte[] audioData) {
+                try {
+                    File tempMp3 = new File(getCacheDir(), "tts_output.mp3");
+                    FileOutputStream fos = new FileOutputStream(tempMp3);
+                    fos.write(audioData);
+                    fos.close();
+
+                    runOnUiThread(() -> {
+                        playMp3FromFile(tempMp3);
+                    });
+                } catch (IOException e) {
+                    runOnUiThread(() -> onTtsPlayError("Audio save error: " + e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                runOnUiThread(() -> onTtsPlayError(errorMsg));
+            }
+        });
+    }
+
+    private void playMp3FromFile(File file) {
+        if (ttsMediaPlayer != null) {
+            ttsMediaPlayer.stop();
+            ttsMediaPlayer.release();
+            ttsMediaPlayer = null;
+        }
+        ttsMediaPlayer = new MediaPlayer();
+        try {
+            ttsMediaPlayer.setDataSource(file.getAbsolutePath());
+            ttsMediaPlayer.prepare();
+            ttsMediaPlayer.setOnCompletionListener(mp -> {
+                onTtsPlayEnd();
+            });
+            ttsMediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                onTtsPlayError("Media error: " + what + ", " + extra);
+                return true;
+            });
+            ttsMediaPlayer.start();
+            onTtsPlayStart();
+        } catch (IOException e) {
+            onTtsPlayError("Play error: " + e.getMessage());
+        }
     }
 
     @Override
@@ -626,6 +718,7 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
             mediaRecorder.prepare();
             mediaRecorder.start();
             isCurrentlyRecording = true;
+            imgButtonPlayScriptTTS.setEnabled(false);
             updateRecordingUIState(true);
         } catch (IOException | IllegalStateException e) {
             Log.e(TAG_ACTIVITY, "MediaRecorder prepare() or start() failed for " + this.currentRecordingFilePath, e);
@@ -665,6 +758,7 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
                 updatePlaybackUIState(false, false);
             }
             isCurrentlyRecording = false; // Ensure state is correct
+            imgButtonPlayScriptTTS.setEnabled(true);
             updateRecordingUIState(false); // Update general recording button state
             return;
         }
@@ -694,10 +788,7 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
         } finally {
             releaseMediaRecorder(); // Always release recorder
             isCurrentlyRecording = false; // Update recording state
-
-            // updateRecordingUIState(false) is called implicitly by processRecordingWithAzure or explicitly if no Azure
-            // The UI for playback controls or mic button will be shown based on file existence after this.
-
+            imgButtonPlayScriptTTS.setEnabled(true);
             if (savedFilePath != null && new File(savedFilePath).exists() && new File(savedFilePath).length() > 0) {
                 this.currentRecordingFilePath = savedFilePath; // Confirm path is set
                 if (azureSpeechConfig != null) {
@@ -1256,6 +1347,10 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
 
     @Override
     protected void onDestroy() {
+        if (ttsMediaPlayer != null) {
+            ttsMediaPlayer.release();
+            ttsMediaPlayer = null;
+        }
         super.onDestroy();
         Log.d(TAG_ACTIVITY, "onDestroy Activity called.");
         cleanUpAudioResources(); // Ensure all resources are released
@@ -1314,9 +1409,25 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
         }
     }
 
-    // This method seems redundant now as UI updates are more granularly controlled by
-    // updatePlaybackUIState, updateRecordingUIState, and Azure processing UI changes.
-    // Consider removing if not used elsewhere.
+    @Override
+    public void onTtsPlayStart() {
+        isTtsPlaying = true;
+        imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_pause_speaking_script);
+    }
+
+    @Override
+    public void onTtsPlayEnd() {
+        isTtsPlaying = false;
+        imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_play_speaking_script);
+    }
+
+    @Override
+    public void onTtsPlayError(String error) {
+        isTtsPlaying = false;
+        imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_play_speaking_script);
+        showToast("Error playing TTS: " + error);
+    }
+
     private void setUiInteraction(boolean allowInteraction) {
         boolean isAzureProcessing = pgbAzureProcessing != null && pgbAzureProcessing.getVisibility() == View.VISIBLE;
         boolean effectiveAllowInteraction = allowInteraction && !isAzureProcessing && !isCurrentlyRecording;

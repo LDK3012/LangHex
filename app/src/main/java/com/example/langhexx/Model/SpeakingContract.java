@@ -45,6 +45,10 @@ public interface SpeakingContract {
         void updatePlayTime(String currentTime, String totalTime);
         String getRecordingFilePath();
         void setRecordingFilePath(String path);
+        void onTtsPlayStart();
+        void onTtsPlayEnd();
+        void onTtsPlayError(String error);
+
     }
 
     // --- INTERACTIVE SPEAKING VIEW Interface
