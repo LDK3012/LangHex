@@ -151,6 +151,7 @@ public class ChatFragment extends Fragment {
 
         List<ChatMessage> savedMessages = ChatHistoryManager.loadChatHistory(getContext());
         if (!savedMessages.isEmpty()) {
+            tvIntroduce.setVisibility(View.INVISIBLE);
             messages.addAll(savedMessages);
             chatAdapter.notifyDataSetChanged();
             recyclerChat.scrollToPosition(messages.size() - 1);
