@@ -25,7 +25,7 @@ import java.util.ArrayList;
 public class ChooseTopicListeningActivity extends AppCompatActivity {
 
     private ListView lvTopics;
-    private ArrayList<Topics> topicsArrayList; // Sẽ chứa các object Topics (id, topicName)
+    private ArrayList<Topics> topicsArrayList;
     private TopicAdapter topicAdapter;
     private String levelName;
     private ImageView imgBack, imgHome;

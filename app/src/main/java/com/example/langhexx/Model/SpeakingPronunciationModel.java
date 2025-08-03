@@ -10,13 +10,13 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 
-public class SpeakingVoiceModel implements SpeakingContract.Model {
+public class SpeakingPronunciationModel implements SpeakingContract.Model {
     private static final String TAG = "SpeakingVoiceModel";
     private static final String FIREBASE_DB_URL = "https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
     private ArrayList<String> scriptList = new ArrayList<>();
     private int currentScriptIndex = 0;
-    public SpeakingVoiceModel(Context context) {
+    public SpeakingPronunciationModel(Context context) {
       //
     }
 

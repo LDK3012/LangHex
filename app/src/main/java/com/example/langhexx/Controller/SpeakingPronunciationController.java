@@ -5,10 +5,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import com.example.langhexx.Model.SpeakingContract;
-import com.example.langhexx.Model.SpeakingVoiceModel;
+import com.example.langhexx.Model.SpeakingPronunciationModel;
 import java.util.List;
 
-public class SpeakingVoiceController implements SpeakingContract.Controller, SpeakingContract.QuestionListener {
+public class SpeakingPronunciationController implements SpeakingContract.Controller, SpeakingContract.QuestionListener {
 
     private static final String TAG = "SpeakingVoiceCtrl";
 
@@ -23,9 +23,9 @@ public class SpeakingVoiceController implements SpeakingContract.Controller, Spe
     private boolean hasAudioPermission = false;
     private boolean isViewRecording = false;
 
-    public SpeakingVoiceController(SpeakingContract.PronunciationView view, Context context, String levelName, String topicId, String topicDisplayTitle) {
+    public SpeakingPronunciationController(SpeakingContract.PronunciationView view, Context context, String levelName, String topicId, String topicDisplayTitle) {
         this.view = view;
-        this.model = new SpeakingVoiceModel(context);
+        this.model = new SpeakingPronunciationModel(context);
         this.levelName = levelName;
         this.topicId = topicId;
         this.topicDisplayTitle = topicDisplayTitle;
