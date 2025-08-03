@@ -126,7 +126,7 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_voice_learning);
+        setContentView(R.layout.activity_pronunciation_learning);
 
         Intent intent = getIntent();
         levelName = intent.getStringExtra("levelName");

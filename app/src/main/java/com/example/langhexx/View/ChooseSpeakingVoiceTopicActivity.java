@@ -43,7 +43,7 @@ public class ChooseSpeakingVoiceTopicActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_choose_speaking_voice_topic);
+        setContentView(R.layout.activity_choose_speaking_pronunciation_topic);
 
         levelName = getIntent().getStringExtra("levelName");
         if (levelName == null || levelName.isEmpty()) {
