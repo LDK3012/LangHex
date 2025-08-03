@@ -55,18 +55,6 @@
         android:layout_gravity="center"
         android:layout_margin="15dp"
         android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/txtTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="20dp"
-            android:gravity="center"
-            android:textColor="#150101"
-            android:layout_gravity="center"
-            android:text="Is there anything that makes you feel happy lately ?" />
-
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -101,17 +89,37 @@
             app:cardElevation="4dp"
             app:contentPadding="16dp">
 
-            <TextView
-                android:id="@+id/txtScript"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-light"
-                android:gravity="center"
-                android:padding="10dp"
-                android:text="Recently, something that has brought me joy is spending time with my family. It feels great to connect and laugh together. Also, I've been enjoying reading new books which makes me really happy."
-                android:textColor="@android:color/black"
-                android:textSize="20dp"
-                android:textStyle="bold" />
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+                <ImageButton
+                    android:id="@+id/imgButtonPlayScriptTTS"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center_horizontal"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/icon_play_speaking_script"
+                    android:contentDescription="Play Script"
+                    android:padding="8dp"
+             />
+                <TextView
+                    android:id="@+id/txtScript"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-light"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="10dp"
+                    android:gravity="start"
+                    android:text="Recently, something that has brought me joy is spending time with my family. It feels great to connect and laugh together. Also, I've been enjoying reading new books which makes me really happy."
+                    android:textColor="@android:color/black"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
         </androidx.cardview.widget.CardView>
 
         <FrameLayout
@@ -201,7 +209,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_button_previous_rounded"
                 android:gravity="center"
-                android:text="Last Page"
+                android:text="Previous Page"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
                 android:textSize="17dp" />

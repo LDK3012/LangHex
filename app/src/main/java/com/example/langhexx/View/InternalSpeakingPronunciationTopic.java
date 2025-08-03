@@ -89,7 +89,7 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
     private static final String TARGET_LANGUAGE = "en-US";
 
     Button btnBackward, btnForward;
-    ImageButton imgPlayAudio, imgDelete, imgRecord;
+    ImageButton imgPlayAudio, imgDelete, imgRecord , imgButtonPlayScriptTTS;
     ImageView imgClose, imgHome;
     TextView txtScreenTitle, txtScriptToRepeat, txtScriptCounter, txtTime;
     SeekBar sbrAudio;
@@ -100,7 +100,6 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
     private String levelName;
     private String topicId;
     private String topicDisplayTitleStr;
-
     private MediaRecorder mediaRecorder;
     private MediaPlayer mediaPlayer;
     private String currentRecordingFilePath = null;
@@ -188,7 +187,7 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
         imgRecord = findViewById(R.id.imgButtonRecord);
         imgClose = findViewById(R.id.imgBackward);
         imgHome = findViewById(R.id.imgHome);
-
+        imgButtonPlayScriptTTS = findViewById(R.id.imgButtonPlayScriptTTS) ;
         txtScreenTitle = findViewById(R.id.tvScreenTitle);
         txtScriptToRepeat = findViewById(R.id.txtScript);
         txtScriptCounter = findViewById(R.id.txtCounter);
@@ -206,6 +205,18 @@ public class InternalSpeakingPronunciationTopic extends AppCompatActivity implem
     }
 
     private void addEvents() {
+        imgButtonPlayScriptTTS.setOnClickListener(new View.OnClickListener() {
+            private boolean isPlaying = false;
+            @Override
+            public void onClick(View v) {
+                if (isPlaying) {
+                    imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_play_speaking_script);
+                } else {
+                    imgButtonPlayScriptTTS.setImageResource(R.drawable.icon_pause_speaking_script);
+                }
+                isPlaying = !isPlaying;
+            }
+        });
         imgClose.setOnClickListener(v -> {
             if (pgbAzureProcessing.getVisibility() == View.VISIBLE) {
                 showToast("Processing, please wait...");
