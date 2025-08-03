@@ -334,7 +334,7 @@ public class SpeakingGrammarController implements SpeakingContract.Controller, S
             String messageForWarningClick = hasContentForIcon ? detailedMessageForIcon.toString() : "The answer is incorrect. Please review and try again.";
 
             view.showWarningIcon(true, messageForWarningClick);
-            view.showCustomToast(false, "Not quite right. Check the suggestion.");
+//            view.showCustomToast(false, "Not quite right. Check the suggestion.");
             view.setMicButtonEnabled(true);
         }
     }
