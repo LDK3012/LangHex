@@ -35,9 +35,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:background="@drawable/logo_main" />
-
-
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -49,22 +46,24 @@
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
                     android:layout_gravity="center"
+                    android:enabled="false"
                     android:inputType="text"
                     android:textSize="11dp"
-                    android:hint="Mã sinh viên"
+                    android:hint="Student ID"
                     android:textColorHint="#898989"
                     android:paddingLeft="10dp"
                     android:background="@drawable/gray_border"
                     />
 
                 <EditText
+                    android:enabled="false"
                     android:id="@+id/edtPassword"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
                     android:layout_gravity="center"
                     android:layout_marginTop="20dp"
                     android:background="@drawable/gray_border"
-                    android:hint="Ngày tháng năm sinh (ví dụ: 30122003)"
+                    android:hint="Date of Birth"
                     android:inputType="textPassword"
                     android:paddingLeft="10dp"
                     android:textColorHint="#898989"
@@ -73,9 +72,10 @@
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnLogin"
                     android:layout_width="match_parent"
+                    android:enabled="false"
                     android:layout_height="45dp"
                     android:layout_marginTop="15dp"
-                    android:text="Đăng Nhập"
+                    android:text="Login"
                     android:textSize="12dp"
                     android:textColor="@color/white"
                     android:textStyle="bold"
@@ -89,7 +89,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="15dp"
-                    android:text="Hoặc"
+                    android:text="Or"
                     android:textColor="#898989"
                     android:textSize="15dp" />
 
@@ -103,7 +103,7 @@
                     android:drawableStart="@drawable/microsoft_logo_1"
                     android:paddingLeft="10dp"
                     android:paddingRight="10dp"
-                    android:text="Đăng nhập bằng Microsoft 365"
+                    android:text="Login with Microsoft 365"
                     android:textColor="@color/black"
                     android:textSize="10dp">
 
