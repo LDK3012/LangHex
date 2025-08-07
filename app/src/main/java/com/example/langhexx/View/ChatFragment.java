@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -38,6 +39,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -164,41 +167,50 @@ public class ChatFragment extends Fragment {
 
     private void showModelMenu(View anchor) {
         PopupMenu popup = new PopupMenu(requireContext(), anchor);
-        popup.getMenu().add("Normal Mode");
-        popup.getMenu().add("Pro Mode");
-
+        Menu menu = popup.getMenu();
+        menu.add(Menu.NONE, 1, 1, "Normal Mode").setIcon(R.drawable.lightning);
+        menu.add(Menu.NONE, 2, 2, "Pro Mode").setIcon(R.drawable.star);
         List<ChatMessage> savedMessages = ChatHistoryManager.loadChatHistory(getContext());
         if (!savedMessages.isEmpty()) {
-            popup.getMenu().add("Clear History");
+            menu.add(Menu.NONE, 3, 3, "Clear History").setIcon(R.drawable.clear);
         }
-
+        try {
+            Field mField = popup.getClass().getDeclaredField("mPopup");
+            mField.setAccessible(true);
+            Object menuPopupHelper = mField.get(popup);
+            Method setForceIcons = menuPopupHelper.getClass().getDeclaredMethod("setForceShowIcon", boolean.class);
+            setForceIcons.invoke(menuPopupHelper, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         popup.setOnMenuItemClickListener(item -> {
-            String title = item.getTitle().toString();
-            if ("Clear History".equals(title)) {
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("Confirm")
-                        .setMessage("Are you sure you want to delete all chat history?")
-                        .setPositiveButton("Yes", (dialog, which) -> {
-                            ChatHistoryManager.clearChatHistory(getContext());
-                            messages.clear();
-                            chatAdapter.notifyDataSetChanged();
-                            Toast.makeText(getContext(), "Chat history cleared.", Toast.LENGTH_SHORT).show();
-                            sampleQuestionsContainer.setVisibility(View.VISIBLE);
-                            tvIntroduce.setVisibility(View.VISIBLE);
-                        })
-                        .setNegativeButton("No", null)
-                        .show();
-                return true;
-            } else {
-                currentModel = title;
-                selectedModelText.setText(currentModel);
-                return true;
+            switch (item.getItemId()) {
+                case 1:
+                case 2:
+                    currentModel = item.getTitle().toString();
+                    selectedModelText.setText(currentModel);
+                    return true;
+                case 3:
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Confirm")
+                            .setMessage("Are you sure you want to delete all chat history?")
+                            .setPositiveButton("Yes", (dialog, which) -> {
+                                ChatHistoryManager.clearChatHistory(getContext());
+                                messages.clear();
+                                chatAdapter.notifyDataSetChanged();
+                                Toast.makeText(getContext(), "Chat history cleared.", Toast.LENGTH_SHORT).show();
+                                sampleQuestionsContainer.setVisibility(View.VISIBLE);
+                                tvIntroduce.setVisibility(View.VISIBLE);
+                            })
+                            .setNegativeButton("No", null)
+                            .show();
+                    return true;
+                default:
+                    return false;
             }
         });
-
         popup.show();
     }
-
 
     private void setupKeyboardListener() {
         globalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
