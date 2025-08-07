@@ -67,7 +67,7 @@
                     android:inputType="textPassword"
                     android:paddingLeft="10dp"
                     android:textColorHint="#898989"
-                    android:textSize="11dp" />
+                    android:textSize="13dp" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnLogin"
@@ -105,7 +105,8 @@
                     android:paddingRight="10dp"
                     android:text="Login with Microsoft 365"
                     android:textColor="@color/black"
-                    android:textSize="10dp">
+                    android:textStyle="bold"
+                    android:textSize="11dp">
 
                 </androidx.appcompat.widget.AppCompatButton>
 
