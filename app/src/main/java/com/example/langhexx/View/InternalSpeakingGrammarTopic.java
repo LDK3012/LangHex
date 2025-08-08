@@ -657,7 +657,7 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
         speechConfirmationDialog=null; tvPartialSpeechTextInDialog=null;
         setMicButtonEnabled(azureSpeechConfig!=null && !isCurrentlyListening);
     }
-
+    //final
     private boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
