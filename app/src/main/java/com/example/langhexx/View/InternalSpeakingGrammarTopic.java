@@ -28,12 +28,14 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.signature.ObjectKey;
 import com.example.langhexx.BuildConfig;
@@ -49,6 +51,7 @@ import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.SpeechRecognizer;
 import com.microsoft.cognitiveservices.speech.ResultReason;
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,6 +63,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.io.File;
 import java.io.FileOutputStream;
+
 import com.example.langhexx.Util.AzureTTSHelper;
 import android.media.MediaPlayer;
 
@@ -100,6 +104,18 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     private AlertDialog speechConfirmationDialog;
     private TextView tvPartialSpeechTextInDialog;
     private MediaPlayer ttsPlayer;
+
+    // ======= NEW: sanitize punctuation from Azure STT =======
+    private String sanitizeSpeech(String s) {
+        if (s == null) return "";
+        // Bỏ dấu chấm "." và dấu ba chấm "…"
+        String cleaned = s.replace(".", "").replace("…", "");
+        // Gom nhiều khoảng trắng thành một
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+        return cleaned;
+    }
+    // ========================================================
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -329,16 +345,16 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     }
 
     @Override
-    public void displayEvaluationFeedback(String feedbackEn, String suggestionEn) { // Changed from feedbackVi
+    public void displayEvaluationFeedback(String feedbackEn, String suggestionEn) {
         StringBuilder detailedMessage = new StringBuilder();
         boolean hasContent = false;
         if (feedbackEn != null && !feedbackEn.trim().isEmpty()) {
-            detailedMessage.append("Explanation:\n").append(feedbackEn.trim()); // English label
+            detailedMessage.append("Explanation:\n").append(feedbackEn.trim());
             hasContent = true;
         }
         if (suggestionEn != null && !suggestionEn.trim().isEmpty()) {
             if (hasContent) detailedMessage.append("\n\n");
-            detailedMessage.append("Suggested Answer:\n").append(suggestionEn.trim()); // English label
+            detailedMessage.append("Suggested Answer:\n").append(suggestionEn.trim());
             hasContent = true;
         }
         if (hasContent) showFeedbackDialog(detailedMessage.toString());
@@ -393,19 +409,13 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     public void showToast(String message) { if (!isFinishing() && message != null) Toast.makeText(this, message, Toast.LENGTH_SHORT).show(); }
 
     @Override
-    public void onTtsPlayStart() {
-
-    }
+    public void onTtsPlayStart() {}
 
     @Override
-    public void onTtsPlayEnd() {
-
-    }
+    public void onTtsPlayEnd() {}
 
     @Override
-    public void onTtsPlayError(String error) {
-
-    }
+    public void onTtsPlayError(String error) {}
 
     @Override
     public void showCustomToast(boolean success, String message) {
@@ -475,13 +485,73 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
         speechConfirmedManually = false; keepListeningActive = true; continuousRecoTextBuilder.setLength(0);
 
         azureSpeechRecognizer.sessionStarted.addEventListener((s, e) -> runOnUiThread(() -> { isCurrentlyListening = true; indicateListeningState(true); showSpeechConfirmationDialog("Listening..."); Log.d(TAG, "Azure Session STARTED: " + e.getSessionId()); }));
-        azureSpeechRecognizer.recognizing.addEventListener((s, e) -> { if (e.getResult().getReason() == ResultReason.RecognizingSpeech) { String pt = e.getResult().getText(); Log.d(TAG, "Azure RECOGNIZING: " + pt); if (keepListeningActive && !speechConfirmedManually && !TextUtils.isEmpty(pt)) runOnUiThread(() -> updateSpeechConfirmationDialog(continuousRecoTextBuilder.toString() + (continuousRecoTextBuilder.length()>0?" ":"") + pt)); }});
-        azureSpeechRecognizer.recognized.addEventListener((s, e) -> {
-            if (e.getResult().getReason() == ResultReason.RecognizedSpeech) { String rt = e.getResult().getText(); Log.d(TAG, "Azure RECOGNIZED: " + rt); if (keepListeningActive && !speechConfirmedManually) { if (!TextUtils.isEmpty(rt)) { if (continuousRecoTextBuilder.length()>0) continuousRecoTextBuilder.append(" "); continuousRecoTextBuilder.append(rt); } final String fst = continuousRecoTextBuilder.toString().trim(); runOnUiThread(() -> { if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) updateSpeechConfirmationDialog(fst.isEmpty() ? "Listening..." : fst); else if (keepListeningActive) showSpeechConfirmationDialog(fst.isEmpty() ? "Listening..." : fst); }); }}
-            else if (e.getResult().getReason() == ResultReason.NoMatch) { Log.d(TAG, "Azure NOMATCH: " + e.getResult().getProperties().getProperty("CancellationDetails_ReasonDetailedText", "No speech.")); if (keepListeningActive && !speechConfirmedManually) runOnUiThread(() -> { if (speechConfirmationDialog!=null && speechConfirmationDialog.isShowing()){ String cdt = tvPartialSpeechTextInDialog!=null?tvPartialSpeechTextInDialog.getText().toString():""; String bt = continuousRecoTextBuilder.toString().trim(); if(!bt.isEmpty())updateSpeechConfirmationDialog(bt+" (No further match)"); else if(cdt.equals("Listening...")||cdt.equals("Preparing to record..."))updateSpeechConfirmationDialog("(No speech detected)");}}); }
+
+        azureSpeechRecognizer.recognizing.addEventListener((s, e) -> {
+            if (e.getResult().getReason() == ResultReason.RecognizingSpeech) {
+                String pt = sanitizeSpeech(e.getResult().getText());
+                Log.d(TAG, "Azure RECOGNIZING (clean): " + pt);
+                if (keepListeningActive && !speechConfirmedManually && !TextUtils.isEmpty(pt)) {
+                    runOnUiThread(() -> {
+                        String build = continuousRecoTextBuilder.toString();
+                        String preview = (build.isEmpty() ? "" : build + " ") + pt;
+                        updateSpeechConfirmationDialog(preview);
+                    });
+                }
+            }
         });
-        azureSpeechRecognizer.canceled.addEventListener((s, e) -> { Log.e(TAG, "Azure CANCELED: R=" + e.getReason() + ",ErrD=" + e.getErrorDetails() + ",ErrC=" + e.getErrorCode()); final String ed=e.getErrorDetails(); final String r=e.getReason().toString(); runOnUiThread(()->{isCurrentlyListening=false;indicateListeningState(false);keepListeningActive=false;dismissSpeechConfirmationDialog();if(controller!=null&&!speechConfirmedManually)controller.onSpeechError("SR error: "+r+(TextUtils.isEmpty(ed)?"":". "+ed));}); });
-        azureSpeechRecognizer.sessionStopped.addEventListener((s, e) -> runOnUiThread(() -> { Log.d(TAG, "Azure Session STOPPED: " + e.getSessionId()); isCurrentlyListening = false; indicateListeningState(false); if(keepListeningActive&&!speechConfirmedManually){Log.w(TAG,"Azure session stopped unexpectedly.");if(speechConfirmationDialog!=null&&speechConfirmationDialog.isShowing()){String ct=tvPartialSpeechTextInDialog!=null?tvPartialSpeechTextInDialog.getText().toString():"";if(ct.equals("Listening...")||ct.equals("Preparing to record...")||continuousRecoTextBuilder.length()==0)updateSpeechConfirmationDialog("Session ended. Try again.");}}}));
+
+        azureSpeechRecognizer.recognized.addEventListener((s, e) -> {
+            if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
+                String rt = sanitizeSpeech(e.getResult().getText());
+                Log.d(TAG, "Azure RECOGNIZED (clean): " + rt);
+                if (keepListeningActive && !speechConfirmedManually) {
+                    if (!TextUtils.isEmpty(rt)) {
+                        if (continuousRecoTextBuilder.length() > 0) continuousRecoTextBuilder.append(" ");
+                        continuousRecoTextBuilder.append(rt);
+                    }
+                    final String fst = continuousRecoTextBuilder.toString().trim();
+                    runOnUiThread(() -> {
+                        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing())
+                            updateSpeechConfirmationDialog(fst.isEmpty() ? "Listening..." : fst);
+                        else if (keepListeningActive)
+                            showSpeechConfirmationDialog(fst.isEmpty() ? "Listening..." : fst);
+                    });
+                }
+            } else if (e.getResult().getReason() == ResultReason.NoMatch) {
+                Log.d(TAG, "Azure NOMATCH: " + e.getResult().getProperties().getProperty("CancellationDetails_ReasonDetailedText", "No speech."));
+                if (keepListeningActive && !speechConfirmedManually) runOnUiThread(() -> {
+                    if (speechConfirmationDialog!=null && speechConfirmationDialog.isShowing()){
+                        String cdt = tvPartialSpeechTextInDialog!=null?tvPartialSpeechTextInDialog.getText().toString():"";
+                        String bt = continuousRecoTextBuilder.toString().trim();
+                        if(!bt.isEmpty()) updateSpeechConfirmationDialog(bt+" (No further match)");
+                        else if(cdt.equals("Listening...")||cdt.equals("Preparing to record...")) updateSpeechConfirmationDialog("(No speech detected)");
+                    }
+                });
+            }
+        });
+
+        azureSpeechRecognizer.canceled.addEventListener((s, e) -> {
+            Log.e(TAG, "Azure CANCELED: R=" + e.getReason() + ",ErrD=" + e.getErrorDetails() + ",ErrC=" + e.getErrorCode());
+            final String ed=e.getErrorDetails(); final String r=e.getReason().toString();
+            runOnUiThread(()->{
+                isCurrentlyListening=false;indicateListeningState(false);keepListeningActive=false;dismissSpeechConfirmationDialog();
+                if(controller!=null && !speechConfirmedManually) controller.onSpeechError("SR error: "+r+(TextUtils.isEmpty(ed)?"":". "+ed));
+            });
+        });
+
+        azureSpeechRecognizer.sessionStopped.addEventListener((s, e) -> runOnUiThread(() -> {
+            Log.d(TAG, "Azure Session STOPPED: " + e.getSessionId());
+            isCurrentlyListening = false; indicateListeningState(false);
+            if(keepListeningActive && !speechConfirmedManually){
+                Log.w(TAG,"Azure session stopped unexpectedly.");
+                if(speechConfirmationDialog!=null && speechConfirmationDialog.isShowing()){
+                    String ct=tvPartialSpeechTextInDialog!=null?tvPartialSpeechTextInDialog.getText().toString():"";
+                    if(ct.equals("Listening...")||ct.equals("Preparing to record...")||continuousRecoTextBuilder.length()==0)
+                        updateSpeechConfirmationDialog("Session ended. Try again.");
+                }
+            }
+        }));
+
         azureSpeechRecognizer.startContinuousRecognitionAsync(); Log.d(TAG, "Azure SR: startContinuousRecognitionAsync called.");
     }
 
@@ -489,8 +559,12 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     public void stopListening() {
         Log.d(TAG, "SR stopListening called. keepListeningActive=false.");
         keepListeningActive = false;
-        if (azureSpeechRecognizer != null) { try { azureSpeechRecognizer.stopContinuousRecognitionAsync(); } catch (Exception e) { Log.e(TAG, "Error stopping Azure SR", e); isCurrentlyListening=false;indicateListeningState(false);dismissSpeechConfirmationDialog();}}
-        else { isCurrentlyListening=false;indicateListeningState(false);dismissSpeechConfirmationDialog(); }
+        if (azureSpeechRecognizer != null) {
+            try { azureSpeechRecognizer.stopContinuousRecognitionAsync(); }
+            catch (Exception e) { Log.e(TAG, "Error stopping Azure SR", e); isCurrentlyListening=false;indicateListeningState(false);dismissSpeechConfirmationDialog(); }
+        } else {
+            isCurrentlyListening=false;indicateListeningState(false);dismissSpeechConfirmationDialog();
+        }
     }
 
     @Override
@@ -508,33 +582,56 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
     @Override
     public void showSpeechConfirmationDialog(String initialText) {
         if (isFinishing() || isDestroyed()) { Log.w(TAG, "Activity finishing, cannot show SR dialog."); return; }
-        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) { if (tvPartialSpeechTextInDialog!=null&&!TextUtils.equals(tvPartialSpeechTextInDialog.getText(),initialText)) if(!initialText.contains("Listening")&&!initialText.contains("Preparing")) tvPartialSpeechTextInDialog.setText(initialText); else if(tvPartialSpeechTextInDialog.getText().toString().contains("Listening")||tvPartialSpeechTextInDialog.getText().toString().contains("Preparing")) tvPartialSpeechTextInDialog.setText(initialText); return; }
-        Log.d(TAG, "Creating SR dialog. Initial text: '" + initialText + "'");
+
+        String safe = sanitizeSpeech(initialText);
+
+        if (speechConfirmationDialog != null && speechConfirmationDialog.isShowing()) {
+            if (tvPartialSpeechTextInDialog!=null && !TextUtils.equals(tvPartialSpeechTextInDialog.getText(), safe)) {
+                if(!safe.contains("Listening") && !safe.contains("Preparing")) {
+                    tvPartialSpeechTextInDialog.setText(safe);
+                } else if(tvPartialSpeechTextInDialog.getText().toString().contains("Listening")
+                        || tvPartialSpeechTextInDialog.getText().toString().contains("Preparing")) {
+                    tvPartialSpeechTextInDialog.setText(safe);
+                }
+            }
+            return;
+        }
+        Log.d(TAG, "Creating SR dialog. Initial text: '" + safe + "'");
 
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_speech_confirm, null);
         tvPartialSpeechTextInDialog = dialogView.findViewById(R.id.tv_partial_speech_text);
         Button btnConfirm = dialogView.findViewById(R.id.btn_confirm_speech);
         Button btnCancel = dialogView.findViewById(R.id.btn_cancel_speech_dialog);
-        if(tvPartialSpeechTextInDialog!=null) tvPartialSpeechTextInDialog.setText(initialText);
+        if(tvPartialSpeechTextInDialog!=null) tvPartialSpeechTextInDialog.setText(safe);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this).setView(dialogView);
         speechConfirmationDialog = builder.create();
         speechConfirmationDialog.setCanceledOnTouchOutside(false); speechConfirmationDialog.setCancelable(false);
 
         btnConfirm.setOnClickListener(v -> {
-            if(tvPartialSpeechTextInDialog==null){Log.e(TAG,"SR Confirm: tvPartial is null!"); return;} String finalTxt = tvPartialSpeechTextInDialog.getText().toString().trim();
+            if(tvPartialSpeechTextInDialog==null){Log.e(TAG,"SR Confirm: tvPartial is null!"); return;}
+            String finalTxt = sanitizeSpeech(tvPartialSpeechTextInDialog.getText().toString());
             Log.d(TAG, "SR Confirm: Text='" + finalTxt + "'. speechConfirmedManually=true.");
             keepListeningActive=false; speechConfirmedManually=true;
             if(azureSpeechRecognizer!=null) try{azureSpeechRecognizer.stopContinuousRecognitionAsync();}catch(Exception e){Log.e(TAG,"Err stop SR from Confirm",e);} else {isCurrentlyListening=false;indicateListeningState(false);}
             dismissSpeechConfirmationDialog(); // Dismiss first then process
-            if(controller!=null){ String res=finalTxt; if(!TextUtils.isEmpty(res)&&!(res.toLowerCase().contains("listen")||res.toLowerCase().contains("prepare")||res.toLowerCase().contains("no match")||res.toLowerCase().contains("no speech")||res.toLowerCase().contains("session end")||res.equalsIgnoreCase("(unknown)"))) res=res.substring(0,1).toUpperCase()+(res.length()>1?res.substring(1):""); else res=""; Log.d(TAG,"SR Confirm: Submitting '"+res+"'"); controller.onSpeechResult(res);}
+            if(controller!=null){
+                String res=finalTxt;
+                if(!TextUtils.isEmpty(res) &&
+                        !(res.toLowerCase().contains("listen")||res.toLowerCase().contains("prepare")
+                                ||res.toLowerCase().contains("no match")||res.toLowerCase().contains("no speech")
+                                ||res.toLowerCase().contains("session end")||res.equalsIgnoreCase("(unknown)"))) {
+                    res=res.substring(0,1).toUpperCase()+(res.length()>1?res.substring(1):"");
+                } else res="";
+                Log.d(TAG,"SR Confirm: Submitting '"+res+"'");
+                controller.onSpeechResult(res);
+            }
         });
         btnCancel.setOnClickListener(v -> {
             Log.d(TAG, "SR Cancel. keepListeningActive=false.");
             keepListeningActive=false; speechConfirmedManually=false;
             if(azureSpeechRecognizer!=null) try{azureSpeechRecognizer.stopContinuousRecognitionAsync();}catch(Exception e){Log.e(TAG,"Err stop SR from Cancel",e);} else {isCurrentlyListening=false;indicateListeningState(false);}
             dismissSpeechConfirmationDialog();
-            // if(controller!=null) controller.onSpeechCancelled();
         });
         if(!isFinishing()) {speechConfirmationDialog.show(); if(btnMicro!=null)btnMicro.setEnabled(false);}
         else Log.w(TAG, "Activity finishing, SR dialog not shown.");
@@ -542,8 +639,16 @@ public class InternalSpeakingGrammarTopic extends AppCompatActivity implements S
 
     @Override
     public void updateSpeechConfirmationDialog(String newText) {
-        if (speechConfirmationDialog!=null && speechConfirmationDialog.isShowing() && tvPartialSpeechTextInDialog!=null) { if (TextUtils.isEmpty(newText) && (tvPartialSpeechTextInDialog.getText().toString().contains("Listen")||tvPartialSpeechTextInDialog.getText().toString().contains("Prepar"))) {} else tvPartialSpeechTextInDialog.setText(newText); }
-        else if ((speechConfirmationDialog==null||!speechConfirmationDialog.isShowing())&&keepListeningActive&&!speechConfirmedManually) { Log.w(TAG, "SR Dialog not showing but active. Re-showing. Text: "+newText); showSpeechConfirmationDialog(newText); }
+        String safe = sanitizeSpeech(newText);
+        if (speechConfirmationDialog!=null && speechConfirmationDialog.isShowing() && tvPartialSpeechTextInDialog!=null) {
+            if (!(TextUtils.isEmpty(safe) && (tvPartialSpeechTextInDialog.getText().toString().contains("Listen")||tvPartialSpeechTextInDialog.getText().toString().contains("Prepar")))) {
+                tvPartialSpeechTextInDialog.setText(safe);
+            }
+        }
+        else if ((speechConfirmationDialog==null||!speechConfirmationDialog.isShowing())&&keepListeningActive&&!speechConfirmedManually) {
+            Log.w(TAG, "SR Dialog not showing but active. Re-showing. Text: "+safe);
+            showSpeechConfirmationDialog(safe);
+        }
     }
 
     @Override
