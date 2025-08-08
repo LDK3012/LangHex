@@ -13,11 +13,10 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -28,9 +27,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.langhexx.BuildConfig;
 import com.example.langhexx.Controller.ChatAdapter;
-import com.example.langhexx.Model.ChatMessage;
 import com.example.langhexx.Model.ChatHistoryManager;
-import com.example.langhexx.Model.CustomToast;
+import com.example.langhexx.Model.ChatMessage;
 import com.example.langhexx.Model.TokenLimiter;
 import com.example.langhexx.R;
 
@@ -43,7 +41,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -57,9 +55,11 @@ public class ChatFragment extends Fragment {
     private View rootView;
     private ViewTreeObserver.OnGlobalLayoutListener globalLayoutListener;
     private boolean isKeyboardVisible = false;
-    private boolean isLimitToastVisible = false;
+
     private static final String OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY;
     private static final String TYPING_MESSAGE = "Typing...";
+    private volatile boolean isSending = false;
+
     public interface KeyboardVisibilityListener {
         void onKeyboardVisibilityChanged(boolean isVisible);
     }
@@ -69,11 +69,13 @@ public class ChatFragment extends Fragment {
     private ImageButton btnSend;
     private RecyclerView recyclerChat;
     private ChatAdapter chatAdapter;
-    private List<ChatMessage> messages = new ArrayList<>();
+    private final List<ChatMessage> messages = new ArrayList<>();
     private TextView sampleQuestion1, sampleQuestion2, sampleQuestion3;
     private LinearLayout sampleQuestionsContainer;
     private TextView selectedModelText, tvIntroduce;
     private String currentModel = "Normal Mode";
+    private boolean isLimitToastVisible = false;
+    private OkHttpClient httpClient;
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -86,6 +88,12 @@ public class ChatFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
+        httpClient = new OkHttpClient.Builder()
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(35, TimeUnit.SECONDS)
+                .writeTimeout(35, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
 
         selectedModelText = view.findViewById(R.id.selectedModelText);
         selectedModelText.setText(currentModel);
@@ -97,6 +105,7 @@ public class ChatFragment extends Fragment {
         sampleQuestion2 = view.findViewById(R.id.sampleQuestion2);
         sampleQuestion3 = view.findViewById(R.id.sampleQuestion3);
         sampleQuestionsContainer = view.findViewById(R.id.sampleQuestionsContainer);
+
         setupSampleQuestionClickListener(sampleQuestion1);
         setupSampleQuestionClickListener(sampleQuestion2);
         setupSampleQuestionClickListener(sampleQuestion3);
@@ -110,47 +119,8 @@ public class ChatFragment extends Fragment {
         recyclerChat.setAdapter(chatAdapter);
 
         btnSend.setOnClickListener(v -> {
-            String userMessage = edtMessage.getText().toString().trim();
-            if (!TextUtils.isEmpty(userMessage)) {
-                if ("Pro Mode".equals(currentModel) && !TokenLimiter.canSend(getContext())) {
-                    if (!isLimitToastVisible) {
-                        isLimitToastVisible = true;
-                        int[] location = new int[2];
-                        edtMessage.getLocationOnScreen(location);
-                        int toastY = location[1] - 100;
-                        Toast toast = new Toast(getContext());
-                        View layout = inflater.inflate(R.layout.limted_custom_toast, null);
-
-                        TextView text = layout.findViewById(R.id.toastText);
-                        text.setText("You have reached the limit of 10 messages per hour in Pro Mode ! please switch to Normal Mode");
-
-                        layout.setBackgroundResource(R.drawable.limited_toast_background);
-
-                        toast.setView(layout);
-                        toast.setDuration(Toast.LENGTH_SHORT);
-                        toast.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, toastY);
-                        toast.show();
-                        edtMessage.postDelayed(() -> isLimitToastVisible = false, 2000);
-                    }
-                    return;
-                }
-
-                if (sampleQuestionsContainer.getVisibility() == View.VISIBLE) {
-                    sampleQuestionsContainer.setVisibility(View.GONE);
-                }
-                ChatMessage userMsg = new ChatMessage(userMessage, ChatMessage.SENDER_USER);
-                messages.add(userMsg);
-                chatAdapter.notifyItemInserted(messages.size() - 1);
-                recyclerChat.scrollToPosition(messages.size() - 1);
-                ChatHistoryManager.saveChatHistory(getContext(), messages);
-                if ("Pro Mode".equals(currentModel)) {
-                    callOpenAIAPI(userMessage);
-                } else {
-                    callGeminiAPI(userMessage);
-                }
-                tvIntroduce.setVisibility(View.INVISIBLE);
-                edtMessage.setText("");
-            }
+            String userMessage = edtMessage.getText().toString();
+            sendMessage(userMessage);
         });
 
         List<ChatMessage> savedMessages = ChatHistoryManager.loadChatHistory(getContext());
@@ -166,7 +136,7 @@ public class ChatFragment extends Fragment {
     }
 
     private void showModelMenu(View anchor) {
-        PopupMenu popup = new PopupMenu(requireContext(), anchor);
+        PopupMenu popup = new PopupMenu(requireContext(), anchor, Gravity.END);
         Menu menu = popup.getMenu();
         menu.add(Menu.NONE, 1, 1, "Normal Mode").setIcon(R.drawable.lightning);
         menu.add(Menu.NONE, 2, 2, "Pro Mode").setIcon(R.drawable.star);
@@ -238,36 +208,75 @@ public class ChatFragment extends Fragment {
 
     private void setupSampleQuestionClickListener(TextView sampleQuestion) {
         sampleQuestion.setOnClickListener(v -> {
-            tvIntroduce.setVisibility(View.INVISIBLE);
-            String questionText = sampleQuestion.getText().toString();
-            edtMessage.setText(questionText);
-            edtMessage.setSelection(questionText.length());
-            btnSend.performClick();
-            sampleQuestionsContainer.setVisibility(View.GONE);
+            String questionText = sampleQuestion.getText().toString().trim();
+            sendMessage(questionText);
         });
     }
 
+    private void sendMessage(String rawUserMessage) {
+        String userMessage = rawUserMessage == null ? "" : rawUserMessage.trim();
+        if (TextUtils.isEmpty(userMessage)) return;
+        if (isSending) return; // debounce
+        isSending = true;
+
+        if ("Pro Mode".equals(currentModel) && !TokenLimiter.canSend(getContext())) {
+            if (!isLimitToastVisible) {
+                isLimitToastVisible = true;
+                Toast.makeText(
+                        getContext(),
+                        "You have reached the limit of 10 messages per hour in Pro Mode! Please switch to Normal Mode.",
+                        Toast.LENGTH_SHORT
+                ).show();
+                edtMessage.postDelayed(() -> isLimitToastVisible = false, 2000);
+            }
+            isSending = false;
+            return;
+        }
+
+        if (sampleQuestionsContainer.getVisibility() == View.VISIBLE) {
+            sampleQuestionsContainer.setVisibility(View.GONE);
+        }
+
+        ChatMessage userMsg = new ChatMessage(userMessage, ChatMessage.SENDER_USER);
+        messages.add(userMsg);
+        chatAdapter.notifyItemInserted(messages.size() - 1);
+        recyclerChat.scrollToPosition(messages.size() - 1);
+        ChatHistoryManager.saveChatHistory(getContext(), messages);
+
+        tvIntroduce.setVisibility(View.INVISIBLE);
+        edtMessage.setText("");
+
+        if ("Pro Mode".equals(currentModel)) {
+            callOpenAIAPI(userMessage);
+        } else {
+            callGeminiAPI(userMessage);
+        }
+    }
+
+    // =============== GEMINI ===============
     private void callGeminiAPI(String userMessage) {
+        // Hiển thị "Typing..."
         ChatMessage typingMsg = new ChatMessage(TYPING_MESSAGE, ChatMessage.SENDER_AI);
         messages.add(typingMsg);
         requireActivity().runOnUiThread(() -> {
             chatAdapter.notifyItemInserted(messages.size() - 1);
             recyclerChat.scrollToPosition(messages.size() - 1);
         });
+        String payloadText = userMessage;
+        if (payloadText.length() < 6) {
+            payloadText = "Please answer briefly and clearly: " + payloadText;
+        }
 
-        OkHttpClient client = new OkHttpClient();
+        callGeminiAPIInternal(payloadText, /*retried*/ false);
+    }
+
+    private void callGeminiAPIInternal(String prompt, boolean retried) {
         MediaType mediaType = MediaType.parse("application/json");
         JSONObject requestBody = new JSONObject();
         try {
-            JSONArray parts = new JSONArray();
-            JSONObject textPart = new JSONObject();
-            textPart.put("text", userMessage);
-            parts.put(textPart);
-            JSONArray contents = new JSONArray();
-            JSONObject contentObj = new JSONObject();
-            contentObj.put("parts", parts);
-            contents.put(contentObj);
-            requestBody.put("contents", contents);
+            JSONArray parts = new JSONArray().put(new JSONObject().put("text", prompt));
+            JSONObject contentObj = new JSONObject().put("parts", parts);
+            requestBody.put("contents", new JSONArray().put(contentObj));
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -279,84 +288,84 @@ public class ChatFragment extends Fragment {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                requireActivity().runOnUiThread(() -> {
-                    removeTypingMessage();
-                    Toast.makeText(getContext(), "Gemini API connection error.", Toast.LENGTH_SHORT).show();
-                });
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                uiFailGemini("Connection error! Try again later");
             }
 
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (!isAdded() || getActivity() == null) {
-                    if (response.body() != null) response.body().close();
-                    return;
-                }
-
-                final String responseBodyString = response.body() != null ? response.body().string() : null;
-                if (response.body() != null) response.body().close();
-
-                if (response.isSuccessful() && responseBodyString != null) {
-                    try {
-                        JSONObject jsonResponse = new JSONObject(responseBodyString);
-                        JSONArray candidates = jsonResponse.getJSONArray("candidates");
-                        JSONObject firstCandidate = candidates.getJSONObject(0);
-                        JSONObject content = firstCandidate.getJSONObject("content");
-                        JSONArray parts = content.getJSONArray("parts");
-                        JSONObject firstPart = parts.getJSONObject(0);
-
-                        String rawReply = firstPart.getString("text");
-                        String[] lines = rawReply.replace("*", "").split("\n");
-                        StringBuilder sb = new StringBuilder();
-                        for (String line : lines) {
-                            sb.append(line.replaceAll("^#+\\s*", "")).append("\n");
-                        }
-                        String processedReply = sb.toString()
-                                .replaceAll("(?<!\\n)\\n(?!\\n)", "\n\n")
-                                .replace(". ", ".\n")
-                                .trim();
-
-                        requireActivity().runOnUiThread(() -> {
-                            removeTypingMessage();
-                            ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
-                            messages.add(botMsg);
-                            chatAdapter.notifyItemInserted(messages.size() - 1);
-                            recyclerChat.scrollToPosition(messages.size() - 1);
-                            ChatHistoryManager.saveChatHistory(getContext(), messages);
-                        });
-                    } catch (JSONException e) {
-                        handleApiResponseError("Error parsing Gemini JSON response");
+            @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try {
+                    if (!isAdded() || getActivity() == null) {
+                        if (response.body() != null) response.body().close();
+                        return;
                     }
+                    final String responseBodyString = response.body() != null ? response.body().string() : null;
+                    if (response.body() != null) response.body().close();
+
+                    if (!response.isSuccessful() || responseBodyString == null) {
+                        uiFailGemini("Invalid response from Gemini (Code: " + response.code() + ")");
+                        return;
+                    }
+
+                    JSONObject jsonResponse = new JSONObject(responseBodyString);
+                    JSONArray candidates = jsonResponse.optJSONArray("candidates");
+                    if (candidates == null || candidates.length() == 0) {
+                        if (!retried) {
+                            callGeminiAPIInternal("Answer this clearly and concisely: " + prompt, true);
+                            return;
+                        }
+                        uiFailGemini("Gemini returned no candidates (possibly blocked by safety).");
+                        return;
+                    }
+
+                    JSONObject content = candidates.getJSONObject(0).optJSONObject("content");
+                    JSONArray parts = content != null ? content.optJSONArray("parts") : null;
+                    String rawReply = (parts != null && parts.length() > 0)
+                            ? parts.getJSONObject(0).optString("text", "").trim() : "";
+
+                    if (rawReply.isEmpty()) {
+                        uiFailGemini("Gemini returned empty text.");
+                        return;
+                    }
+
+                    String processedReply = postProcess(rawReply);
+                    requireActivity().runOnUiThread(() -> {
+                        removeTypingMessage();
+                        ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
+                        messages.add(botMsg);
+                        chatAdapter.notifyItemInserted(messages.size() - 1);
+                        recyclerChat.scrollToPosition(messages.size() - 1);
+                        ChatHistoryManager.saveChatHistory(getContext(), messages);
+                        isSending = false;
+                    });
+                } catch (Exception ex) {
+                    uiFailGemini("Error parsing Gemini JSON response");
+                }
+            }
+
+            private void uiFailGemini(String msg) {
+                if (isAdded() && getActivity() != null) {
+                    requireActivity().runOnUiThread(() -> {
+                        removeTypingMessage();
+                        Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+                        isSending = false;
+                    });
                 } else {
-                    handleApiResponseError("Invalid response from Gemini (Code: " + response.code() + ")");
+                    isSending = false;
                 }
             }
         });
     }
 
-    private void removeTypingMessage() {
-        if (!messages.isEmpty()) {
-            int lastIndex = messages.size() - 1;
-            ChatMessage lastMsg = messages.get(lastIndex);
-            if (lastMsg.getSenderType() == ChatMessage.SENDER_AI
-                    && TYPING_MESSAGE.equals(lastMsg.getMessage())) {
-                messages.remove(lastIndex);
-                chatAdapter.notifyItemRemoved(lastIndex);
-            }
-        }
-    }
-
+    // =============== OPENAI (Pro Mode) ===============
     private void callOpenAIAPI(String userMessage) {
+        // Hiển thị "Typing..."
         ChatMessage typingMsg = new ChatMessage(TYPING_MESSAGE, ChatMessage.SENDER_AI);
         messages.add(typingMsg);
         requireActivity().runOnUiThread(() -> {
             chatAdapter.notifyItemInserted(messages.size() - 1);
             recyclerChat.scrollToPosition(messages.size() - 1);
         });
-
-        OkHttpClient client = new OkHttpClient();
 
         JSONObject requestBody = new JSONObject();
         try {
@@ -381,65 +390,105 @@ public class ChatFragment extends Fragment {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                requireActivity().runOnUiThread(() -> {
-                    removeTypingMessage();
-                    Toast.makeText(getContext(), "OpenAI API connection error.", Toast.LENGTH_SHORT).show();
-                });
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                if (isAdded() && getActivity() != null) {
+                    requireActivity().runOnUiThread(() -> {
+                        removeTypingMessage();
+                        Toast.makeText(getContext(), "Connection error! Try again later", Toast.LENGTH_SHORT).show();
+                        isSending = false;
+                    });
+                } else {
+                    isSending = false;
+                }
             }
 
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (!isAdded() || getActivity() == null) {
-                    if (response.body() != null) response.body().close();
-                    return;
-                }
-                String responseBodyString = response.body() != null ? response.body().string() : null;
-                if (response.body() != null) response.body().close();
-
-                if (response.isSuccessful() && responseBodyString != null) {
-                    try {
-                        JSONObject jsonResponse = new JSONObject(responseBodyString);
-                        JSONArray choices = jsonResponse.getJSONArray("choices");
-                        JSONObject message = choices.getJSONObject(0).getJSONObject("message");
-                        String aiReply = message.getString("content").trim();
-                        String[] lines = aiReply.replace("*", "").split("\n");
-                        StringBuilder sb = new StringBuilder();
-                        for (String line : lines) {
-                            sb.append(line.replaceAll("^#+\\s*", "")).append("\n");
-                        }
-                        String processedReply = sb.toString()
-                                .replaceAll("(?<!\\n)\\n(?!\\n)", "\n\n")
-                                .replace(". ", ".\n")
-                                .trim();
-                        requireActivity().runOnUiThread(() -> {
-                            removeTypingMessage();
-                            ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
-                            messages.add(botMsg);
-                            chatAdapter.notifyItemInserted(messages.size() - 1);
-                            recyclerChat.scrollToPosition(messages.size() - 1);
-                            ChatHistoryManager.saveChatHistory(getContext(), messages);
-                        });
-                    } catch (JSONException e) {
-                        handleApiResponseError("Error parsing OpenAI JSON response");
+            @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try {
+                    if (!isAdded() || getActivity() == null) {
+                        if (response.body() != null) response.body().close();
+                        return;
                     }
+                    String responseBodyString = response.body() != null ? response.body().string() : null;
+                    if (response.body() != null) response.body().close();
+
+                    if (!response.isSuccessful() || responseBodyString == null) {
+                        uiFailOpenAI("Invalid response from OpenAI (Code: " + response.code() + ")");
+                        return;
+                    }
+
+                    JSONObject jsonResponse = new JSONObject(responseBodyString);
+                    JSONArray choices = jsonResponse.optJSONArray("choices");
+                    if (choices == null || choices.length() == 0) {
+                        uiFailOpenAI("OpenAI returned no choices.");
+                        return;
+                    }
+
+                    JSONObject message = choices.getJSONObject(0).optJSONObject("message");
+                    if (message == null) {
+                        uiFailOpenAI("OpenAI response missing message.");
+                        return;
+                    }
+
+                    String aiReply = message.optString("content", "").trim();
+                    if (aiReply.isEmpty()) {
+                        uiFailOpenAI("OpenAI returned empty content.");
+                        return;
+                    }
+
+                    String processedReply = postProcess(aiReply);
+                    requireActivity().runOnUiThread(() -> {
+                        removeTypingMessage();
+                        ChatMessage botMsg = new ChatMessage(processedReply, ChatMessage.SENDER_AI);
+                        messages.add(botMsg);
+                        chatAdapter.notifyItemInserted(messages.size() - 1);
+                        recyclerChat.scrollToPosition(messages.size() - 1);
+                        ChatHistoryManager.saveChatHistory(getContext(), messages);
+                        isSending = false;
+                    });
+                } catch (Exception ex) {
+                    uiFailOpenAI("Error parsing OpenAI JSON response");
+                }
+            }
+
+            private void uiFailOpenAI(String msg) {
+                if (isAdded() && getActivity() != null) {
+                    requireActivity().runOnUiThread(() -> {
+                        removeTypingMessage();
+                        Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+                        isSending = false;
+                    });
                 } else {
-                    handleApiResponseError("Invalid response from OpenAI (Code: " + response.code() + ")");
+                    isSending = false;
                 }
             }
         });
     }
 
-    private void handleApiResponseError(String logMessage) {
-        if (isAdded() && getActivity() != null) {
-            requireActivity().runOnUiThread(() ->
-                    Toast.makeText(getContext(), "Error!", Toast.LENGTH_SHORT).show()
-            );
+    private String postProcess(String raw) {
+        String[] lines = raw.replace("*", "").split("\n");
+        StringBuilder sb = new StringBuilder();
+        for (String line : lines) {
+            sb.append(line.replaceAll("^#+\\s*", "")).append("\n");
+        }
+        return sb.toString()
+                .replaceAll("(?<!\\n)\\n(?!\\n)", "\n\n")
+                .trim();
+    }
+
+    private void removeTypingMessage() {
+        if (!messages.isEmpty()) {
+            int lastIndex = messages.size() - 1;
+            ChatMessage lastMsg = messages.get(lastIndex);
+            if (lastMsg.getSenderType() == ChatMessage.SENDER_AI
+                    && TYPING_MESSAGE.equals(lastMsg.getMessage())) {
+                messages.remove(lastIndex);
+                chatAdapter.notifyItemRemoved(lastIndex);
+            }
         }
     }
 
+    // =============== LIFECYCLE / KEYBOARD ===============
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
