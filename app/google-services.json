@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "685152776395",
+    "firebase_url": "https://englishlearningapp-7bdec-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "englishlearningapp-7bdec",
     "storage_bucket": "englishlearningapp-7bdec.firebasestorage.app"
   },
@@ -12,7 +13,36 @@
           "package_name": "com.example.langhexx"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "685152776395-2fddgboqksjd0b6tgkdej41mr7agrrei.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.langhexx",
+            "certificate_hash": "9aac665a9bc26bc929f4ffb9ffdbb49409569cd8"
+          }
+        },
+        {
+          "client_id": "685152776395-cg7qljlkdnlpgs895nserpf1bikv5r1i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.langhexx",
+            "certificate_hash": "f0d06900e362fdae47f1d3f94fab7b96b0d87796"
+          }
+        },
+        {
+          "client_id": "685152776395-l89msr661qdo2hd0meavfagdrubku985.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.langhexx",
+            "certificate_hash": "13023d37017403a49a96e23771a67eadf3d79c1b"
+          }
+        },
+        {
+          "client_id": "685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDD89APosGWgOSCeVXcbRiK-ugUpVtVbi0"
@@ -20,7 +50,41 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:685152776395:android:1efc39d31bfc0297b16b4e",
+        "android_client_info": {
+          "package_name": "vn.enghexteam.enghex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDD89APosGWgOSCeVXcbRiK-ugUpVtVbi0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "685152776395-3lg7g8sb8idr3u245hgnvcnptbca6qh2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

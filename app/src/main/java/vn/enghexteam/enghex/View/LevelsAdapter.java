@@ -1,0 +1,46 @@
+package vn.enghexteam.enghex.View;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import vn.enghexteam.enghex.Model.Levels;
+import vn.enghexteam.enghex.R;
+
+import java.util.List;
+
+public class LevelsAdapter extends ArrayAdapter<Levels> {
+    private final Context context;
+    private final int resource;
+    private final List<Levels> levelsList;
+
+
+    public LevelsAdapter(Context context, int resource, List<Levels> levelsList) {
+        super(context, resource, levelsList);
+        this.context = context;
+        this.resource = resource;
+        this.levelsList = levelsList;
+    }
+
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        if (convertView == null) {
+            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            convertView = inflater.inflate(resource, null);
+        }
+        Levels level = levelsList.get(position);
+
+        TextView txtLevelName = convertView.findViewById(R.id.txtLevels);
+        txtLevelName.setText(level.getTxtLevels());
+
+        ImageView imgLevel = convertView.findViewById(R.id.imgLevels) ;
+        imgLevel.setImageResource(Integer.parseInt(String.valueOf(level.getImgLevels())));
+
+        return convertView;
+    }
+}

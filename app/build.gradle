@@ -5,11 +5,11 @@ plugins {
 
 
 android {
-    namespace 'com.example.langhexx'
+    namespace 'vn.enghexteam.enghex'
     compileSdk 34
     lintOptions {
         disable 'HardcodedText' // Disable check for hardcoded strings
-        check 'NewApi'        // Ensure specific API checks are enabled
+        check 'NewApi'        // Ensure specific API checks are enable\d
         abortOnError true     // Make the build fail if any lint error is found
         htmlOutput file("lint-report.html") // Generate an HTML report
     }
@@ -17,10 +17,10 @@ android {
         buildConfig = true
     }
     defaultConfig {
-        applicationId "com.example.langhexx"
+        applicationId "vn.enghexteam.enghex"
         minSdk 29
         targetSdk 34
-        versionCode 1
+        versionCode 8
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         Properties properties = new Properties()
@@ -73,8 +73,7 @@ dependencies {
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
     implementation 'com.google.android.material:material:1.12.0'
-    implementation 'com.microsoft.cognitiveservices.speech:client-sdk:1.37.0'
-
+    implementation 'com.microsoft.cognitiveservices.speech:client-sdk:1.45.0'
     implementation 'com.google.code.gson:gson:2.10.1'
 
 }

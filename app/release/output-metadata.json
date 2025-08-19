@@ -4,14 +4,14 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.example.langhexx",
+  "applicationId": "vn.enghexteam.enghex",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 1,
+      "versionCode": 3,
       "versionName": "1.0",
       "outputFile": "app-release.apk"
     }
