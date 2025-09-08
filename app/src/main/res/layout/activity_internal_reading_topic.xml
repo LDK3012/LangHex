@@ -2,143 +2,124 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_gravity="center"
-    android:orientation="vertical"
-    android:gravity="center">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <!-- PHẦN HEADER -->
+    <!-- HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="70dp"
-        android:layout_gravity="center"
         android:gravity="center"
         android:background="#FF2626"
-        android:padding="10dp"
         android:orientation="horizontal"
-        android:weightSum="12">
+        android:weightSum="12"
+        android:padding="10dp">
 
         <ImageView
             android:id="@+id/imgBackward"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
             android:layout_weight="1"
             android:tint="@color/white"
             app:srcCompat="@drawable/backward" />
 
         <TextView
             android:id="@+id/tvScreenTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
             android:layout_weight="10"
             android:gravity="center"
             android:text="Reading"
             android:textColor="#FFFFFF"
-            android:textSize="20dp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/imgHome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:tint="@color/white"
             android:layout_weight="1"
+            android:tint="@color/white"
             app:srcCompat="@drawable/icon_home" />
     </LinearLayout>
 
-    <!-- PHẦN NỘI DUNG -->
-    <LinearLayout
+    <!-- NỘI DUNG + LISTVIEW CUỘN CHUNG -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:layout_gravity="center"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="30dp"
-        android:layout_marginRight="15dp"
-        android:layout_marginLeft="15dp"
-        android:orientation="vertical">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:padding="15dp">
 
-        <!-- Tiêu đề bài đọc + nút Play -->
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
-
-            <TextView
-                android:id="@+id/txtTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_toStartOf="@id/btnPlay"
-                android:paddingEnd="10dp"
-                android:text="Title here - this is a long title that might span multiple lines if needed"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:lineSpacingExtra="4dp" />
-
-            <ImageView
-                android:id="@+id/btnPlay"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignTop="@id/txtTitle"
-                android:layout_marginEnd="5dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Play"
-                android:src="@drawable/ic_play" />
-        </RelativeLayout>
-
-        <!-- Đoạn văn -->
-        <TextView
-            android:id="@+id/txtParagraph"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingLeft="10dp"
-            android:text="Paragraph here"
-            android:textSize="15dp" />
-
-        <!-- Gợi ý chỉ dẫn -->
-        <TextView
-            android:id="@+id/textView16"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:textColor="#FF0000"
-            android:textSize="20dp"
-            android:textStyle="bold"
-            android:text="Choose the correct answer" />
-
-        <ListView
-            android:id="@+id/lvQuestions"
-            android:layout_marginTop="10dp"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:padding="5dp"
-            android:dividerHeight="5dp" />
-
-        <!-- Nút Submit -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <Button
-                android:id="@+id/btnSubmit"
-                android:layout_width="127dp"
+            <RelativeLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="#F44336"
-                android:text="Submit"
-                android:textColor="#FFFFFF"
-                android:layout_marginRight="20dp"
-                android:layout_gravity="right"/>
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/txtTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/btnPlay"
+                    android:paddingEnd="10dp"
+                    android:text="Title here - this is a long title that might span multiple lines if needed"
+                    android:textStyle="bold"
+                    android:textSize="20sp"
+                    android:lineSpacingExtra="4dp" />
+
+                <ImageView
+                    android:id="@+id/btnPlay"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignTop="@id/txtTitle"
+                    android:layout_marginEnd="5dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Play"
+                    android:src="@drawable/ic_play" />
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/txtParagraph"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="10dp"
+                android:text="Paragraph here"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/textView16"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="#FF0000"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="Choose the correct answer"
+                android:layout_marginTop="10dp" />
+
+            <ListView
+                android:id="@+id/lvQuestions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:padding="5dp"
+                android:dividerHeight="5dp"
+                android:nestedScrollingEnabled="true" />
         </LinearLayout>
-    </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <Button
+        android:id="@+id/btnSubmit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#F44336"
+        android:text="Submit"
+        android:textColor="#FFFFFF"
+        android:layout_margin="15dp" />
 </LinearLayout>

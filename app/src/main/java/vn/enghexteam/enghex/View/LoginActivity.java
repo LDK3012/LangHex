@@ -1,6 +1,7 @@
 package vn.enghexteam.enghex.View;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -64,6 +65,7 @@ public class LoginActivity extends AppCompatActivity implements AuthController.A
 
     @Override
     public void onFailure(String errorMessage) {
+        Log.e("AuthError", errorMessage);
         CustomToast.showFail(this, "Fail !", R.drawable.fail_icon);
     }
 }

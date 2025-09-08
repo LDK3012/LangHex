@@ -97,7 +97,7 @@ public class HomeFragment extends Fragment {
         levelsList.add(new Levels("A5", String.valueOf(R.drawable.a5_banner)));
         levelsList.add(new Levels("A6", String.valueOf(R.drawable.a6_banner)));
         levelsList.add(new Levels("A7", String.valueOf(R.drawable.a7_banner)));
-        levelsList.add(new Levels("VSTEP", String.valueOf(R.drawable.vstep_banner)));
+
         if (getActivity() != null) {
             levelsAdapter = new LevelsAdapter(getActivity(), R.layout.custom_levels_lst, levelsList);
             lstLevel.setAdapter(levelsAdapter);

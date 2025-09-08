@@ -9,7 +9,7 @@ import java.util.List;
 public class TokenLimiter {
     private static final String PREF_NAME = "chat_token_limit";
     private static final String KEY_TIMESTAMPS = "timestamps";
-    private static final int LIMIT = 10;
+    private static final int LIMIT = 20;
     private static final long ONE_HOUR = 60 * 60 * 1000L;
 
     public static boolean canSend(Context context) {
